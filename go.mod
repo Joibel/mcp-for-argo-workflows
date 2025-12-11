@@ -1,3 +1,3 @@
 module github.com/Joibel/mcp-for-argo-workflows
 
-go 1.25.4
+go 1.25.5
