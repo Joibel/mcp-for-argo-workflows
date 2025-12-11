@@ -70,11 +70,8 @@ func NewClient(config *Config) (*Client, error) {
 		}
 	}
 
-	// Set context and namespace
-	if config.Namespace != "" {
-		opts.Context = context.Background()
-		// Note: Namespace is handled at the service call level, not in opts
-	}
+	// Set context for API calls
+	opts.Context = context.Background()
 
 	ctx, apiClient, err := apiclient.NewClientFromOpts(opts)
 	if err != nil {

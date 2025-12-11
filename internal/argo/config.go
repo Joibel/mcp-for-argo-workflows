@@ -1,6 +1,7 @@
 package argo
 
 import (
+	"log/slog"
 	"os"
 	"strconv"
 )
@@ -42,14 +43,22 @@ func NewConfigFromEnv() *Config {
 
 	// Parse ARGO_SECURE if set
 	if secureStr := os.Getenv("ARGO_SECURE"); secureStr != "" {
-		if secure, err := strconv.ParseBool(secureStr); err == nil {
+		secure, err := strconv.ParseBool(secureStr)
+		if err != nil {
+			slog.Warn("invalid ARGO_SECURE value, using default",
+				"value", secureStr, "default", true)
+		} else {
 			config.Secure = secure
 		}
 	}
 
 	// Parse ARGO_INSECURE_SKIP_VERIFY if set
 	if skipVerifyStr := os.Getenv("ARGO_INSECURE_SKIP_VERIFY"); skipVerifyStr != "" {
-		if skipVerify, err := strconv.ParseBool(skipVerifyStr); err == nil {
+		skipVerify, err := strconv.ParseBool(skipVerifyStr)
+		if err != nil {
+			slog.Warn("invalid ARGO_INSECURE_SKIP_VERIFY value, using default",
+				"value", skipVerifyStr, "default", false)
+		} else {
 			config.InsecureSkipVerify = skipVerify
 		}
 	}
