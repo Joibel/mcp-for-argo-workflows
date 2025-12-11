@@ -23,31 +23,25 @@ A task is "ready" when:
 - Status is Backlog or Todo
 - All dependencies (listed in issue description) are completed
 
-## Step 3: Create Implementation Plan
+## Step 3: Present Ready Tasks
 
-For each ready task, determine:
+Present the list of ready tasks to the user with:
+- Issue identifier (e.g., PIP-10)
+- Title
+- Brief description of what it involves
+- Dependencies (and their status)
 
-1. **Which specialist agent** should handle it:
-   - `go-developer` - Core Go code, server skeleton, client wrapper
-   - `mcp-tool-implementer` - Individual MCP tool implementations
-   - `kubernetes-argo` - Argo client logic, K8s integration
-   - `testing` - Unit tests, mocks, integration tests
-   - `ci-devops` - GitHub Actions, Makefile, linting config
-   - `docs-examples` - README, examples, documentation
+## Step 4: Execute Implementation via /implement-issue
 
-2. **Implementation order** based on dependencies
+For each ready task, use the `/implement-issue` command to implement it:
 
-3. **Verification criteria** from the issue description
+```
+/implement-issue PIP-XX
+```
 
-## Step 4: Execute Implementation
+**IMPORTANT**: Always use `/implement-issue` to implement individual tasks. This ensures consistent implementation workflow across all tasks.
 
-For each task in order:
-
-1. **Update Linear** - Move issue to "In Progress" using `mcp__linear-server__update_issue`
-2. **Delegate to specialist** - Use the Task tool with appropriate subagent
-3. **Verify output** - Check that implementation meets issue requirements
-4. **Run tests** - Execute `make test` and `make lint` if applicable
-5. **Update Linear** - Move issue to "Done" and add completion comment
+Wait for each task to complete before starting the next one.
 
 ## Step 5: Report Progress
 
@@ -55,23 +49,24 @@ After each implementation cycle:
 
 1. Summarize what was completed
 2. List any blockers or issues encountered
-3. Identify next tasks ready for implementation
-4. Update Linear with progress comments using `mcp__linear-server__create_comment`
+3. Identify next tasks ready for implementation (dependencies now met)
+4. Ask user if they want to continue with the next task
 
 ## Implementation Guidelines
 
 - **One task at a time** - Complete and verify before moving to next
-- **Commit frequently** - After each logical unit of work
-- **Update Linear** - Keep issue status current
+- **Always use /implement-issue** - Never implement tasks directly in this command
 - **Ask for clarification** - If requirements are ambiguous, ask before implementing
-- **Run verification** - Always run `make lint` and `make test` before marking complete
+- **Report blockers** - If a task cannot be completed, report why and suggest alternatives
 
 ## Starting Point
 
-If this is the first implementation session, start with:
+If this is the first implementation session, the typical order is:
 1. PIP-5: Initialize Go module and directory structure
 2. PIP-6: Create Makefile
 3. PIP-7: Configure golangci-lint
+4. PIP-8: Set up GitHub Actions CI
+5. PIP-9: Add basic README
 
 These have no dependencies and enable all subsequent work.
 
