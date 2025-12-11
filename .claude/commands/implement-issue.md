@@ -216,9 +216,65 @@ Add a comment to the Linear issue with the PR link:
 mcp__linear-server__create_comment(issueId: "<issue-id>", body: "PR created: <pr-url>\n\nAgents involved:\n- [primary agent]: [what they did]\n- [supporting agent]: [what they did]\n\nFollow-up tasks created:\n- PIP-XX: [title] (if any)")
 ```
 
-## Step 9: Update Linear After PR Merge
+## Step 9: Address Code Review Feedback
 
-Once the PR is reviewed and merged:
+CodeRabbit will automatically review the PR and may request changes. The PR requires approval before merging.
+
+### Review Process
+
+1. **Wait for CodeRabbit review** - It will post comments and potentially request changes
+2. **Address all feedback** - Fix issues raised by CodeRabbit
+3. **Commit and push fixes** - Push additional commits to the PR branch
+4. **CodeRabbit re-reviews** - It will review new commits automatically
+5. **Approval** - Once all comments are resolved, CodeRabbit will approve the PR
+
+### Addressing CodeRabbit Comments
+
+For each CodeRabbit comment:
+
+1. **Read the feedback carefully** - Understand what issue was identified
+2. **Make the fix** - Update the code to address the concern
+3. **Commit with context**:
+   ```
+   Address CodeRabbit feedback: <brief description>
+
+   🤖 Generated with [Claude Code](https://claude.com/claude-code)
+
+   Co-Authored-By: Claude <noreply@anthropic.com>
+   ```
+4. **Push the fix**: `git push`
+
+### Common CodeRabbit Feedback Categories
+
+| Category | How to Address |
+|----------|----------------|
+| Error handling | Add proper error checks, don't ignore errors |
+| Missing tests | Add unit tests for new functionality |
+| Code style | Follow Go idioms, fix formatting |
+| Documentation | Add/improve comments, update README |
+| Security | Fix potential vulnerabilities (input validation, etc.) |
+| Performance | Optimize as suggested |
+
+### If You Disagree with Feedback
+
+If CodeRabbit's suggestion isn't applicable:
+1. Reply to the comment explaining why
+2. Use `@coderabbitai resolve` to mark it as addressed
+3. Document the reasoning in the code if needed
+
+## Step 10: Merge PR and Update Linear
+
+Once CodeRabbit approves the PR:
+
+### Merge the PR
+
+```bash
+gh pr merge --squash --delete-branch
+```
+
+Or merge via GitHub UI with squash merge.
+
+### Update Linear
 
 1. Move issue to "Done":
    ```
@@ -230,7 +286,13 @@ Once the PR is reviewed and merged:
    mcp__linear-server__create_comment(issueId: "<issue-id>", body: "PR merged. Implementation complete.")
    ```
 
-**Note**: CodeRabbit will automatically review the PR. Address any feedback before requesting human review.
+### Clean Up Local Branch
+
+```bash
+git checkout main
+git pull origin main
+git branch -d <branch-name>
+```
 
 ## Error Handling
 
