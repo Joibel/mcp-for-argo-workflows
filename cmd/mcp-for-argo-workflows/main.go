@@ -17,13 +17,13 @@ func main() {
 	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
 	slog.SetDefault(logger)
 
-	if err := run(); err != nil {
+	if err := run(context.Background()); err != nil {
 		slog.Error("server error", "error", err)
 		os.Exit(1)
 	}
 }
 
-func run() error {
+func run(ctx context.Context) error {
 	// Create the MCP server with name and version
 	srv := server.NewServer(serverName, version.Version)
 
@@ -32,5 +32,5 @@ func run() error {
 
 	// Start the server with stdio transport
 	// This will block until interrupted (SIGINT/SIGTERM)
-	return srv.RunStdio(context.Background())
+	return srv.RunStdio(ctx)
 }

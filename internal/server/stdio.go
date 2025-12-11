@@ -18,7 +18,7 @@ func (s *Server) RunStdio(ctx context.Context) error {
 	ctx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	slog.Info("starting MCP server with stdio transport")
+	slog.Info("starting MCP server", "transport", "stdio")
 
 	// Run the server with stdio transport
 	// This blocks until the transport is closed or context is cancelled
@@ -27,6 +27,6 @@ func (s *Server) RunStdio(ctx context.Context) error {
 		return err
 	}
 
-	slog.Info("MCP server shutdown gracefully")
+	slog.Info("MCP server shutdown gracefully", "transport", "stdio")
 	return nil
 }
