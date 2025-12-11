@@ -112,6 +112,37 @@ For complex implementations, have a different agent verify using `opus` for deep
 - `go-developer` (model: `opus`): "Review this implementation for correctness, error handling, and edge cases"
 - `kubernetes-argo` (model: `opus`): "Verify the Argo client usage is correct and follows best practices"
 
+### Phase 4: Create Follow-up Tasks (as needed)
+
+During implementation, agents may identify improvements or issues that are out of scope for the current task. Instead of expanding scope, create new Linear issues for later:
+
+**When to create follow-up tasks:**
+- Technical debt that should be addressed later
+- Refactoring opportunities discovered during implementation
+- Additional test coverage needed
+- Documentation improvements
+- Performance optimizations
+- Edge cases that need handling
+- Related features that would be nice to have
+
+**How to create a follow-up task:**
+```
+mcp__linear-server__create_issue(
+  team: "Pipekit",
+  project: "mcp-for-argo-workflows",
+  title: "Brief description of the task",
+  description: "## Context\n\nDiscovered while implementing [PIP-X].\n\n## Problem/Opportunity\n\n[Description]\n\n## Suggested Approach\n\n[How to fix/improve]\n\n## Dependencies\n\n- PIP-X (if applicable)",
+  labels: ["technical-debt"] or ["enhancement"] or ["testing"] as appropriate
+)
+```
+
+**Guidelines for follow-up tasks:**
+- Keep the current task focused - don't expand scope
+- Be specific about what needs to be done
+- Reference the original issue for context
+- Use appropriate labels: `technical-debt`, `enhancement`, `testing`, `docs`, `bug`
+- Don't create follow-ups for trivial issues - fix them now if quick
+
 ## Step 6: Verify Implementation
 
 1. **Run linter** - `make lint` (fix any issues)
@@ -141,7 +172,7 @@ Co-Authored-By: Claude <noreply@anthropic.com>
 
 2. Add completion comment listing what was done:
    ```
-   mcp__linear-server__create_comment(issueId: "<issue-id>", body: "Implementation complete. Commit: <hash>\n\nAgents involved:\n- [primary agent]: [what they did]\n- [supporting agent]: [what they did]")
+   mcp__linear-server__create_comment(issueId: "<issue-id>", body: "Implementation complete. Commit: <hash>\n\nAgents involved:\n- [primary agent]: [what they did]\n- [supporting agent]: [what they did]\n\nFollow-up tasks created:\n- PIP-XX: [title] (if any)")
    ```
 
 ## Error Handling
