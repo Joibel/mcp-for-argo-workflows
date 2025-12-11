@@ -2,6 +2,7 @@
 package main
 
 import (
+	"context"
 	"log/slog"
 	"os"
 
@@ -16,24 +17,20 @@ func main() {
 	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
 	slog.SetDefault(logger)
 
-	if err := run(); err != nil {
+	if err := run(context.Background()); err != nil {
 		slog.Error("server error", "error", err)
 		os.Exit(1)
 	}
 }
 
-//nolint:unparam // Will return errors in future implementations (PIP-11+)
-func run() error {
+func run(ctx context.Context) error {
 	// Create the MCP server with name and version
 	srv := server.NewServer(serverName, version.Version)
 
 	// TODO: Register tools (will be implemented in future issues)
-	// For now, just log that the server was created
-	_ = srv
 	slog.Info("MCP server created", "name", serverName, "version", version.Version)
 
-	// TODO: Start transport (stdio/HTTP) - will be implemented in PIP-11
-	slog.Info("transport setup not yet implemented", "issue", "PIP-11")
-
-	return nil
+	// Start the server with stdio transport
+	// This will block until interrupted (SIGINT/SIGTERM)
+	return srv.RunStdio(ctx)
 }
