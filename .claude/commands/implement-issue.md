@@ -26,14 +26,26 @@ The argument is: $ARGUMENTS
    - Verify code exists locally
 3. If dependencies not met, report and stop
 
-## Step 3: Update Linear Status
+## Step 3: Create Feature Branch
+
+Create a branch for this issue using the Linear-suggested branch name:
+
+```bash
+git checkout main
+git pull origin main
+git checkout -b <branch-name-from-linear>
+```
+
+The branch name is provided in the Linear issue details as `gitBranchName` (e.g., `alan/pip-10-implement-mcp-server-skeleton`).
+
+## Step 4: Update Linear Status
 
 Move issue to "In Progress":
 ```
 mcp__linear-server__update_issue(id: "<issue-id>", state: "In Progress")
 ```
 
-## Step 4: Plan Agent Collaboration
+## Step 5: Plan Agent Collaboration
 
 Based on issue labels and content, determine which agents need to be involved:
 
@@ -81,7 +93,7 @@ Use the `model` parameter in the Task tool to select the appropriate model for e
 | CI/DevOps | `sonnet` | `sonnet` |
 | Code review / Cross-check | - | `opus` |
 
-## Step 5: Execute with Multiple Agents
+## Step 6: Execute with Multiple Agents
 
 ### Phase 1: Primary Implementation
 
@@ -143,15 +155,17 @@ mcp__linear-server__create_issue(
 - Use appropriate labels: `technical-debt`, `enhancement`, `testing`, `docs`, `bug`
 - Don't create follow-ups for trivial issues - fix them now if quick
 
-## Step 6: Verify Implementation
+## Step 7: Verify Implementation
 
 1. **Run linter** - `make lint` (fix any issues)
 2. **Run tests** - `make test` (ensure passing)
 3. **Manual check** - Verify against acceptance criteria from issue
 
-## Step 7: Commit Changes
+## Step 8: Commit and Create Pull Request
 
-Create a commit with message format:
+### Commit Changes
+
+Create commits on the feature branch with message format:
 ```
 [PIP-X] Brief description of implementation
 
@@ -163,17 +177,60 @@ Create a commit with message format:
 Co-Authored-By: Claude <noreply@anthropic.com>
 ```
 
-## Step 8: Update Linear
+### Push and Create PR
+
+```bash
+git push -u origin <branch-name>
+```
+
+Create a pull request using `gh`:
+```bash
+gh pr create --title "[PIP-X] Title from Linear issue" --body "## Summary
+
+<Brief description of changes>
+
+## Changes
+
+- Change 1
+- Change 2
+
+## Testing
+
+- [ ] `make lint` passes
+- [ ] `make test` passes
+- [ ] Manual verification against acceptance criteria
+
+## Linear Issue
+
+Closes PIP-X
+
+---
+
+🤖 Generated with [Claude Code](https://claude.com/claude-code)"
+```
+
+### Link PR to Linear
+
+Add a comment to the Linear issue with the PR link:
+```
+mcp__linear-server__create_comment(issueId: "<issue-id>", body: "PR created: <pr-url>\n\nAgents involved:\n- [primary agent]: [what they did]\n- [supporting agent]: [what they did]\n\nFollow-up tasks created:\n- PIP-XX: [title] (if any)")
+```
+
+## Step 9: Update Linear After PR Merge
+
+Once the PR is reviewed and merged:
 
 1. Move issue to "Done":
    ```
    mcp__linear-server__update_issue(id: "<issue-id>", state: "Done")
    ```
 
-2. Add completion comment listing what was done:
+2. Add completion comment:
    ```
-   mcp__linear-server__create_comment(issueId: "<issue-id>", body: "Implementation complete. Commit: <hash>\n\nAgents involved:\n- [primary agent]: [what they did]\n- [supporting agent]: [what they did]\n\nFollow-up tasks created:\n- PIP-XX: [title] (if any)")
+   mcp__linear-server__create_comment(issueId: "<issue-id>", body: "PR merged. Implementation complete.")
    ```
+
+**Note**: CodeRabbit will automatically review the PR. Address any feedback before requesting human review.
 
 ## Error Handling
 
