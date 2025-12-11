@@ -88,3 +88,19 @@ ListOptions{
 - Check for "not found" errors specifically
 - Return clear messages for permission denied
 - Distinguish Argo Server requirements from K8s limitations
+
+## Creating Follow-up Tasks
+
+If you discover issues or improvements that are out of scope for the current task, create a new Linear issue:
+
+```
+mcp__linear-server__create_issue(
+  team: "Pipekit",
+  project: "mcp-for-argo-workflows",
+  title: "Brief description",
+  description: "## Context\n\nDiscovered while implementing [PIP-X].\n\n## Problem/Opportunity\n\n[Description]\n\n## Suggested Approach\n\n[How to fix/improve]",
+  labels: ["technical-debt"] or ["enhancement"] or ["bug"]
+)
+```
+
+Use this for: Argo API issues, K8s integration improvements, connection handling edge cases. Don't expand scope of current task.

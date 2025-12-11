@@ -66,3 +66,19 @@ internal/
 - Archive operations require Argo Server (fail gracefully in direct K8s mode)
 - Configuration follows precedence: CLI flags > env vars > defaults
 - All tools return structured, parseable output
+
+## Creating Follow-up Tasks
+
+If you discover issues or improvements that are out of scope for the current task, create a new Linear issue:
+
+```
+mcp__linear-server__create_issue(
+  team: "Pipekit",
+  project: "mcp-for-argo-workflows",
+  title: "Brief description",
+  description: "## Context\n\nDiscovered while implementing [PIP-X].\n\n## Problem/Opportunity\n\n[Description]\n\n## Suggested Approach\n\n[How to fix/improve]",
+  labels: ["technical-debt"] or ["enhancement"] or ["architecture"]
+)
+```
+
+Use this for: architectural improvements, design issues, cross-cutting concerns, dependency updates. Don't expand scope of current task.

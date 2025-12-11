@@ -75,3 +75,19 @@ Use `github.com/spf13/pflag` or `cobra` for CLI parsing:
 - `--argo-server`
 - `--namespace`
 - Support env var fallbacks (ARGO_SERVER, ARGO_NAMESPACE, etc.)
+
+## Creating Follow-up Tasks
+
+If you discover issues or improvements that are out of scope for the current task, create a new Linear issue:
+
+```
+mcp__linear-server__create_issue(
+  team: "Pipekit",
+  project: "mcp-for-argo-workflows",
+  title: "Brief description",
+  description: "## Context\n\nDiscovered while implementing [PIP-X].\n\n## Problem/Opportunity\n\n[Description]\n\n## Suggested Approach\n\n[How to fix/improve]",
+  labels: ["technical-debt"] or ["enhancement"] or ["bug"]
+)
+```
+
+Use this for: technical debt, refactoring opportunities, edge cases, performance improvements. Don't expand scope of current task.

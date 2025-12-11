@@ -143,3 +143,19 @@ go test -tags=integration ./...  # Include integration tests
 go test -race ./...    # With race detection
 go test -cover ./...   # With coverage
 ```
+
+## Creating Follow-up Tasks
+
+If you discover issues or improvements that are out of scope for the current task, create a new Linear issue:
+
+```
+mcp__linear-server__create_issue(
+  team: "Pipekit",
+  project: "mcp-for-argo-workflows",
+  title: "Brief description",
+  description: "## Context\n\nDiscovered while implementing [PIP-X].\n\n## Problem/Opportunity\n\n[Description]\n\n## Suggested Approach\n\n[How to fix/improve]",
+  labels: ["testing"] or ["technical-debt"]
+)
+```
+
+Use this for: additional test coverage needed, flaky tests, missing edge case tests, test infrastructure improvements. Don't expand scope of current task.

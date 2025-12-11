@@ -109,3 +109,19 @@ func HandleGetWorkflow(ctx context.Context, client *argo.Client, params json.Raw
 4. **Return structured output** that's useful for AI processing
 5. **Document Argo Server requirements** for archive operations
 6. **Recommend lint_workflow** in create/submit tool descriptions
+
+## Creating Follow-up Tasks
+
+If you discover issues or improvements that are out of scope for the current task, create a new Linear issue:
+
+```
+mcp__linear-server__create_issue(
+  team: "Pipekit",
+  project: "mcp-for-argo-workflows",
+  title: "Brief description",
+  description: "## Context\n\nDiscovered while implementing [PIP-X].\n\n## Problem/Opportunity\n\n[Description]\n\n## Suggested Approach\n\n[How to fix/improve]",
+  labels: ["mcp-tool"] or ["technical-debt"] or ["enhancement"]
+)
+```
+
+Use this for: missing tool features, edge cases, validation improvements, better error messages. Don't expand scope of current task.

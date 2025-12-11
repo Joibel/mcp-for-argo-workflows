@@ -151,3 +151,19 @@ Get detailed information about an Argo Workflow.
 ### Common Errors
 - "archive not available" - Requires Argo Server connection
 - "workflow too large" - Use Argo Server for large workflows
+
+## Creating Follow-up Tasks
+
+If you discover issues or improvements that are out of scope for the current task, create a new Linear issue:
+
+```
+mcp__linear-server__create_issue(
+  team: "Pipekit",
+  project: "mcp-for-argo-workflows",
+  title: "Brief description",
+  description: "## Context\n\nDiscovered while implementing [PIP-X].\n\n## Problem/Opportunity\n\n[Description]\n\n## Suggested Approach\n\n[How to fix/improve]",
+  labels: ["docs"] or ["enhancement"]
+)
+```
+
+Use this for: missing documentation, unclear explanations, additional examples needed, troubleshooting gaps. Don't expand scope of current task.
