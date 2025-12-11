@@ -37,7 +37,7 @@ build:
 ## test: Run tests with race detection and coverage
 test:
 	@echo "Running tests..."
-	$(GO) test -race -coverprofile=coverage.out -covermode=atomic ./...
+	$(GO) test -race -coverprofile=coverage.out -covermode=atomic ./internal/...
 	@echo "Coverage report: coverage.out"
 
 ## lint: Run golangci-lint
