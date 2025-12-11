@@ -1,0 +1,78 @@
+version: "2"
+
+linters:
+  enable:
+    # Bug Prevention (critical)
+    - errcheck        # Unchecked errors
+    - staticcheck     # Advanced static analysis
+    - bodyclose       # HTTP response body closure
+    - nilerr          # nil error returns
+    - errorlint       # Go 1.13+ error wrapping
+
+    # Performance
+    - ineffassign     # Unused assignments
+    - unparam         # Unused parameters
+    - copyloopvar     # Loop variable capture (Go 1.22+)
+
+    # Style
+    - revive          # Configurable golint replacement
+    - goconst         # Repeated strings
+    - nakedret        # Naked returns
+
+    # Security
+    - gosec           # Security issues
+
+linters-settings:
+  errcheck:
+    check-type-assertions: true
+    check-blank: true
+
+  govet:
+    enable-all: true
+
+  revive:
+    rules:
+      - name: blank-imports
+      - name: context-as-argument
+      - name: context-keys-type
+      - name: dot-imports
+      - name: error-return
+      - name: error-strings
+      - name: error-naming
+      - name: exported
+      - name: increment-decrement
+      - name: indent-error-flow
+      - name: range
+      - name: receiver-naming
+      - name: time-naming
+      - name: unexported-return
+      - name: var-declaration
+      - name: var-naming
+
+  nakedret:
+    max-func-lines: 30
+
+  goconst:
+    min-len: 3
+    min-occurrences: 3
+
+  gosec:
+    excludes:
+      - G104  # Audit errors not checked (covered by errcheck)
+
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    goimports:
+      local-prefixes:
+        - github.com/Joibel/mcp-for-argo-workflows
+
+issues:
+  exclude-rules:
+    # Test files can have longer functions
+    - path: _test\.go
+      linters:
+        - goconst
+        - unparam
