@@ -32,6 +32,11 @@ func run(ctx context.Context) error {
 		return fmt.Errorf("failed to parse configuration: %w", err)
 	}
 
+	// Validate configuration
+	if err := cfg.Validate(); err != nil {
+		return fmt.Errorf("invalid configuration: %w", err)
+	}
+
 	// Create the MCP server with name and version
 	srv := server.NewServer(serverName, version.Version)
 
