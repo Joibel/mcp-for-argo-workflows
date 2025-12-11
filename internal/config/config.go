@@ -89,8 +89,9 @@ func (c *Config) Validate() error {
 }
 
 // getEnvIfNotSet returns the environment variable value if the flag was not explicitly set.
-func getEnvIfNotSet(flagName, envKey, current string) string {
-	if !pflag.CommandLine.Changed(flagName) {
+// Accepts a FlagSet for testability; pass pflag.CommandLine for normal usage.
+func getEnvIfNotSet(fs *pflag.FlagSet, flagName, envKey, current string) string {
+	if !fs.Changed(flagName) {
 		if v := os.Getenv(envKey); v != "" {
 			return v
 		}
@@ -99,8 +100,9 @@ func getEnvIfNotSet(flagName, envKey, current string) string {
 }
 
 // getEnvBoolIfNotSet returns the boolean environment variable value if the flag was not explicitly set.
-func getEnvBoolIfNotSet(flagName, envKey string, current bool) bool {
-	if !pflag.CommandLine.Changed(flagName) {
+// Accepts a FlagSet for testability; pass pflag.CommandLine for normal usage.
+func getEnvBoolIfNotSet(fs *pflag.FlagSet, flagName, envKey string, current bool) bool {
+	if !fs.Changed(flagName) {
 		if v := os.Getenv(envKey); v != "" {
 			if b, err := strconv.ParseBool(v); err == nil {
 				return b
@@ -114,8 +116,14 @@ func getEnvBoolIfNotSet(flagName, envKey string, current bool) bool {
 
 // applyEnvOverrides applies environment variable values for unset flags.
 func applyEnvOverrides(cfg *Config) {
+	applyEnvOverridesWithFlagSet(pflag.CommandLine, cfg)
+}
+
+// applyEnvOverridesWithFlagSet applies environment variable values for unset flags.
+// Accepts a FlagSet for testability.
+func applyEnvOverridesWithFlagSet(fs *pflag.FlagSet, cfg *Config) {
 	// Transport with validation
-	if !pflag.CommandLine.Changed("transport") {
+	if !fs.Changed("transport") {
 		if v := os.Getenv("MCP_TRANSPORT"); v != "" {
 			v = strings.ToLower(strings.TrimSpace(v))
 			if v != TransportStdio && v != TransportHTTP {
@@ -127,14 +135,14 @@ func applyEnvOverrides(cfg *Config) {
 		}
 	}
 
-	cfg.HTTPAddr = getEnvIfNotSet("http-addr", "MCP_HTTP_ADDR", cfg.HTTPAddr)
-	cfg.ArgoServer = getEnvIfNotSet("argo-server", "ARGO_SERVER", cfg.ArgoServer)
-	cfg.ArgoToken = getEnvIfNotSet("argo-token", "ARGO_TOKEN", cfg.ArgoToken)
-	cfg.Namespace = getEnvIfNotSet("namespace", "ARGO_NAMESPACE", cfg.Namespace)
-	cfg.Kubeconfig = getEnvIfNotSet("kubeconfig", "KUBECONFIG", cfg.Kubeconfig)
+	cfg.HTTPAddr = getEnvIfNotSet(fs, "http-addr", "MCP_HTTP_ADDR", cfg.HTTPAddr)
+	cfg.ArgoServer = getEnvIfNotSet(fs, "argo-server", "ARGO_SERVER", cfg.ArgoServer)
+	cfg.ArgoToken = getEnvIfNotSet(fs, "argo-token", "ARGO_TOKEN", cfg.ArgoToken)
+	cfg.Namespace = getEnvIfNotSet(fs, "namespace", "ARGO_NAMESPACE", cfg.Namespace)
+	cfg.Kubeconfig = getEnvIfNotSet(fs, "kubeconfig", "KUBECONFIG", cfg.Kubeconfig)
 
-	cfg.Secure = getEnvBoolIfNotSet("argo-secure", "ARGO_SECURE", cfg.Secure)
-	cfg.InsecureSkipVerify = getEnvBoolIfNotSet("argo-insecure-skip-verify", "ARGO_INSECURE_SKIP_VERIFY", cfg.InsecureSkipVerify)
+	cfg.Secure = getEnvBoolIfNotSet(fs, "argo-secure", "ARGO_SECURE", cfg.Secure)
+	cfg.InsecureSkipVerify = getEnvBoolIfNotSet(fs, "argo-insecure-skip-verify", "ARGO_INSECURE_SKIP_VERIFY", cfg.InsecureSkipVerify)
 
 	// Note: There's no standard env var for Kubernetes context,
 	// so --context is CLI-only
