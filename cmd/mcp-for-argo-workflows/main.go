@@ -2,7 +2,7 @@
 package main
 
 import (
-	"fmt"
+	"log/slog"
 	"os"
 
 	"github.com/Joibel/mcp-for-argo-workflows/internal/server"
@@ -12,8 +12,12 @@ import (
 const serverName = "mcp-for-argo-workflows"
 
 func main() {
+	// Configure structured logging to stderr
+	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
+	slog.SetDefault(logger)
+
 	if err := run(); err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		slog.Error("server error", "error", err)
 		os.Exit(1)
 	}
 }
@@ -26,10 +30,10 @@ func run() error {
 	// TODO: Register tools (will be implemented in future issues)
 	// For now, just log that the server was created
 	_ = srv
-	fmt.Fprintf(os.Stderr, "MCP server created: %s version %s\n", serverName, version.Version)
+	slog.Info("MCP server created", "name", serverName, "version", version.Version)
 
 	// TODO: Start transport (stdio/HTTP) - will be implemented in PIP-11
-	fmt.Fprintf(os.Stderr, "Transport setup not yet implemented (PIP-11)\n")
+	slog.Info("transport setup not yet implemented", "issue", "PIP-11")
 
 	return nil
 }
