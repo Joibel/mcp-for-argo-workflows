@@ -118,7 +118,7 @@ func LogsWorkflowHandler(client *argo.Client) func(context.Context, *mcp.CallToo
 		}
 
 		// Collect logs from the stream
-		var logs []LogEntryOutput
+		logs := []LogEntryOutput{}
 		var totalBytes int
 		truncated := false
 
