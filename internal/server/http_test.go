@@ -329,33 +329,38 @@ func TestRunHTTP_QuickSuccession(t *testing.T) {
 	runErr1 := <-errChan1
 	assert.NoError(t, runErr1)
 
-	// Second server on same port - retry until port is released (TIME_WAIT)
+	// Wait for port to be released (TCP TIME_WAIT state)
+	// Use a simple polling approach to check when the port is available
+	require.Eventually(t, func() bool {
+		listener, err := net.Listen("tcp", addr)
+		if err != nil {
+			return false
+		}
+		_ = listener.Close()
+		return true
+	}, 5*time.Second, 100*time.Millisecond, "port should be released after first server shutdown")
+
+	// Second server on same port - now that port is available
 	srv2 := NewServer("test-server-2", "1.0.0")
 	ctx2, cancel2 := context.WithCancel(context.Background())
 	defer cancel2()
 
-	// Retry starting second server until port is available
-	require.Eventually(t, func() bool {
-		errChan2 := make(chan error, 1)
-		go func() {
-			errChan2 <- srv2.RunHTTP(ctx2, addr)
-		}()
+	errChan2 := make(chan error, 1)
+	go func() {
+		errChan2 <- srv2.RunHTTP(ctx2, addr)
+	}()
 
-		// Try to connect to see if it started
-		client := &http.Client{Timeout: 50 * time.Millisecond}
-		resp, err := client.Get(fmt.Sprintf("http://%s/", addr))
-		if err != nil {
-			// Server might not have started yet due to port in use
-			// Cancel this attempt and let Eventually retry
-			cancel2()
-			<-errChan2
-			// Create new context for next attempt
-			ctx2, cancel2 = context.WithCancel(context.Background())
-			return false
-		}
-		_ = resp.Body.Close()
-		return true
-	}, 2*time.Second, 50*time.Millisecond, "second server should start after first shuts down")
+	// Wait for second server to become reachable
+	waitForServer(t, addr)
 
+	// Verify second server is running by making a request
+	client := &http.Client{Timeout: 100 * time.Millisecond}
+	resp, err := client.Get(fmt.Sprintf("http://%s/", addr))
+	require.NoError(t, err, "second server should respond to requests")
+	_ = resp.Body.Close()
+
+	// Shut down second server
 	cancel2()
+	runErr2 := <-errChan2
+	assert.NoError(t, runErr2)
 }
