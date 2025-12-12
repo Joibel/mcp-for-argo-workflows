@@ -18,8 +18,8 @@ GOFMT := gofmt
 GOIMPORTS := goimports
 GOLANGCI_LINT := golangci-lint
 
-# Source files for dependency tracking
-GO_FILES := $(shell find . -name '*.go' -type f)
+# Source files for dependency tracking (exclude dist/ and vendor/)
+GO_FILES := $(shell find . -name '*.go' -type f -not -path './dist/*' -not -path './vendor/*')
 GO_MOD := go.mod go.sum
 
 # Platform-specific binary paths
@@ -128,7 +128,7 @@ $(DIST_WINDOWS_AMD64): $(GO_FILES) $(GO_MOD)
 ## checksums: Generate SHA256 checksums for all binaries
 $(DIST_CHECKSUMS): $(DIST_BINARIES)
 	@echo "Generating checksums..."
-	@cd $(DIST_DIR) && sha256sum $(BINARY_NAME)-* > checksums.txt
+	@cd $(DIST_DIR) && shasum -a 256 $(BINARY_NAME)-* > checksums.txt
 	@echo "Checksums written to $(DIST_CHECKSUMS)"
 
 ## dist-clean: Remove distribution artifacts
