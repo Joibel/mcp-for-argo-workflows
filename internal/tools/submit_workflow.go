@@ -72,6 +72,11 @@ func SubmitWorkflowHandler(client *argo.Client) func(context.Context, *mcp.CallT
 			return nil, nil, fmt.Errorf("failed to parse workflow manifest: %w", err)
 		}
 
+		// Validate that the manifest is a Workflow
+		if wf.Kind != "" && wf.Kind != "Workflow" {
+			return nil, nil, fmt.Errorf("manifest must be a Workflow, got %q", wf.Kind)
+		}
+
 		// Determine namespace
 		namespace := input.Namespace
 		if namespace == "" {
@@ -80,6 +85,7 @@ func SubmitWorkflowHandler(client *argo.Client) func(context.Context, *mcp.CallT
 
 		// Override generateName if provided
 		if input.GenerateName != "" {
+			wf.Name = ""
 			wf.GenerateName = input.GenerateName
 		}
 
