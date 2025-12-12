@@ -35,6 +35,9 @@ func (s *Server) RegisterTools(client *argo.Client) {
 	// Register submit_workflow tool
 	mcp.AddTool(s.mcp, tools.SubmitWorkflowTool(), tools.SubmitWorkflowHandler(client))
 
+	// Register list_workflows tool
+	mcp.AddTool(s.mcp, tools.ListWorkflowsTool(), tools.ListWorkflowsHandler(client))
+
 	// Register get_workflow tool
 	mcp.AddTool(s.mcp, tools.GetWorkflowTool(), tools.GetWorkflowHandler(client))
 }
