@@ -2,13 +2,21 @@
 package config
 
 import (
+	"fmt"
 	"log/slog"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/spf13/pflag"
 
 	"github.com/Joibel/mcp-for-argo-workflows/internal/argo"
+)
+
+// Valid transport modes.
+const (
+	TransportStdio = "stdio"
+	TransportHTTP  = "http"
 )
 
 // Config holds the combined configuration for the MCP server.
@@ -34,7 +42,7 @@ type Config struct {
 // DefaultConfig returns a Config with default values.
 func DefaultConfig() *Config {
 	return &Config{
-		Transport: "stdio",
+		Transport: TransportStdio,
 		HTTPAddr:  ":8080",
 		Namespace: "default",
 		Secure:    true,
@@ -66,68 +74,75 @@ func NewFromFlags() (*Config, error) {
 	return cfg, nil
 }
 
+// Validate returns an error if the configuration is invalid.
+func (c *Config) Validate() error {
+	if c.Transport != TransportStdio && c.Transport != TransportHTTP {
+		return fmt.Errorf("invalid transport %q, must be %q or %q", c.Transport, TransportStdio, TransportHTTP)
+	}
+
+	// Validate HTTP address has a port when using HTTP transport
+	if c.Transport == TransportHTTP && c.HTTPAddr == "" {
+		return fmt.Errorf("http-addr is required when using HTTP transport")
+	}
+
+	return nil
+}
+
+// getEnvIfNotSet returns the environment variable value if the flag was not explicitly set.
+// Accepts a FlagSet for testability; pass pflag.CommandLine for normal usage.
+func getEnvIfNotSet(fs *pflag.FlagSet, flagName, envKey, current string) string {
+	if !fs.Changed(flagName) {
+		if v := os.Getenv(envKey); v != "" {
+			return v
+		}
+	}
+	return current
+}
+
+// getEnvBoolIfNotSet returns the boolean environment variable value if the flag was not explicitly set.
+// Accepts a FlagSet for testability; pass pflag.CommandLine for normal usage.
+func getEnvBoolIfNotSet(fs *pflag.FlagSet, flagName, envKey string, current bool) bool {
+	if !fs.Changed(flagName) {
+		if v := os.Getenv(envKey); v != "" {
+			if b, err := strconv.ParseBool(v); err == nil {
+				return b
+			}
+			slog.Warn("invalid boolean env var, using default",
+				"env", envKey, "value", v, "default", current)
+		}
+	}
+	return current
+}
+
 // applyEnvOverrides applies environment variable values for unset flags.
 func applyEnvOverrides(cfg *Config) {
-	// Only override if the flag was not explicitly set
-	if !pflag.CommandLine.Changed("transport") {
+	applyEnvOverridesWithFlagSet(pflag.CommandLine, cfg)
+}
+
+// applyEnvOverridesWithFlagSet applies environment variable values for unset flags.
+// Accepts a FlagSet for testability.
+func applyEnvOverridesWithFlagSet(fs *pflag.FlagSet, cfg *Config) {
+	// Transport with validation
+	if !fs.Changed("transport") {
 		if v := os.Getenv("MCP_TRANSPORT"); v != "" {
-			cfg.Transport = v
-		}
-	}
-
-	if !pflag.CommandLine.Changed("http-addr") {
-		if v := os.Getenv("MCP_HTTP_ADDR"); v != "" {
-			cfg.HTTPAddr = v
-		}
-	}
-
-	if !pflag.CommandLine.Changed("argo-server") {
-		if v := os.Getenv("ARGO_SERVER"); v != "" {
-			cfg.ArgoServer = v
-		}
-	}
-
-	if !pflag.CommandLine.Changed("argo-token") {
-		if v := os.Getenv("ARGO_TOKEN"); v != "" {
-			cfg.ArgoToken = v
-		}
-	}
-
-	if !pflag.CommandLine.Changed("namespace") {
-		if v := os.Getenv("ARGO_NAMESPACE"); v != "" {
-			cfg.Namespace = v
-		}
-	}
-
-	if !pflag.CommandLine.Changed("argo-secure") {
-		if v := os.Getenv("ARGO_SECURE"); v != "" {
-			b, err := strconv.ParseBool(v)
-			if err != nil {
-				slog.Warn("invalid ARGO_SECURE value, using default",
-					"value", v, "default", cfg.Secure)
+			v = strings.ToLower(strings.TrimSpace(v))
+			if v != TransportStdio && v != TransportHTTP {
+				slog.Warn("invalid MCP_TRANSPORT value, using default",
+					"value", v, "default", cfg.Transport)
 			} else {
-				cfg.Secure = b
+				cfg.Transport = v
 			}
 		}
 	}
 
-	if !pflag.CommandLine.Changed("argo-insecure-skip-verify") {
-		if v := os.Getenv("ARGO_INSECURE_SKIP_VERIFY"); v != "" {
-			b, err := strconv.ParseBool(v)
-			if err != nil {
-				slog.Warn("invalid ARGO_INSECURE_SKIP_VERIFY value, using default",
-					"value", v, "default", cfg.InsecureSkipVerify)
-			} else {
-				cfg.InsecureSkipVerify = b
-			}
-		}
-	}
+	cfg.HTTPAddr = getEnvIfNotSet(fs, "http-addr", "MCP_HTTP_ADDR", cfg.HTTPAddr)
+	cfg.ArgoServer = getEnvIfNotSet(fs, "argo-server", "ARGO_SERVER", cfg.ArgoServer)
+	cfg.ArgoToken = getEnvIfNotSet(fs, "argo-token", "ARGO_TOKEN", cfg.ArgoToken)
+	cfg.Namespace = getEnvIfNotSet(fs, "namespace", "ARGO_NAMESPACE", cfg.Namespace)
+	cfg.Kubeconfig = getEnvIfNotSet(fs, "kubeconfig", "KUBECONFIG", cfg.Kubeconfig)
 
-	if !pflag.CommandLine.Changed("kubeconfig") {
-		if v := os.Getenv("KUBECONFIG"); v != "" {
-			cfg.Kubeconfig = v
-		}
-	}
+	cfg.Secure = getEnvBoolIfNotSet(fs, "argo-secure", "ARGO_SECURE", cfg.Secure)
+	cfg.InsecureSkipVerify = getEnvBoolIfNotSet(fs, "argo-insecure-skip-verify", "ARGO_INSECURE_SKIP_VERIFY", cfg.InsecureSkipVerify)
 
 	// Note: There's no standard env var for Kubernetes context,
 	// so --context is CLI-only
@@ -147,5 +162,5 @@ func (c *Config) ToArgoConfig() *argo.Config {
 
 // IsHTTPTransport returns true if the HTTP transport mode is configured.
 func (c *Config) IsHTTPTransport() bool {
-	return c.Transport == "http"
+	return c.Transport == TransportHTTP
 }
