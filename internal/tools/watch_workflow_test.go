@@ -1,11 +1,13 @@
 package tools
 
 import (
-	"strings"
+	"context"
 	"testing"
+	"time"
 
 	wfv1 "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestWatchWorkflowTool(t *testing.T) {
@@ -15,55 +17,102 @@ func TestWatchWorkflowTool(t *testing.T) {
 	assert.NotEmpty(t, tool.Description)
 }
 
-func TestWatchWorkflowInput_Validation(t *testing.T) {
+func TestWatchWorkflowHandler_NameValidation(t *testing.T) {
+	// Test handler validation directly - name validation occurs before client is used,
+	// so we can pass nil and test that validation returns the expected errors.
+	handler := WatchWorkflowHandler(nil)
+
 	tests := []struct {
-		name      string
-		input     WatchWorkflowInput
-		wantValid bool
+		input       WatchWorkflowInput
+		name        string
+		errContains string
+		wantErr     bool
 	}{
 		{
-			name: "valid input with name only",
-			input: WatchWorkflowInput{
-				Name: "my-workflow",
-			},
-			wantValid: true,
-		},
-		{
-			name: "valid input with namespace",
-			input: WatchWorkflowInput{
-				Name:      "my-workflow",
-				Namespace: "custom-ns",
-			},
-			wantValid: true,
-		},
-		{
-			name: "valid input with timeout",
-			input: WatchWorkflowInput{
-				Name:    "my-workflow",
-				Timeout: "5m",
-			},
-			wantValid: true,
-		},
-		{
-			name: "empty name should be invalid",
+			name: "empty name returns error",
 			input: WatchWorkflowInput{
 				Name: "",
 			},
-			wantValid: false,
+			wantErr:     true,
+			errContains: "workflow name cannot be empty",
 		},
 		{
-			name: "whitespace-only name should be invalid",
+			name: "whitespace-only name returns error",
 			input: WatchWorkflowInput{
 				Name: "   ",
 			},
-			wantValid: false,
+			wantErr:     true,
+			errContains: "workflow name cannot be empty",
+		},
+		{
+			name: "whitespace-padded name returns error",
+			input: WatchWorkflowInput{
+				Name: "  \t\n  ",
+			},
+			wantErr:     true,
+			errContains: "workflow name cannot be empty",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			isValid := strings.TrimSpace(tt.input.Name) != ""
-			assert.Equal(t, tt.wantValid, isValid)
+			_, _, err := handler(context.Background(), nil, tt.input)
+			if tt.wantErr {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errContains)
+			}
+		})
+	}
+}
+
+func TestWatchWorkflowHandler_TimeoutValidation(t *testing.T) {
+	// Test timeout validation - these tests verify the parsing logic.
+	// Since timeout parsing requires a valid namespace which requires a client,
+	// we test these cases by checking the time.ParseDuration behavior directly.
+	tests := []struct {
+		name        string
+		timeout     string
+		errContains string
+		wantErr     bool
+	}{
+		{
+			name:    "valid timeout 5m",
+			timeout: "5m",
+			wantErr: false,
+		},
+		{
+			name:    "valid timeout 1h",
+			timeout: "1h",
+			wantErr: false,
+		},
+		{
+			name:        "invalid timeout format",
+			timeout:     "invalid",
+			wantErr:     true,
+			errContains: "invalid duration",
+		},
+		{
+			name:    "negative timeout",
+			timeout: "-5m",
+			// time.ParseDuration accepts negative values, validation happens in handler
+			wantErr: false,
+		},
+		{
+			name:    "zero timeout",
+			timeout: "0s",
+			wantErr: false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			_, err := time.ParseDuration(tt.timeout)
+			if tt.wantErr {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errContains)
+			} else {
+				require.NoError(t, err)
+			}
 		})
 	}
 }

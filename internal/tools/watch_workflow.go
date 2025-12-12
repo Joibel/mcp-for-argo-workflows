@@ -96,8 +96,8 @@ func WatchWorkflowHandler(client *argo.Client) func(context.Context, *mcp.CallTo
 			return nil, nil, fmt.Errorf("workflow name cannot be empty")
 		}
 
-		// Determine namespace
-		namespace := input.Namespace
+		// Determine namespace (trim for consistency with name validation)
+		namespace := strings.TrimSpace(input.Namespace)
 		if namespace == "" {
 			namespace = client.DefaultNamespace()
 		}
