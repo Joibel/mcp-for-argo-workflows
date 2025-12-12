@@ -67,6 +67,7 @@ linters:
         linters:
           - goconst
           - unparam
+          - errcheck
 
 formatters:
   enable:
