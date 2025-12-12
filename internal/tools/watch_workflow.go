@@ -235,7 +235,22 @@ func WatchWorkflowHandler(client *argo.Client) func(context.Context, *mcp.CallTo
 			}
 		}
 
-		return nil, output, nil
+		// Build human-readable result
+		resultText := fmt.Sprintf("Workflow %q in namespace %q: %s", workflowName, namespace, output.Phase)
+		if output.Duration != "" {
+			resultText += fmt.Sprintf(" (duration: %s)", output.Duration)
+		}
+		if output.TimedOut {
+			resultText += " [watch timed out]"
+		}
+
+		result := &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: resultText},
+			},
+		}
+
+		return result, output, nil
 	}
 }
 
