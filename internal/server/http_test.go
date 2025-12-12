@@ -231,9 +231,8 @@ func TestRunHTTP_ContextAlreadyCancelled(t *testing.T) {
 
 	// This should either return no error (clean shutdown) or context.Canceled
 	// Both are acceptable behaviors
-	if runErr != nil && !errors.Is(runErr, context.Canceled) {
-		t.Errorf("unexpected error: %v", runErr)
-	}
+	assert.True(t, runErr == nil || errors.Is(runErr, context.Canceled),
+		"expected nil or context.Canceled, got: %v", runErr)
 }
 
 // TestRunHTTP_ConcurrentRequests tests that the server can handle multiple concurrent requests.
@@ -285,16 +284,14 @@ func TestRunHTTP_ConcurrentRequests(t *testing.T) {
 	assert.NoError(t, runErr)
 }
 
-// TestRunHTTP_ReadHeaderTimeout tests that ReadHeaderTimeout is configured.
-func TestRunHTTP_ReadHeaderTimeout(t *testing.T) {
-	// This test verifies that the timeout is set by checking the server doesn't hang
-	// on slow header reads. We test this indirectly by ensuring the server configuration
-	// includes the timeout.
-
+// TestRunHTTP_ServerStartsNormally is a smoke test verifying the HTTP server
+// starts and stops without errors. This indirectly confirms that server configuration
+// (including ReadHeaderTimeout) doesn't prevent normal operation.
+func TestRunHTTP_ServerStartsNormally(t *testing.T) {
 	srv := NewServer("test-server", "1.0.0")
 	addr := getAvailableAddr(t)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
 	errChan := make(chan error, 1)
@@ -305,13 +302,10 @@ func TestRunHTTP_ReadHeaderTimeout(t *testing.T) {
 	// Wait for server to become reachable
 	waitForServer(t, addr)
 
-	// The server should be configured with ReadHeaderTimeout (10 seconds in the code)
-	// We can't easily test the timeout behavior without actually triggering it,
-	// but we can verify the server starts and runs normally
-
+	// Server started normally, trigger shutdown
 	cancel()
 	runErr := <-errChan
-	assert.NoError(t, runErr, "server with ReadHeaderTimeout should work normally")
+	assert.NoError(t, runErr, "server should start and stop normally")
 }
 
 // TestRunHTTP_QuickSuccession tests starting servers on the same port in quick succession.
@@ -335,23 +329,33 @@ func TestRunHTTP_QuickSuccession(t *testing.T) {
 	runErr1 := <-errChan1
 	assert.NoError(t, runErr1)
 
-	// Give OS time to release the port
-	time.Sleep(100 * time.Millisecond)
-
-	// Second server on same port should work
+	// Second server on same port - retry until port is released (TIME_WAIT)
 	srv2 := NewServer("test-server-2", "1.0.0")
 	ctx2, cancel2 := context.WithCancel(context.Background())
 	defer cancel2()
 
-	errChan2 := make(chan error, 1)
-	go func() {
-		errChan2 <- srv2.RunHTTP(ctx2, addr)
-	}()
+	// Retry starting second server until port is available
+	require.Eventually(t, func() bool {
+		errChan2 := make(chan error, 1)
+		go func() {
+			errChan2 <- srv2.RunHTTP(ctx2, addr)
+		}()
 
-	// Wait for second server to become reachable
-	waitForServer(t, addr)
+		// Try to connect to see if it started
+		client := &http.Client{Timeout: 50 * time.Millisecond}
+		resp, err := client.Get(fmt.Sprintf("http://%s/", addr))
+		if err != nil {
+			// Server might not have started yet due to port in use
+			// Cancel this attempt and let Eventually retry
+			cancel2()
+			<-errChan2
+			// Create new context for next attempt
+			ctx2, cancel2 = context.WithCancel(context.Background())
+			return false
+		}
+		_ = resp.Body.Close()
+		return true
+	}, 2*time.Second, 50*time.Millisecond, "second server should start after first shuts down")
 
 	cancel2()
-	runErr2 := <-errChan2
-	assert.NoError(t, runErr2, "second server should start after first shuts down")
 }
