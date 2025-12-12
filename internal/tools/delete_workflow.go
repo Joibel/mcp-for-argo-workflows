@@ -62,8 +62,8 @@ func DeleteWorkflowHandler(client *argo.Client) func(context.Context, *mcp.CallT
 		// Get the workflow service client
 		wfService := client.WorkflowService()
 
-		// Delete the workflow
-		_, err := wfService.DeleteWorkflow(ctx, &workflow.WorkflowDeleteRequest{
+		// Delete the workflow (use client.Context() which contains the KubeClient)
+		_, err := wfService.DeleteWorkflow(client.Context(), &workflow.WorkflowDeleteRequest{
 			Namespace: namespace,
 			Name:      input.Name,
 			Force:     input.Force,

@@ -104,8 +104,8 @@ func ListWorkflowsHandler(client argo.ClientInterface) func(context.Context, *mc
 		// Get the workflow service client
 		wfService := client.WorkflowService()
 
-		// List workflows
-		listResp, err := wfService.ListWorkflows(ctx, &workflow.WorkflowListRequest{
+		// List workflows (use client.Context() which contains the KubeClient)
+		listResp, err := wfService.ListWorkflows(client.Context(), &workflow.WorkflowListRequest{
 			Namespace:   namespace,
 			ListOptions: listOpts,
 			Fields:      "items.metadata,items.status.phase,items.status.message,items.status.finishedAt",

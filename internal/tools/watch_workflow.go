@@ -22,13 +22,13 @@ import (
 // WatchWorkflowInput defines the input parameters for the watch_workflow tool.
 type WatchWorkflowInput struct {
 	// Namespace is the Kubernetes namespace (uses default if not specified).
-	Namespace string `json:"namespace,omitempty" jsonschema:"description=Kubernetes namespace (uses default if not specified)"`
+	Namespace string `json:"namespace,omitempty" jsonschema:"Kubernetes namespace (uses default if not specified)"`
 
 	// Name is the workflow name.
-	Name string `json:"name" jsonschema:"description=Workflow name,required"`
+	Name string `json:"name" jsonschema:"Workflow name,required"`
 
 	// Timeout is the maximum time to watch (e.g., '5m', '1h'). Default: no timeout.
-	Timeout string `json:"timeout,omitempty" jsonschema:"description=Maximum time to watch (e.g. 5m or 1h). Default: no timeout"`
+	Timeout string `json:"timeout,omitempty" jsonschema:"Maximum time to watch (e.g. 5m or 1h). Default: no timeout"`
 }
 
 // WatchWorkflowOutput defines the output for the watch_workflow tool.
@@ -89,7 +89,7 @@ func WatchWorkflowTool() *mcp.Tool {
 
 // WatchWorkflowHandler returns a handler function for the watch_workflow tool.
 func WatchWorkflowHandler(client *argo.Client) func(context.Context, *mcp.CallToolRequest, WatchWorkflowInput) (*mcp.CallToolResult, *WatchWorkflowOutput, error) {
-	return func(ctx context.Context, _ *mcp.CallToolRequest, input WatchWorkflowInput) (*mcp.CallToolResult, *WatchWorkflowOutput, error) {
+	return func(_ context.Context, _ *mcp.CallToolRequest, input WatchWorkflowInput) (*mcp.CallToolResult, *WatchWorkflowOutput, error) {
 		// Validate and normalize name (use local variable to avoid mutating input)
 		workflowName := strings.TrimSpace(input.Name)
 		if workflowName == "" {
@@ -116,12 +116,13 @@ func WatchWorkflowHandler(client *argo.Client) func(context.Context, *mcp.CallTo
 		}
 
 		// Create a context with timeout or cancellation for cleanup
+		// Use client.Context() which contains the KubeClient required by the Argo API
 		var watchCtx context.Context
 		var cancel context.CancelFunc
 		if timeout > 0 {
-			watchCtx, cancel = context.WithTimeout(ctx, timeout)
+			watchCtx, cancel = context.WithTimeout(client.Context(), timeout)
 		} else {
-			watchCtx, cancel = context.WithCancel(ctx)
+			watchCtx, cancel = context.WithCancel(client.Context())
 		}
 		defer cancel()
 
