@@ -2,6 +2,7 @@
 BINARY_NAME := mcp-for-argo-workflows
 MODULE := github.com/Joibel/mcp-for-argo-workflows
 DIST_DIR := dist
+DOCKER_IMAGE := ghcr.io/joibel/mcp-for-argo-workflows
 
 # Build variables
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
@@ -33,7 +34,8 @@ DIST_CHECKSUMS := $(DIST_DIR)/checksums.txt
 # All distribution binaries
 DIST_BINARIES := $(DIST_DARWIN_AMD64) $(DIST_DARWIN_ARM64) $(DIST_LINUX_AMD64) $(DIST_LINUX_ARM64) $(DIST_WINDOWS_AMD64)
 
-.PHONY: all test lint lint-fix fmt vet clean tools help build-all dist-clean
+.PHONY: all test lint lint-fix fmt vet clean tools help build-all dist-clean \
+	docker-build docker-build-multiarch docker-push
 
 # Default target
 all: fmt vet lint test $(DIST_LINUX_AMD64)
@@ -135,3 +137,47 @@ $(DIST_CHECKSUMS): $(DIST_BINARIES)
 dist-clean:
 	@echo "Cleaning dist directory..."
 	@rm -rf $(DIST_DIR)/
+
+# =============================================================================
+# Docker targets
+# =============================================================================
+
+## docker-build: Build Docker image for local platform
+docker-build:
+	@echo "Building Docker image $(DOCKER_IMAGE):$(VERSION)..."
+	docker build \
+		--build-arg VERSION=$(VERSION) \
+		--build-arg COMMIT=$(COMMIT) \
+		--build-arg BUILD_TIME=$(BUILD_TIME) \
+		-t $(DOCKER_IMAGE):$(VERSION) \
+		-t $(DOCKER_IMAGE):$(COMMIT) \
+		-t $(DOCKER_IMAGE):latest \
+		.
+
+## docker-build-multiarch: Build multi-architecture Docker image (requires docker buildx, no local load)
+## Note: Multi-arch builds cannot be loaded into local docker daemon; use docker-push to push to registry
+docker-build-multiarch:
+	@echo "Building multi-arch Docker image $(DOCKER_IMAGE):$(VERSION)..."
+	docker buildx build \
+		--platform linux/amd64,linux/arm64 \
+		--build-arg VERSION=$(VERSION) \
+		--build-arg COMMIT=$(COMMIT) \
+		--build-arg BUILD_TIME=$(BUILD_TIME) \
+		-t $(DOCKER_IMAGE):$(VERSION) \
+		-t $(DOCKER_IMAGE):$(COMMIT) \
+		-t $(DOCKER_IMAGE):latest \
+		.
+
+## docker-push: Build and push multi-architecture Docker image to registry
+docker-push:
+	@echo "Building and pushing multi-arch Docker image $(DOCKER_IMAGE):$(VERSION)..."
+	docker buildx build \
+		--platform linux/amd64,linux/arm64 \
+		--build-arg VERSION=$(VERSION) \
+		--build-arg COMMIT=$(COMMIT) \
+		--build-arg BUILD_TIME=$(BUILD_TIME) \
+		-t $(DOCKER_IMAGE):$(VERSION) \
+		-t $(DOCKER_IMAGE):$(COMMIT) \
+		-t $(DOCKER_IMAGE):latest \
+		--push \
+		.

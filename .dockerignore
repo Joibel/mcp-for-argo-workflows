@@ -1,0 +1,29 @@
+# Build artifacts
+dist/
+bin/
+coverage.out
+coverage.html
+
+# Git
+.git/
+.gitignore
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Documentation
+*.md
+!go.mod
+
+# CI/CD
+.github/
+
+# Environment
+.env
+.env.local
+
+# Docker (keep Dockerfile and .dockerignore in context)
