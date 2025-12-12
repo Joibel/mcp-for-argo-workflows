@@ -96,13 +96,7 @@ func WatchWorkflowHandler(client *argo.Client) func(context.Context, *mcp.CallTo
 			return nil, nil, fmt.Errorf("workflow name cannot be empty")
 		}
 
-		// Determine namespace (trim for consistency with name validation)
-		namespace := strings.TrimSpace(input.Namespace)
-		if namespace == "" {
-			namespace = client.DefaultNamespace()
-		}
-
-		// Parse timeout if provided
+		// Parse and validate timeout if provided (before client access)
 		var timeout time.Duration
 		if input.Timeout != "" {
 			var err error
@@ -113,6 +107,12 @@ func WatchWorkflowHandler(client *argo.Client) func(context.Context, *mcp.CallTo
 			if timeout <= 0 {
 				return nil, nil, fmt.Errorf("invalid timeout: must be a positive duration")
 			}
+		}
+
+		// Determine namespace (trim for consistency with name validation)
+		namespace := strings.TrimSpace(input.Namespace)
+		if namespace == "" {
+			namespace = client.DefaultNamespace()
 		}
 
 		// Create a context with timeout or cancellation for cleanup

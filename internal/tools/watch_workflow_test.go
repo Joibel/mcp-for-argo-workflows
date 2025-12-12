@@ -3,7 +3,6 @@ package tools
 import (
 	"context"
 	"testing"
-	"time"
 
 	wfv1 "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/stretchr/testify/assert"
@@ -66,52 +65,51 @@ func TestWatchWorkflowHandler_NameValidation(t *testing.T) {
 }
 
 func TestWatchWorkflowHandler_TimeoutValidation(t *testing.T) {
-	// Test timeout validation - these tests verify the parsing logic.
-	// Since timeout parsing requires a valid namespace which requires a client,
-	// we test these cases by checking the time.ParseDuration behavior directly.
+	// Test handler timeout validation directly - timeout validation occurs before
+	// client is used (after name validation), so we can pass nil client.
+	handler := WatchWorkflowHandler(nil)
+
 	tests := []struct {
+		input       WatchWorkflowInput
 		name        string
-		timeout     string
 		errContains string
 		wantErr     bool
 	}{
 		{
-			name:    "valid timeout 5m",
-			timeout: "5m",
-			wantErr: false,
-		},
-		{
-			name:    "valid timeout 1h",
-			timeout: "1h",
-			wantErr: false,
-		},
-		{
-			name:        "invalid timeout format",
-			timeout:     "invalid",
+			name: "invalid timeout format returns error",
+			input: WatchWorkflowInput{
+				Name:    "my-workflow",
+				Timeout: "invalid",
+			},
 			wantErr:     true,
-			errContains: "invalid duration",
+			errContains: "invalid timeout format",
 		},
 		{
-			name:    "negative timeout",
-			timeout: "-5m",
-			// time.ParseDuration accepts negative values, validation happens in handler
-			wantErr: false,
+			name: "negative timeout returns error",
+			input: WatchWorkflowInput{
+				Name:    "my-workflow",
+				Timeout: "-5m",
+			},
+			wantErr:     true,
+			errContains: "invalid timeout: must be a positive duration",
 		},
 		{
-			name:    "zero timeout",
-			timeout: "0s",
-			wantErr: false,
+			name: "zero timeout returns error",
+			input: WatchWorkflowInput{
+				Name:    "my-workflow",
+				Timeout: "0s",
+			},
+			wantErr:     true,
+			errContains: "invalid timeout: must be a positive duration",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			_, err := time.ParseDuration(tt.timeout)
+			_, _, err := handler(context.Background(), nil, tt.input)
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.Contains(t, err.Error(), tt.errContains)
-			} else {
-				require.NoError(t, err)
 			}
 		})
 	}
