@@ -1,10 +1,11 @@
 package tools
 
 import (
-	"strings"
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestLogsWorkflowTool(t *testing.T) {
@@ -14,51 +15,50 @@ func TestLogsWorkflowTool(t *testing.T) {
 	assert.NotEmpty(t, tool.Description)
 }
 
-func TestLogsWorkflowInput_Validation(t *testing.T) {
+func TestLogsWorkflowHandler_Validation(t *testing.T) {
+	// Test handler validation directly - name validation occurs before client is used,
+	// so we can pass nil and test that validation returns the expected errors.
+	handler := LogsWorkflowHandler(nil)
+
 	tests := []struct {
-		name      string
-		input     LogsWorkflowInput
-		wantValid bool
+		input       LogsWorkflowInput
+		name        string
+		errContains string
+		wantErr     bool
 	}{
 		{
-			name: "valid input with name only",
-			input: LogsWorkflowInput{
-				Name: "my-workflow",
-			},
-			wantValid: true,
-		},
-		{
-			name: "valid input with all options",
-			input: LogsWorkflowInput{
-				Name:      "my-workflow",
-				Namespace: "custom-ns",
-				PodName:   "my-pod",
-				Container: "main",
-				TailLines: int64Ptr(50),
-				Grep:      "error",
-			},
-			wantValid: true,
-		},
-		{
-			name: "empty name should be invalid",
+			name: "empty name returns error",
 			input: LogsWorkflowInput{
 				Name: "",
 			},
-			wantValid: false,
+			wantErr:     true,
+			errContains: "workflow name cannot be empty",
 		},
 		{
-			name: "whitespace-only name should be invalid",
+			name: "whitespace-only name returns error",
 			input: LogsWorkflowInput{
 				Name: "   ",
 			},
-			wantValid: false,
+			wantErr:     true,
+			errContains: "workflow name cannot be empty",
+		},
+		{
+			name: "whitespace-padded name returns error",
+			input: LogsWorkflowInput{
+				Name: "  \t\n  ",
+			},
+			wantErr:     true,
+			errContains: "workflow name cannot be empty",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			isValid := strings.TrimSpace(tt.input.Name) != ""
-			assert.Equal(t, tt.wantValid, isValid)
+			_, _, err := handler(context.Background(), nil, tt.input)
+			if tt.wantErr {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errContains)
+			}
 		})
 	}
 }
@@ -133,9 +133,4 @@ func TestLogEntryOutput(t *testing.T) {
 
 	assert.Equal(t, "my-pod", entry.PodName)
 	assert.Contains(t, entry.Content, "Starting process")
-}
-
-// int64Ptr is a helper to create int64 pointers for tests.
-func int64Ptr(i int64) *int64 {
-	return &i
 }
