@@ -110,8 +110,8 @@ func GetWorkflowHandler(client argo.ClientInterface) func(context.Context, *mcp.
 		// Get the workflow service client
 		wfService := client.WorkflowService()
 
-		// Get the workflow
-		wf, err := wfService.GetWorkflow(ctx, &workflow.WorkflowGetRequest{
+		// Get the workflow (use client.Context() which contains the KubeClient)
+		wf, err := wfService.GetWorkflow(client.Context(), &workflow.WorkflowGetRequest{
 			Namespace: namespace,
 			Name:      input.Name,
 		})

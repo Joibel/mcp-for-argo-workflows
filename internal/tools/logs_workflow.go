@@ -26,22 +26,22 @@ const (
 // LogsWorkflowInput defines the input parameters for the logs_workflow tool.
 type LogsWorkflowInput struct {
 	// Namespace is the Kubernetes namespace (uses default if not specified).
-	Namespace string `json:"namespace,omitempty" jsonschema:"description=Kubernetes namespace (uses default if not specified)"`
+	Namespace string `json:"namespace,omitempty" jsonschema:"Kubernetes namespace (uses default if not specified)"`
 
 	// Name is the workflow name.
-	Name string `json:"name" jsonschema:"description=Workflow name,required"`
+	Name string `json:"name" jsonschema:"Workflow name,required"`
 
 	// PodName is the specific pod name (omit for all pods).
-	PodName string `json:"podName,omitempty" jsonschema:"description=Specific pod name (omit for all pods)"`
+	PodName string `json:"podName,omitempty" jsonschema:"Specific pod name (omit for all pods)"`
 
 	// Container is the container name (default: main).
-	Container string `json:"container,omitempty" jsonschema:"description=Container name (default: main)"`
+	Container string `json:"container,omitempty" jsonschema:"Container name (default: main)"`
 
 	// TailLines is the number of lines from the end (default: 100).
-	TailLines *int64 `json:"tailLines,omitempty" jsonschema:"description=Number of lines from the end (default: 100)"`
+	TailLines *int64 `json:"tailLines,omitempty" jsonschema:"Number of lines from the end (default: 100)"`
 
 	// Grep filters log lines containing this string.
-	Grep string `json:"grep,omitempty" jsonschema:"description=Filter log lines containing this string"`
+	Grep string `json:"grep,omitempty" jsonschema:"Filter log lines containing this string"`
 }
 
 // LogsWorkflowOutput defines the output for the logs_workflow tool.
@@ -72,11 +72,8 @@ func LogsWorkflowTool() *mcp.Tool {
 
 // LogsWorkflowHandler returns a handler function for the logs_workflow tool.
 func LogsWorkflowHandler(client *argo.Client) func(context.Context, *mcp.CallToolRequest, LogsWorkflowInput) (*mcp.CallToolResult, *LogsWorkflowOutput, error) {
-	return func(ctx context.Context, _ *mcp.CallToolRequest, input LogsWorkflowInput) (*mcp.CallToolResult, *LogsWorkflowOutput, error) { //nolint:gocognit // Handler logic is sequential and readable
-		// Create a cancelable context for the stream to ensure proper cleanup
-		streamCtx, cancel := context.WithCancel(ctx)
-		defer cancel()
-		// Validate and normalize name
+	return func(_ context.Context, _ *mcp.CallToolRequest, input LogsWorkflowInput) (*mcp.CallToolResult, *LogsWorkflowOutput, error) { //nolint:gocognit // Handler logic is sequential and readable
+		// Validate and normalize name (validate before accessing client)
 		input.Name = strings.TrimSpace(input.Name)
 		if input.Name == "" {
 			return nil, nil, fmt.Errorf("workflow name cannot be empty")
@@ -87,6 +84,11 @@ func LogsWorkflowHandler(client *argo.Client) func(context.Context, *mcp.CallToo
 		if namespace == "" {
 			namespace = client.DefaultNamespace()
 		}
+
+		// Create a cancelable context for the stream to ensure proper cleanup
+		// Use client.Context() which contains the KubeClient required by the Argo API
+		streamCtx, cancel := context.WithCancel(client.Context())
+		defer cancel()
 
 		// Set default tail lines
 		tailLines := int64(defaultTailLines)
