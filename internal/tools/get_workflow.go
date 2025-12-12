@@ -94,7 +94,7 @@ func GetWorkflowTool() *mcp.Tool {
 }
 
 // GetWorkflowHandler returns a handler function for the get_workflow tool.
-func GetWorkflowHandler(client *argo.Client) func(context.Context, *mcp.CallToolRequest, GetWorkflowInput) (*mcp.CallToolResult, *GetWorkflowOutput, error) {
+func GetWorkflowHandler(client argo.ClientInterface) func(context.Context, *mcp.CallToolRequest, GetWorkflowInput) (*mcp.CallToolResult, *GetWorkflowOutput, error) {
 	return func(ctx context.Context, _ *mcp.CallToolRequest, input GetWorkflowInput) (*mcp.CallToolResult, *GetWorkflowOutput, error) {
 		// Validate name is provided
 		if strings.TrimSpace(input.Name) == "" {
