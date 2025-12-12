@@ -90,9 +90,9 @@ func WatchWorkflowTool() *mcp.Tool {
 // WatchWorkflowHandler returns a handler function for the watch_workflow tool.
 func WatchWorkflowHandler(client *argo.Client) func(context.Context, *mcp.CallToolRequest, WatchWorkflowInput) (*mcp.CallToolResult, *WatchWorkflowOutput, error) {
 	return func(ctx context.Context, _ *mcp.CallToolRequest, input WatchWorkflowInput) (*mcp.CallToolResult, *WatchWorkflowOutput, error) {
-		// Validate and normalize name
-		input.Name = strings.TrimSpace(input.Name)
-		if input.Name == "" {
+		// Validate and normalize name (use local variable to avoid mutating input)
+		workflowName := strings.TrimSpace(input.Name)
+		if workflowName == "" {
 			return nil, nil, fmt.Errorf("workflow name cannot be empty")
 		}
 
@@ -129,7 +129,7 @@ func WatchWorkflowHandler(client *argo.Client) func(context.Context, *mcp.CallTo
 		req := &workflow.WatchWorkflowsRequest{
 			Namespace: namespace,
 			ListOptions: &metav1.ListOptions{
-				FieldSelector: fmt.Sprintf("metadata.name=%s", input.Name),
+				FieldSelector: fmt.Sprintf("metadata.name=%s", workflowName),
 			},
 		}
 
@@ -188,7 +188,7 @@ func WatchWorkflowHandler(client *argo.Client) func(context.Context, *mcp.CallTo
 
 		// Build the output
 		output := &WatchWorkflowOutput{
-			Name:      input.Name,
+			Name:      workflowName,
 			Namespace: namespace,
 			Events:    events,
 			TimedOut:  timedOut,
@@ -221,10 +221,17 @@ func WatchWorkflowHandler(client *argo.Client) func(context.Context, *mcp.CallTo
 		}
 
 		if timedOut {
+			var timeoutMsg string
 			if input.Timeout != "" {
-				output.Message = fmt.Sprintf("Watch timed out after %s. Last phase: %s", input.Timeout, output.Phase)
+				timeoutMsg = fmt.Sprintf("Watch timed out after %s. Last phase: %s", input.Timeout, output.Phase)
 			} else {
-				output.Message = fmt.Sprintf("Watch timed out. Last phase: %s", output.Phase)
+				timeoutMsg = fmt.Sprintf("Watch timed out. Last phase: %s", output.Phase)
+			}
+			// Preserve existing workflow message if present
+			if output.Message != "" {
+				output.Message = fmt.Sprintf("%s | %s", output.Message, timeoutMsg)
+			} else {
+				output.Message = timeoutMsg
 			}
 		}
 
