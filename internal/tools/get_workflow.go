@@ -17,10 +17,10 @@ import (
 // GetWorkflowInput defines the input parameters for the get_workflow tool.
 type GetWorkflowInput struct {
 	// Namespace is the Kubernetes namespace (uses default if not specified).
-	Namespace string `json:"namespace,omitempty" jsonschema:"description=Kubernetes namespace (uses default if not specified)"`
+	Namespace string `json:"namespace,omitempty" jsonschema:"Kubernetes namespace (uses default if not specified)"`
 
 	// Name is the workflow name.
-	Name string `json:"name" jsonschema:"description=Workflow name,required"`
+	Name string `json:"name" jsonschema:"Workflow name,required"`
 }
 
 // GetWorkflowOutput defines the output for the get_workflow tool.

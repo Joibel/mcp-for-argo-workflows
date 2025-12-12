@@ -24,10 +24,10 @@ var ValidWorkflowPhases = map[string]bool{
 
 // ListWorkflowsInput defines the input parameters for the list_workflows tool.
 type ListWorkflowsInput struct {
-	Namespace *string  `json:"namespace,omitempty" jsonschema:"description=Kubernetes namespace (uses default if not specified. use empty string for all namespaces)"`
-	Labels    string   `json:"labels,omitempty" jsonschema:"description=Label selector (e.g. 'app=myapp,env=prod')"`
-	Status    []string `json:"status,omitempty" jsonschema:"description=Filter by phase: Pending Running Succeeded Failed Error"`
-	Limit     int64    `json:"limit,omitempty" jsonschema:"description=Maximum number of results"`
+	Namespace *string  `json:"namespace,omitempty" jsonschema:"Kubernetes namespace (uses default if not specified. use empty string for all namespaces)"`
+	Labels    string   `json:"labels,omitempty" jsonschema:"Label selector (e.g. 'app=myapp,env=prod')"`
+	Status    []string `json:"status,omitempty" jsonschema:"Filter by phase: Pending Running Succeeded Failed Error"`
+	Limit     int64    `json:"limit,omitempty" jsonschema:"Maximum number of results"`
 }
 
 // WorkflowSummary represents a concise summary of a workflow.
