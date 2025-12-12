@@ -390,8 +390,8 @@ spec:
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create mock client and service
-			mockClient := newMockClient("argo", true)
-			mockService := newMockWorkflowService()
+			mockClient := newMockClient(t, "argo", true)
+			mockService := newMockWorkflowService(t)
 			mockClient.SetWorkflowService(mockService)
 
 			// Setup mock expectations

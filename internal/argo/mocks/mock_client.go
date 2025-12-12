@@ -19,6 +19,7 @@ import (
 type MockClient struct {
 	mock.Mock
 	workflowService workflow.WorkflowServiceClient
+	ctx             context.Context
 	namespace       string
 	argoServerMode  bool
 }
@@ -39,6 +40,11 @@ func (m *MockClient) SetWorkflowService(service workflow.WorkflowServiceClient) 
 	m.workflowService = service
 }
 
+// SetContext sets the context for this mock client.
+func (m *MockClient) SetContext(ctx context.Context) {
+	m.ctx = ctx
+}
+
 // WorkflowService returns the workflow service client.
 func (m *MockClient) WorkflowService() workflow.WorkflowServiceClient {
 	return m.workflowService
@@ -50,8 +56,11 @@ func (m *MockClient) CronWorkflowService() (cronworkflow.CronWorkflowServiceClie
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	//nolint:errcheck // Type assertion is safe after nil check above
-	return args.Get(0).(cronworkflow.CronWorkflowServiceClient), args.Error(1)
+	svc, ok := args.Get(0).(cronworkflow.CronWorkflowServiceClient)
+	if !ok {
+		return nil, args.Error(1)
+	}
+	return svc, args.Error(1)
 }
 
 // WorkflowTemplateService returns the workflow template service client (stub).
@@ -60,8 +69,11 @@ func (m *MockClient) WorkflowTemplateService() (workflowtemplate.WorkflowTemplat
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	//nolint:errcheck // Type assertion is safe after nil check above
-	return args.Get(0).(workflowtemplate.WorkflowTemplateServiceClient), args.Error(1)
+	svc, ok := args.Get(0).(workflowtemplate.WorkflowTemplateServiceClient)
+	if !ok {
+		return nil, args.Error(1)
+	}
+	return svc, args.Error(1)
 }
 
 // ClusterWorkflowTemplateService returns the cluster workflow template service client (stub).
@@ -70,8 +82,11 @@ func (m *MockClient) ClusterWorkflowTemplateService() (clusterworkflowtemplate.C
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	//nolint:errcheck // Type assertion is safe after nil check above
-	return args.Get(0).(clusterworkflowtemplate.ClusterWorkflowTemplateServiceClient), args.Error(1)
+	svc, ok := args.Get(0).(clusterworkflowtemplate.ClusterWorkflowTemplateServiceClient)
+	if !ok {
+		return nil, args.Error(1)
+	}
+	return svc, args.Error(1)
 }
 
 // ArchivedWorkflowService returns the archived workflow service client (stub).
@@ -80,8 +95,11 @@ func (m *MockClient) ArchivedWorkflowService() (workflowarchive.ArchivedWorkflow
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	//nolint:errcheck // Type assertion is safe after nil check above
-	return args.Get(0).(workflowarchive.ArchivedWorkflowServiceClient), args.Error(1)
+	svc, ok := args.Get(0).(workflowarchive.ArchivedWorkflowServiceClient)
+	if !ok {
+		return nil, args.Error(1)
+	}
+	return svc, args.Error(1)
 }
 
 // InfoService returns the info service client (stub).
@@ -90,8 +108,11 @@ func (m *MockClient) InfoService() (info.InfoServiceClient, error) {
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	//nolint:errcheck // Type assertion is safe after nil check above
-	return args.Get(0).(info.InfoServiceClient), args.Error(1)
+	svc, ok := args.Get(0).(info.InfoServiceClient)
+	if !ok {
+		return nil, args.Error(1)
+	}
+	return svc, args.Error(1)
 }
 
 // IsArgoServerMode returns whether this client is in Argo Server mode.
@@ -106,5 +127,8 @@ func (m *MockClient) DefaultNamespace() string {
 
 // Context returns the context associated with this client.
 func (m *MockClient) Context() context.Context {
+	if m.ctx != nil {
+		return m.ctx
+	}
 	return context.Background()
 }

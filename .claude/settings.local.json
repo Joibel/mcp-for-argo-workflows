@@ -48,7 +48,10 @@
       "Bash(go tool cover:*)",
       "Bash(gh pr comment:*)",
       "Bash(go install:*)",
-      "Bash(fieldalignment -fix:*)"
+      "Bash(fieldalignment -fix:*)",
+      "Bash(git stash pop:*)",
+      "Bash(gh pr checkout:*)",
+      "WebFetch(domain:github.com)"
     ],
     "deny": [],
     "ask": []

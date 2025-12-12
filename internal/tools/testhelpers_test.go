@@ -12,13 +12,17 @@ import (
 )
 
 // newMockClient creates a mock Argo client with the specified namespace and mode.
-func newMockClient(namespace string, argoServerMode bool) *mocks.MockClient {
+func newMockClient(t *testing.T, namespace string, argoServerMode bool) *mocks.MockClient {
+	t.Helper()
 	return mocks.NewMockClient(namespace, argoServerMode)
 }
 
 // newMockWorkflowService creates a new mock workflow service client.
-func newMockWorkflowService() *mocks.MockWorkflowServiceClient {
-	return &mocks.MockWorkflowServiceClient{}
+func newMockWorkflowService(t *testing.T) *mocks.MockWorkflowServiceClient {
+	t.Helper()
+	m := &mocks.MockWorkflowServiceClient{}
+	m.Test(t)
+	return m
 }
 
 // loadTestWorkflowYAML loads the raw YAML content of a workflow fixture.

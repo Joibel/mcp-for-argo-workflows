@@ -68,6 +68,7 @@ func TestListWorkflowsHandler(t *testing.T) {
 			validate: func(t *testing.T, result *mcp.CallToolResult, output *ListWorkflowsOutput) {
 				assert.False(t, result.IsError)
 				assert.Len(t, result.Content, 1)
+				require.IsType(t, &mcp.TextContent{}, result.Content[0])
 				assert.Contains(t, result.Content[0].(*mcp.TextContent).Text, "Found 2 workflow(s)")
 				assert.Equal(t, 2, output.Total)
 				require.Len(t, output.Workflows, 2)
@@ -274,6 +275,7 @@ func TestListWorkflowsHandler(t *testing.T) {
 			},
 			wantErr: false,
 			validate: func(t *testing.T, result *mcp.CallToolResult, output *ListWorkflowsOutput) {
+				require.IsType(t, &mcp.TextContent{}, result.Content[0])
 				assert.Contains(t, result.Content[0].(*mcp.TextContent).Text, "across all namespaces")
 				assert.Equal(t, 2, output.Total)
 				require.Len(t, output.Workflows, 2)
@@ -391,8 +393,8 @@ func TestListWorkflowsHandler(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create mock client and service
-			mockClient := newMockClient("argo", true)
-			mockService := newMockWorkflowService()
+			mockClient := newMockClient(t, "argo", true)
+			mockService := newMockWorkflowService(t)
 			mockClient.SetWorkflowService(mockService)
 
 			// Setup mock expectations
@@ -416,6 +418,7 @@ func TestListWorkflowsHandler(t *testing.T) {
 
 			require.NoError(t, err)
 			require.NotNil(t, result)
+			require.False(t, result.IsError)
 			require.NotNil(t, output)
 			tt.validate(t, result, output)
 		})
