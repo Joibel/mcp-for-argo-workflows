@@ -3,6 +3,9 @@ package server
 
 import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+
+	"github.com/Joibel/mcp-for-argo-workflows/internal/argo"
+	"github.com/Joibel/mcp-for-argo-workflows/internal/tools"
 )
 
 // Server wraps the MCP server and provides methods for managing tools and resources.
@@ -25,6 +28,12 @@ func NewServer(name, version string) *Server {
 	return &Server{
 		mcp: mcpServer,
 	}
+}
+
+// RegisterTools registers all Argo Workflows MCP tools with the server.
+func (s *Server) RegisterTools(client *argo.Client) {
+	// Register submit_workflow tool
+	mcp.AddTool(s.mcp, tools.SubmitWorkflowTool(), tools.SubmitWorkflowHandler(client))
 }
 
 // GetMCPServer returns the underlying MCP server instance.

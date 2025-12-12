@@ -49,6 +49,20 @@ func DefaultConfig() *Config {
 	}
 }
 
+// Validate returns an error if the configuration is invalid.
+func (c *Config) Validate() error {
+	if c.Transport != TransportStdio && c.Transport != TransportHTTP {
+		return fmt.Errorf("invalid transport %q, must be %q or %q", c.Transport, TransportStdio, TransportHTTP)
+	}
+
+	// Validate HTTP address has a port when using HTTP transport
+	if c.Transport == TransportHTTP && c.HTTPAddr == "" {
+		return fmt.Errorf("http-addr is required when using HTTP transport")
+	}
+
+	return nil
+}
+
 // NewFromFlags creates a Config from CLI flags and environment variables.
 // Precedence: CLI flags > Environment variables > Default values.
 func NewFromFlags() (*Config, error) {
@@ -72,20 +86,6 @@ func NewFromFlags() (*Config, error) {
 	applyEnvOverrides(cfg)
 
 	return cfg, nil
-}
-
-// Validate returns an error if the configuration is invalid.
-func (c *Config) Validate() error {
-	if c.Transport != TransportStdio && c.Transport != TransportHTTP {
-		return fmt.Errorf("invalid transport %q, must be %q or %q", c.Transport, TransportStdio, TransportHTTP)
-	}
-
-	// Validate HTTP address has a port when using HTTP transport
-	if c.Transport == TransportHTTP && c.HTTPAddr == "" {
-		return fmt.Errorf("http-addr is required when using HTTP transport")
-	}
-
-	return nil
 }
 
 // getEnvIfNotSet returns the environment variable value if the flag was not explicitly set.
