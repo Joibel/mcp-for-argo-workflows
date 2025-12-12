@@ -66,6 +66,12 @@ func SubmitWorkflowHandler(client *argo.Client) func(context.Context, *mcp.CallT
 			return nil, nil, fmt.Errorf("manifest cannot be empty")
 		}
 
+		// Guard against oversized manifests (DoS hardening)
+		const maxManifestBytes = 1 << 20 // 1 MiB
+		if len(input.Manifest) > maxManifestBytes {
+			return nil, nil, fmt.Errorf("manifest too large (%d bytes), max %d", len(input.Manifest), maxManifestBytes)
+		}
+
 		// Parse the YAML manifest into a Workflow object
 		var wf wfv1.Workflow
 		if err := yaml.Unmarshal([]byte(input.Manifest), &wf); err != nil {
@@ -82,6 +88,7 @@ func SubmitWorkflowHandler(client *argo.Client) func(context.Context, *mcp.CallT
 		if namespace == "" {
 			namespace = client.DefaultNamespace()
 		}
+		wf.Namespace = namespace
 
 		// Override generateName if provided
 		if input.GenerateName != "" {
@@ -144,7 +151,11 @@ func applyParameterOverrides(wf *wfv1.Workflow, params []string) error {
 		if len(parts) != 2 {
 			return fmt.Errorf("invalid parameter format %q, expected key=value", param)
 		}
-		key, value := parts[0], parts[1]
+		key := strings.TrimSpace(parts[0])
+		value := parts[1]
+		if key == "" {
+			return fmt.Errorf("invalid parameter format %q, key cannot be empty", param)
+		}
 
 		// Find and update the parameter in the workflow spec
 		found := false
