@@ -131,13 +131,15 @@ func LogsWorkflowHandler(client *argo.Client) func(context.Context, *mcp.CallToo
 				return nil, nil, fmt.Errorf("failed to receive log entry: %w", recvErr)
 			}
 
-			// Check if we've exceeded the max log size
-			totalBytes += len(entry.Content)
-			if totalBytes > maxLogBytes {
+			entryBytes := len(entry.Content)
+
+			// Check if adding this entry would exceed the max log size
+			if totalBytes+entryBytes > maxLogBytes {
 				truncated = true
 				break
 			}
 
+			totalBytes += entryBytes
 			logs = append(logs, LogEntryOutput{
 				PodName: entry.PodName,
 				Content: entry.Content,
