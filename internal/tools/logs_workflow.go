@@ -72,7 +72,10 @@ func LogsWorkflowTool() *mcp.Tool {
 
 // LogsWorkflowHandler returns a handler function for the logs_workflow tool.
 func LogsWorkflowHandler(client *argo.Client) func(context.Context, *mcp.CallToolRequest, LogsWorkflowInput) (*mcp.CallToolResult, *LogsWorkflowOutput, error) {
-	return func(ctx context.Context, _ *mcp.CallToolRequest, input LogsWorkflowInput) (*mcp.CallToolResult, *LogsWorkflowOutput, error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, input LogsWorkflowInput) (*mcp.CallToolResult, *LogsWorkflowOutput, error) { //nolint:gocognit // Handler logic is sequential and readable
+		// Create a cancelable context for the stream to ensure proper cleanup
+		streamCtx, cancel := context.WithCancel(ctx)
+		defer cancel()
 		// Validate and normalize name
 		input.Name = strings.TrimSpace(input.Name)
 		if input.Name == "" {
@@ -111,8 +114,8 @@ func LogsWorkflowHandler(client *argo.Client) func(context.Context, *mcp.CallToo
 		// Get the workflow service client
 		wfService := client.WorkflowService()
 
-		// Get the log stream
-		stream, err := wfService.WorkflowLogs(ctx, req)
+		// Get the log stream (use cancelable context for proper cleanup on truncation)
+		stream, err := wfService.WorkflowLogs(streamCtx, req)
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to get workflow logs: %w", err)
 		}
