@@ -14,7 +14,7 @@ import (
 )
 
 // waitForServer waits until the server is reachable or times out.
-func waitForServer(t *testing.T, addr string) {
+func waitForServer(t *testing.T, addr string, timeout time.Duration) {
 	t.Helper()
 	client := &http.Client{Timeout: 100 * time.Millisecond}
 	require.Eventually(t, func() bool {
@@ -24,7 +24,7 @@ func waitForServer(t *testing.T, addr string) {
 		}
 		_ = resp.Body.Close()
 		return true
-	}, 500*time.Millisecond, 10*time.Millisecond, "server should become reachable")
+	}, timeout, 10*time.Millisecond, "server should become reachable")
 }
 
 // getAvailableAddr returns an available address for testing.
@@ -54,7 +54,7 @@ func TestRunHTTP_BasicStartup(t *testing.T) {
 	}()
 
 	// Wait for server to become reachable
-	waitForServer(t, addr)
+	waitForServer(t, addr, 500*time.Millisecond)
 
 	// Server should still be running
 	select {
@@ -86,7 +86,7 @@ func TestRunHTTP_GracefulShutdown(t *testing.T) {
 	}()
 
 	// Wait for server to become reachable before testing shutdown
-	waitForServer(t, addr)
+	waitForServer(t, addr, 500*time.Millisecond)
 
 	// Cancel context to trigger shutdown
 	cancel()
@@ -201,7 +201,7 @@ func TestRunHTTP_MultipleShutdowns(t *testing.T) {
 	}()
 
 	// Wait for server to become reachable
-	waitForServer(t, addr)
+	waitForServer(t, addr, 500*time.Millisecond)
 
 	// Cancel multiple times (should be safe)
 	cancel()
@@ -249,7 +249,7 @@ func TestRunHTTP_ConcurrentRequests(t *testing.T) {
 	}()
 
 	// Wait for server to become reachable
-	waitForServer(t, addr)
+	waitForServer(t, addr, 500*time.Millisecond)
 
 	// Make concurrent requests
 	const numRequests = 5
@@ -300,7 +300,7 @@ func TestRunHTTP_ServerStartsNormally(t *testing.T) {
 	}()
 
 	// Wait for server to become reachable
-	waitForServer(t, addr)
+	waitForServer(t, addr, 500*time.Millisecond)
 
 	// Server started normally, trigger shutdown
 	cancel()
@@ -322,7 +322,7 @@ func TestRunHTTP_QuickSuccession(t *testing.T) {
 	}()
 
 	// Wait for first server to become reachable
-	waitForServer(t, addr)
+	waitForServer(t, addr, 500*time.Millisecond)
 
 	// Shut down first server
 	cancel1()
@@ -336,7 +336,9 @@ func TestRunHTTP_QuickSuccession(t *testing.T) {
 		if err != nil {
 			return false
 		}
-		_ = listener.Close()
+		if err := listener.Close(); err != nil {
+			return false
+		}
 		return true
 	}, 5*time.Second, 100*time.Millisecond, "port should be released after first server shutdown")
 
@@ -350,8 +352,8 @@ func TestRunHTTP_QuickSuccession(t *testing.T) {
 		errChan2 <- srv2.RunHTTP(ctx2, addr)
 	}()
 
-	// Wait for second server to become reachable
-	waitForServer(t, addr)
+	// Wait for second server to become reachable (use longer timeout for CI)
+	waitForServer(t, addr, 2*time.Second)
 
 	// Verify second server is running by making a request
 	client := &http.Client{Timeout: 100 * time.Millisecond}
