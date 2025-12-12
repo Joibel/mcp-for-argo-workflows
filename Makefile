@@ -154,7 +154,8 @@ docker-build:
 		-t $(DOCKER_IMAGE):latest \
 		.
 
-## docker-build-multiarch: Build multi-architecture Docker image (requires docker buildx)
+## docker-build-multiarch: Build multi-architecture Docker image (requires docker buildx, no local load)
+## Note: Multi-arch builds cannot be loaded into local docker daemon; use docker-push to push to registry
 docker-build-multiarch:
 	@echo "Building multi-arch Docker image $(DOCKER_IMAGE):$(VERSION)..."
 	docker buildx build \

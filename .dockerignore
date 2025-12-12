@@ -26,6 +26,4 @@ coverage.html
 .env
 .env.local
 
-# Docker
-Dockerfile
-.dockerignore
+# Docker (keep Dockerfile and .dockerignore in context)
