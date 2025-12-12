@@ -22,11 +22,12 @@ ARG COMMIT=unknown
 ARG BUILD_TIME=unknown
 
 # Build with CGO enabled for full Kubernetes client compatibility
+# Note: Using single quotes around variable values to handle special characters safely
 RUN CGO_ENABLED=1 go build \
     -ldflags="-s -w \
-        -X github.com/Joibel/mcp-for-argo-workflows/internal/version.Version=${VERSION} \
-        -X github.com/Joibel/mcp-for-argo-workflows/internal/version.Commit=${COMMIT} \
-        -X github.com/Joibel/mcp-for-argo-workflows/internal/version.BuildTime=${BUILD_TIME}" \
+        -X 'github.com/Joibel/mcp-for-argo-workflows/internal/version.Version=${VERSION}' \
+        -X 'github.com/Joibel/mcp-for-argo-workflows/internal/version.Commit=${COMMIT}' \
+        -X 'github.com/Joibel/mcp-for-argo-workflows/internal/version.BuildTime=${BUILD_TIME}'" \
     -o mcp-for-argo-workflows \
     ./cmd/mcp-for-argo-workflows
 
