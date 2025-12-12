@@ -74,27 +74,13 @@ func TestValidPhases(t *testing.T) {
 	validPhases := []string{"Pending", "Running", "Succeeded", "Failed", "Error"}
 
 	for _, phase := range validPhases {
-		// Just ensure the valid phases map in the handler would accept these
-		validPhasesMap := map[string]bool{
-			"Pending":   true,
-			"Running":   true,
-			"Succeeded": true,
-			"Failed":    true,
-			"Error":     true,
-		}
-		assert.True(t, validPhasesMap[phase], "phase %s should be valid", phase)
+		// Use the exported ValidWorkflowPhases from the package
+		assert.True(t, ValidWorkflowPhases[phase], "phase %s should be valid", phase)
 	}
 
-	// Invalid phases
+	// Invalid phases - case sensitive and must be exact
 	invalidPhases := []string{"pending", "RUNNING", "Unknown", ""}
 	for _, phase := range invalidPhases {
-		validPhasesMap := map[string]bool{
-			"Pending":   true,
-			"Running":   true,
-			"Succeeded": true,
-			"Failed":    true,
-			"Error":     true,
-		}
-		assert.False(t, validPhasesMap[phase], "phase %q should be invalid", phase)
+		assert.False(t, ValidWorkflowPhases[phase], "phase %q should be invalid", phase)
 	}
 }

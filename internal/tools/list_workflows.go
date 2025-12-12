@@ -4,7 +4,6 @@ package tools
 import (
 	"context"
 	"fmt"
-	"strings"
 	"time"
 
 	"github.com/argoproj/argo-workflows/v3/pkg/apiclient/workflow"
@@ -13,6 +12,15 @@ import (
 
 	"github.com/Joibel/mcp-for-argo-workflows/internal/argo"
 )
+
+// ValidWorkflowPhases contains the allowed workflow phases for status filtering.
+var ValidWorkflowPhases = map[string]bool{
+	"Pending":   true,
+	"Running":   true,
+	"Succeeded": true,
+	"Failed":    true,
+	"Error":     true,
+}
 
 // ListWorkflowsInput defines the input parameters for the list_workflows tool.
 type ListWorkflowsInput struct {
@@ -69,6 +77,15 @@ func ListWorkflowsHandler(client *argo.Client) func(context.Context, *mcp.CallTo
 			namespace = *input.Namespace
 		}
 
+		// Build phase filter map for efficient lookup
+		phaseFilterMap := make(map[string]bool, len(input.Status))
+		for _, status := range input.Status {
+			if !ValidWorkflowPhases[status] {
+				return nil, nil, fmt.Errorf("invalid status filter %q, must be one of: Pending, Running, Succeeded, Failed, Error", status)
+			}
+			phaseFilterMap[status] = true
+		}
+
 		// Build list options
 		listOpts := &metav1.ListOptions{}
 
@@ -77,30 +94,11 @@ func ListWorkflowsHandler(client *argo.Client) func(context.Context, *mcp.CallTo
 			listOpts.LabelSelector = input.Labels
 		}
 
-		// Apply limit
-		if input.Limit > 0 {
+		// Only apply server-side limit if no phase filtering is needed
+		// When phase filtering is active, we need all results to filter client-side
+		applyClientSideLimit := len(phaseFilterMap) > 0 && input.Limit > 0
+		if input.Limit > 0 && !applyClientSideLimit {
 			listOpts.Limit = input.Limit
-		}
-
-		// Build phase filter string for Argo API
-		var phaseFilter string
-		if len(input.Status) > 0 {
-			// Validate phases
-			validPhases := map[string]bool{
-				"Pending":   true,
-				"Running":   true,
-				"Succeeded": true,
-				"Failed":    true,
-				"Error":     true,
-			}
-			var phases []string
-			for _, status := range input.Status {
-				if !validPhases[status] {
-					return nil, nil, fmt.Errorf("invalid status filter %q, must be one of: Pending, Running, Succeeded, Failed, Error", status)
-				}
-				phases = append(phases, status)
-			}
-			phaseFilter = strings.Join(phases, ",")
 		}
 
 		// Get the workflow service client
@@ -119,12 +117,10 @@ func ListWorkflowsHandler(client *argo.Client) func(context.Context, *mcp.CallTo
 		// Convert to summaries and apply phase filter client-side if needed
 		var summaries []WorkflowSummary
 		for _, wf := range listResp.Items {
-			// Apply phase filter
+			// Apply phase filter using map lookup
 			phase := string(wf.Status.Phase)
-			if phaseFilter != "" {
-				if !strings.Contains(phaseFilter, phase) {
-					continue
-				}
+			if len(phaseFilterMap) > 0 && !phaseFilterMap[phase] {
+				continue
 			}
 
 			summary := WorkflowSummary{
@@ -143,6 +139,11 @@ func ListWorkflowsHandler(client *argo.Client) func(context.Context, *mcp.CallTo
 			}
 
 			summaries = append(summaries, summary)
+
+			// Apply client-side limit after filtering
+			if applyClientSideLimit && int64(len(summaries)) >= input.Limit {
+				break
+			}
 		}
 
 		// Build output
@@ -156,6 +157,20 @@ func ListWorkflowsHandler(client *argo.Client) func(context.Context, *mcp.CallTo
 			output.Workflows = []WorkflowSummary{}
 		}
 
-		return nil, output, nil
+		// Build human-readable result
+		resultText := fmt.Sprintf("Found %d workflow(s)", output.Total)
+		if namespace != "" {
+			resultText += fmt.Sprintf(" in namespace %q", namespace)
+		} else {
+			resultText += " across all namespaces"
+		}
+
+		result := &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: resultText},
+			},
+		}
+
+		return result, output, nil
 	}
 }
