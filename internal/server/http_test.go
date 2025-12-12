@@ -13,33 +13,59 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+// waitForServer waits until the server is reachable or times out.
+func waitForServer(t *testing.T, addr string) {
+	t.Helper()
+	client := &http.Client{Timeout: 100 * time.Millisecond}
+	require.Eventually(t, func() bool {
+		resp, err := client.Get(fmt.Sprintf("http://%s/", addr))
+		if err != nil {
+			return false
+		}
+		_ = resp.Body.Close()
+		return true
+	}, 500*time.Millisecond, 10*time.Millisecond, "server should become reachable")
+}
+
+// getAvailableAddr returns an available address for testing.
+func getAvailableAddr(t *testing.T) string {
+	t.Helper()
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	require.NoError(t, err)
+	addr := listener.Addr().String()
+	require.NoError(t, listener.Close())
+	return addr
+}
+
 // TestRunHTTP_BasicStartup tests that the HTTP server starts and listens successfully.
 func TestRunHTTP_BasicStartup(t *testing.T) {
-	server := NewServer("test-server", "1.0.0")
+	srv := NewServer("test-server", "1.0.0")
 
-	// Use port 0 to get a random available port
-	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	// Pick an addr we can actually probe
+	addr := getAvailableAddr(t)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
 	// Start server in goroutine
 	errChan := make(chan error, 1)
 	go func() {
-		errChan <- server.RunHTTP(ctx, "127.0.0.1:0")
+		errChan <- srv.RunHTTP(ctx, addr)
 	}()
 
-	// Give the server a moment to start
-	time.Sleep(50 * time.Millisecond)
+	// Wait for server to become reachable
+	waitForServer(t, addr)
 
 	// Server should still be running
 	select {
 	case err := <-errChan:
-		t.Fatalf("server exited prematurely: %v", err)
+		require.FailNowf(t, "server exited prematurely", "%v", err)
 	default:
 		// Server is still running, this is expected
 	}
 
-	// Wait for context timeout to trigger shutdown
-	<-ctx.Done()
+	// Cancel context to trigger shutdown
+	cancel()
 
 	// Server should shut down gracefully
 	err := <-errChan
@@ -48,24 +74,19 @@ func TestRunHTTP_BasicStartup(t *testing.T) {
 
 // TestRunHTTP_GracefulShutdown tests that cancelling the context triggers graceful shutdown.
 func TestRunHTTP_GracefulShutdown(t *testing.T) {
-	server := NewServer("test-server", "1.0.0")
-
-	// Get a random available port
-	listener, err := net.Listen("tcp", "127.0.0.1:0")
-	require.NoError(t, err)
-	addr := listener.Addr().String()
-	_ = listener.Close()
+	srv := NewServer("test-server", "1.0.0")
+	addr := getAvailableAddr(t)
 
 	ctx, cancel := context.WithCancel(context.Background())
 
 	// Start server
 	errChan := make(chan error, 1)
 	go func() {
-		errChan <- server.RunHTTP(ctx, addr)
+		errChan <- srv.RunHTTP(ctx, addr)
 	}()
 
-	// Give server time to start
-	time.Sleep(50 * time.Millisecond)
+	// Wait for server to become reachable before testing shutdown
+	waitForServer(t, addr)
 
 	// Cancel context to trigger shutdown
 	cancel()
@@ -82,6 +103,7 @@ func TestRunHTTP_GracefulShutdown(t *testing.T) {
 // TestRunHTTP_InvalidAddress tests that invalid addresses return errors.
 func TestRunHTTP_InvalidAddress(t *testing.T) {
 	tests := []struct {
+		setup   func(t *testing.T) (string, func())
 		name    string
 		addr    string
 		wantErr bool
@@ -97,21 +119,24 @@ func TestRunHTTP_InvalidAddress(t *testing.T) {
 			wantErr: true,
 		},
 		{
-			name:    "port in use",
-			addr:    "", // Will be set dynamically
+			name: "port in use",
+			setup: func(t *testing.T) (string, func()) {
+				t.Helper()
+				listener, err := net.Listen("tcp", "127.0.0.1:0")
+				require.NoError(t, err)
+				return listener.Addr().String(), func() { _ = listener.Close() }
+			},
 			wantErr: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Special handling for "port in use" test
-			if tt.name == "port in use" {
-				// Bind to a port first
-				listener, listenErr := net.Listen("tcp", "127.0.0.1:0")
-				require.NoError(t, listenErr)
-				tt.addr = listener.Addr().String()
-				defer func() { _ = listener.Close() }()
+			addr := tt.addr
+			if tt.setup != nil {
+				var cleanup func()
+				addr, cleanup = tt.setup(t)
+				defer cleanup()
 			}
 
 			srv := NewServer("test-server", "1.0.0")
@@ -120,10 +145,10 @@ func TestRunHTTP_InvalidAddress(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
 			defer cancel()
 
-			runErr := srv.RunHTTP(ctx, tt.addr)
+			runErr := srv.RunHTTP(ctx, addr)
 
 			if tt.wantErr {
-				assert.Error(t, runErr, "expected error for address: %s", tt.addr)
+				assert.Error(t, runErr, "expected error for address: %s", addr)
 			} else {
 				assert.NoError(t, runErr)
 			}
@@ -134,14 +159,9 @@ func TestRunHTTP_InvalidAddress(t *testing.T) {
 // TestRunHTTP_HTTPServerConfiguration tests that the HTTP server has correct configuration.
 func TestRunHTTP_HTTPServerConfiguration(t *testing.T) {
 	srv := NewServer("test-server", "1.0.0")
+	addr := getAvailableAddr(t)
 
-	// Get a random available port
-	listener, err := net.Listen("tcp", "127.0.0.1:0")
-	require.NoError(t, err)
-	addr := listener.Addr().String()
-	_ = listener.Close()
-
-	ctx, cancel := context.WithTimeout(context.Background(), 200*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
 	// Start server
@@ -150,25 +170,19 @@ func TestRunHTTP_HTTPServerConfiguration(t *testing.T) {
 		errChan <- srv.RunHTTP(ctx, addr)
 	}()
 
-	// Give server time to start
-	time.Sleep(50 * time.Millisecond)
+	// Verify server is listening and responds
+	client := &http.Client{Timeout: 100 * time.Millisecond}
+	require.Eventually(t, func() bool {
+		resp, err := client.Get(fmt.Sprintf("http://%s/", addr))
+		if err != nil {
+			return false
+		}
+		_ = resp.Body.Close()
+		return resp.StatusCode != 0
+	}, 500*time.Millisecond, 10*time.Millisecond, "server should respond to HTTP requests")
 
-	// Make a request to verify the handler is set up
-	// Note: We're not testing the MCP protocol itself, just that HTTP works
-	client := &http.Client{
-		Timeout: 1 * time.Second,
-	}
-
-	resp, getErr := client.Get(fmt.Sprintf("http://%s/", addr))
-	if getErr == nil {
-		defer func() { _ = resp.Body.Close() }()
-		// Server responded, which means it's listening
-		// The exact response depends on the MCP SDK's SSE handler
-		assert.NotEqual(t, 0, resp.StatusCode, "server should respond")
-	}
-
-	// Wait for context to expire and server to shut down
-	<-ctx.Done()
+	// Cancel to trigger shutdown
+	cancel()
 	runErr := <-errChan
 	assert.NoError(t, runErr)
 }
@@ -176,11 +190,7 @@ func TestRunHTTP_HTTPServerConfiguration(t *testing.T) {
 // TestRunHTTP_MultipleShutdowns tests that multiple cancellations don't cause issues.
 func TestRunHTTP_MultipleShutdowns(t *testing.T) {
 	srv := NewServer("test-server", "1.0.0")
-
-	listener, err := net.Listen("tcp", "127.0.0.1:0")
-	require.NoError(t, err)
-	addr := listener.Addr().String()
-	_ = listener.Close()
+	addr := getAvailableAddr(t)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -190,8 +200,8 @@ func TestRunHTTP_MultipleShutdowns(t *testing.T) {
 		errChan <- srv.RunHTTP(ctx, addr)
 	}()
 
-	// Give server time to start
-	time.Sleep(50 * time.Millisecond)
+	// Wait for server to become reachable
+	waitForServer(t, addr)
 
 	// Cancel multiple times (should be safe)
 	cancel()
@@ -210,11 +220,7 @@ func TestRunHTTP_MultipleShutdowns(t *testing.T) {
 // TestRunHTTP_ContextAlreadyCancelled tests behavior when context is already cancelled.
 func TestRunHTTP_ContextAlreadyCancelled(t *testing.T) {
 	srv := NewServer("test-server", "1.0.0")
-
-	listener, err := net.Listen("tcp", "127.0.0.1:0")
-	require.NoError(t, err)
-	addr := listener.Addr().String()
-	_ = listener.Close()
+	addr := getAvailableAddr(t)
 
 	// Create an already-cancelled context
 	ctx, cancel := context.WithCancel(context.Background())
@@ -233,13 +239,9 @@ func TestRunHTTP_ContextAlreadyCancelled(t *testing.T) {
 // TestRunHTTP_ConcurrentRequests tests that the server can handle multiple concurrent requests.
 func TestRunHTTP_ConcurrentRequests(t *testing.T) {
 	srv := NewServer("test-server", "1.0.0")
+	addr := getAvailableAddr(t)
 
-	listener, err := net.Listen("tcp", "127.0.0.1:0")
-	require.NoError(t, err)
-	addr := listener.Addr().String()
-	_ = listener.Close()
-
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
 	errChan := make(chan error, 1)
@@ -247,8 +249,8 @@ func TestRunHTTP_ConcurrentRequests(t *testing.T) {
 		errChan <- srv.RunHTTP(ctx, addr)
 	}()
 
-	// Give server time to start
-	time.Sleep(50 * time.Millisecond)
+	// Wait for server to become reachable
+	waitForServer(t, addr)
 
 	// Make concurrent requests
 	const numRequests = 5
@@ -277,8 +279,8 @@ func TestRunHTTP_ConcurrentRequests(t *testing.T) {
 	// At least some requests should succeed
 	assert.Greater(t, successCount, 0, "at least some concurrent requests should succeed")
 
-	// Wait for server shutdown
-	<-ctx.Done()
+	// Cancel to trigger shutdown
+	cancel()
 	runErr := <-errChan
 	assert.NoError(t, runErr)
 }
@@ -290,13 +292,9 @@ func TestRunHTTP_ReadHeaderTimeout(t *testing.T) {
 	// includes the timeout.
 
 	srv := NewServer("test-server", "1.0.0")
+	addr := getAvailableAddr(t)
 
-	listener, err := net.Listen("tcp", "127.0.0.1:0")
-	require.NoError(t, err)
-	addr := listener.Addr().String()
-	_ = listener.Close()
-
-	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
 	defer cancel()
 
 	errChan := make(chan error, 1)
@@ -304,25 +302,21 @@ func TestRunHTTP_ReadHeaderTimeout(t *testing.T) {
 		errChan <- srv.RunHTTP(ctx, addr)
 	}()
 
-	// Give server time to start
-	time.Sleep(50 * time.Millisecond)
+	// Wait for server to become reachable
+	waitForServer(t, addr)
 
 	// The server should be configured with ReadHeaderTimeout (10 seconds in the code)
 	// We can't easily test the timeout behavior without actually triggering it,
 	// but we can verify the server starts and runs normally
 
-	<-ctx.Done()
+	cancel()
 	runErr := <-errChan
 	assert.NoError(t, runErr, "server with ReadHeaderTimeout should work normally")
 }
 
 // TestRunHTTP_QuickSuccession tests starting servers on the same port in quick succession.
 func TestRunHTTP_QuickSuccession(t *testing.T) {
-	// Get a port
-	listener, err := net.Listen("tcp", "127.0.0.1:0")
-	require.NoError(t, err)
-	addr := listener.Addr().String()
-	_ = listener.Close()
+	addr := getAvailableAddr(t)
 
 	// First server
 	srv1 := NewServer("test-server-1", "1.0.0")
@@ -333,8 +327,8 @@ func TestRunHTTP_QuickSuccession(t *testing.T) {
 		errChan1 <- srv1.RunHTTP(ctx1, addr)
 	}()
 
-	// Give first server time to start
-	time.Sleep(50 * time.Millisecond)
+	// Wait for first server to become reachable
+	waitForServer(t, addr)
 
 	// Shut down first server
 	cancel1()
@@ -346,7 +340,7 @@ func TestRunHTTP_QuickSuccession(t *testing.T) {
 
 	// Second server on same port should work
 	srv2 := NewServer("test-server-2", "1.0.0")
-	ctx2, cancel2 := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	ctx2, cancel2 := context.WithCancel(context.Background())
 	defer cancel2()
 
 	errChan2 := make(chan error, 1)
@@ -354,10 +348,10 @@ func TestRunHTTP_QuickSuccession(t *testing.T) {
 		errChan2 <- srv2.RunHTTP(ctx2, addr)
 	}()
 
-	// Give second server time to start
-	time.Sleep(50 * time.Millisecond)
+	// Wait for second server to become reachable
+	waitForServer(t, addr)
 
-	<-ctx2.Done()
+	cancel2()
 	runErr2 := <-errChan2
 	assert.NoError(t, runErr2, "second server should start after first shuts down")
 }
