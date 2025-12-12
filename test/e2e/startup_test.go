@@ -20,7 +20,10 @@ import (
 
 // getProjectRoot returns the project root directory.
 func getProjectRoot() string {
-	_, file, _, _ := runtime.Caller(0)
+	_, file, _, ok := runtime.Caller(0)
+	if !ok {
+		panic("failed to get caller information")
+	}
 	// Go up from test/e2e to project root
 	return filepath.Join(filepath.Dir(file), "..", "..")
 }
@@ -37,7 +40,9 @@ func buildBinary(t *testing.T) string {
 	require.NoError(t, err, "Failed to build binary: %s", string(buildOutput))
 
 	t.Cleanup(func() {
-		os.Remove(binaryPath)
+		if err := os.Remove(binaryPath); err != nil && !os.IsNotExist(err) {
+			t.Logf("Failed to remove test binary: %v", err)
+		}
 	})
 
 	return binaryPath
