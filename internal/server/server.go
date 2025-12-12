@@ -37,6 +37,9 @@ func (s *Server) RegisterTools(client *argo.Client) {
 
 	// Register list_workflows tool
 	mcp.AddTool(s.mcp, tools.ListWorkflowsTool(), tools.ListWorkflowsHandler(client))
+
+	// Register get_workflow tool
+	mcp.AddTool(s.mcp, tools.GetWorkflowTool(), tools.GetWorkflowHandler(client))
 }
 
 // GetMCPServer returns the underlying MCP server instance.
