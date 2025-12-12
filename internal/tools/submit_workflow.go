@@ -61,6 +61,11 @@ func SubmitWorkflowTool() *mcp.Tool {
 // SubmitWorkflowHandler returns a handler function for the submit_workflow tool.
 func SubmitWorkflowHandler(client *argo.Client) func(context.Context, *mcp.CallToolRequest, SubmitWorkflowInput) (*mcp.CallToolResult, *SubmitWorkflowOutput, error) {
 	return func(ctx context.Context, req *mcp.CallToolRequest, input SubmitWorkflowInput) (*mcp.CallToolResult, *SubmitWorkflowOutput, error) {
+		// Validate manifest is provided
+		if strings.TrimSpace(input.Manifest) == "" {
+			return nil, nil, fmt.Errorf("manifest cannot be empty")
+		}
+
 		// Parse the YAML manifest into a Workflow object
 		var wf wfv1.Workflow
 		if err := yaml.Unmarshal([]byte(input.Manifest), &wf); err != nil {
@@ -99,7 +104,7 @@ func SubmitWorkflowHandler(client *argo.Client) func(context.Context, *mcp.CallT
 		wfService := client.WorkflowService()
 
 		// Create the workflow
-		createdWf, err := wfService.CreateWorkflow(client.Context(), &workflow.WorkflowCreateRequest{
+		createdWf, err := wfService.CreateWorkflow(ctx, &workflow.WorkflowCreateRequest{
 			Namespace: namespace,
 			Workflow:  &wf,
 		})

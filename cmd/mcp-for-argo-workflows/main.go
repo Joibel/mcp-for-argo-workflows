@@ -34,8 +34,8 @@ func run(ctx context.Context) error {
 	}
 
 	// Validate configuration
-	if err := cfg.Validate(); err != nil {
-		return fmt.Errorf("invalid configuration: %w", err)
+	if validateErr := cfg.Validate(); validateErr != nil {
+		return fmt.Errorf("invalid configuration: %w", validateErr)
 	}
 
 	// Create the Argo Workflows client

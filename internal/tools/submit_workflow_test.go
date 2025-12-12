@@ -4,6 +4,8 @@ import (
 	"testing"
 
 	wfv1 "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestApplyParameterOverrides(t *testing.T) {
@@ -107,28 +109,19 @@ func TestApplyParameterOverrides(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := applyParameterOverrides(tt.workflow, tt.params)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("applyParameterOverrides() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
 			if tt.wantErr {
+				require.Error(t, err)
 				return
 			}
+			require.NoError(t, err)
 
 			gotParams := tt.workflow.Spec.Arguments.Parameters
-			if len(gotParams) != len(tt.wantParams) {
-				t.Errorf("got %d parameters, want %d", len(gotParams), len(tt.wantParams))
-				return
-			}
+			require.Len(t, gotParams, len(tt.wantParams))
 
 			for i, want := range tt.wantParams {
 				got := gotParams[i]
-				if got.Name != want.Name {
-					t.Errorf("param[%d].Name = %q, want %q", i, got.Name, want.Name)
-				}
-				if got.Value.String() != want.Value.String() {
-					t.Errorf("param[%d].Value = %q, want %q", i, got.Value.String(), want.Value.String())
-				}
+				assert.Equal(t, want.Name, got.Name, "param[%d].Name mismatch", i)
+				assert.Equal(t, want.Value.String(), got.Value.String(), "param[%d].Value mismatch", i)
 			}
 		})
 	}
@@ -137,11 +130,6 @@ func TestApplyParameterOverrides(t *testing.T) {
 func TestSubmitWorkflowTool(t *testing.T) {
 	tool := SubmitWorkflowTool()
 
-	if tool.Name != "submit_workflow" {
-		t.Errorf("tool.Name = %q, want %q", tool.Name, "submit_workflow")
-	}
-
-	if tool.Description == "" {
-		t.Error("tool.Description should not be empty")
-	}
+	assert.Equal(t, "submit_workflow", tool.Name)
+	assert.NotEmpty(t, tool.Description)
 }
