@@ -34,7 +34,7 @@ DIST_CHECKSUMS := $(DIST_DIR)/checksums.txt
 # All distribution binaries
 DIST_BINARIES := $(DIST_DARWIN_AMD64) $(DIST_DARWIN_ARM64) $(DIST_LINUX_AMD64) $(DIST_LINUX_ARM64) $(DIST_WINDOWS_AMD64)
 
-.PHONY: all test lint lint-fix fmt vet clean tools help build-all dist-clean \
+.PHONY: all test test-e2e lint lint-fix fmt vet clean tools help build-all dist-clean \
 	docker-build docker-build-multiarch docker-push
 
 # Default target
@@ -45,6 +45,11 @@ test:
 	@echo "Running tests..."
 	$(GO) test -race -coverprofile=coverage.out -covermode=atomic ./internal/...
 	@echo "Coverage report: coverage.out"
+
+## test-e2e: Run end-to-end tests (requires Docker)
+test-e2e:
+	@echo "Running E2E tests..."
+	$(GO) test -tags=e2e -v ./test/e2e/...
 
 ## lint: Run golangci-lint
 lint:

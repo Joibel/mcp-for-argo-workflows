@@ -15,13 +15,13 @@ import (
 // DeleteWorkflowInput defines the input parameters for the delete_workflow tool.
 type DeleteWorkflowInput struct {
 	// Namespace is the Kubernetes namespace (uses default if not specified).
-	Namespace string `json:"namespace,omitempty" jsonschema:"description=Kubernetes namespace (uses default if not specified)"`
+	Namespace string `json:"namespace,omitempty" jsonschema:"Kubernetes namespace (uses default if not specified)"`
 
 	// Name is the workflow name.
-	Name string `json:"name" jsonschema:"description=Workflow name,required"`
+	Name string `json:"name" jsonschema:"Workflow name,required"`
 
 	// Force indicates whether to force deletion without waiting for graceful termination.
-	Force bool `json:"force,omitempty" jsonschema:"description=Force deletion without waiting for graceful termination"`
+	Force bool `json:"force,omitempty" jsonschema:"Force deletion without waiting for graceful termination"`
 }
 
 // DeleteWorkflowOutput defines the output for the delete_workflow tool.

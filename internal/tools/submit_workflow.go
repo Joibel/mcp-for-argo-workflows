@@ -17,19 +17,19 @@ import (
 // SubmitWorkflowInput defines the input parameters for the submit_workflow tool.
 type SubmitWorkflowInput struct {
 	// Namespace is the Kubernetes namespace (uses default if not specified).
-	Namespace string `json:"namespace,omitempty" jsonschema:"description=Kubernetes namespace (uses default if not specified)"`
+	Namespace string `json:"namespace,omitempty" jsonschema:"Kubernetes namespace (uses default if not specified)"`
 
 	// Manifest is the workflow YAML manifest.
-	Manifest string `json:"manifest" jsonschema:"description=Workflow YAML manifest,required"`
+	Manifest string `json:"manifest" jsonschema:"Workflow YAML manifest,required"`
 
 	// GenerateName overrides metadata.generateName.
-	GenerateName string `json:"generateName,omitempty" jsonschema:"description=Override metadata.generateName"`
+	GenerateName string `json:"generateName,omitempty" jsonschema:"Override metadata.generateName"`
 
 	// Labels are additional labels to add to the workflow.
-	Labels map[string]string `json:"labels,omitempty" jsonschema:"description=Additional labels to add"`
+	Labels map[string]string `json:"labels,omitempty" jsonschema:"Additional labels to add"`
 
 	// Parameters are parameter overrides in key=value format.
-	Parameters []string `json:"parameters,omitempty" jsonschema:"description=Parameter overrides in key=value format"`
+	Parameters []string `json:"parameters,omitempty" jsonschema:"Parameter overrides in key=value format"`
 }
 
 // SubmitWorkflowOutput defines the output for the submit_workflow tool.

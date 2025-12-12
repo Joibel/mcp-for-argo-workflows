@@ -59,14 +59,19 @@ func NewClient(config *Config) (*Client, error) {
 		// Direct Kubernetes API mode
 		opts = apiclient.Opts{}
 
-		// Set kubeconfig if provided
-		if config.Kubeconfig != "" {
-			opts.ClientConfigSupplier = func() clientcmd.ClientConfig {
-				return clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
-					&clientcmd.ClientConfigLoadingRules{ExplicitPath: config.Kubeconfig},
-					&clientcmd.ConfigOverrides{},
-				)
+		// Always provide a ClientConfigSupplier for direct K8s mode.
+		// Use explicit path if provided, otherwise use default kubeconfig discovery.
+		opts.ClientConfigSupplier = func() clientcmd.ClientConfig {
+			var loadingRules *clientcmd.ClientConfigLoadingRules
+			if config.Kubeconfig != "" {
+				loadingRules = &clientcmd.ClientConfigLoadingRules{ExplicitPath: config.Kubeconfig}
+			} else {
+				loadingRules = clientcmd.NewDefaultClientConfigLoadingRules()
 			}
+			return clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
+				loadingRules,
+				&clientcmd.ConfigOverrides{},
+			)
 		}
 	}
 
