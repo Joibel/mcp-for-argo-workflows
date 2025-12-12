@@ -1,10 +1,11 @@
 package tools
 
 import (
-	"strings"
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestDeleteWorkflowTool(t *testing.T) {
@@ -14,57 +15,50 @@ func TestDeleteWorkflowTool(t *testing.T) {
 	assert.NotEmpty(t, tool.Description)
 }
 
-func TestDeleteWorkflowInput_Validation(t *testing.T) {
+func TestDeleteWorkflowHandler_Validation(t *testing.T) {
+	// Test handler validation directly - validation errors occur before client is used,
+	// so we can pass nil and test that validation returns the expected errors.
+	handler := DeleteWorkflowHandler(nil)
+
 	tests := []struct {
-		name      string
-		input     DeleteWorkflowInput
-		wantValid bool
+		name        string
+		errContains string
+		input       DeleteWorkflowInput
+		wantErr     bool
 	}{
 		{
-			name: "valid input with name only",
-			input: DeleteWorkflowInput{
-				Name: "my-workflow",
-			},
-			wantValid: true,
-		},
-		{
-			name: "valid input with namespace",
-			input: DeleteWorkflowInput{
-				Name:      "my-workflow",
-				Namespace: "custom-ns",
-			},
-			wantValid: true,
-		},
-		{
-			name: "valid input with force",
-			input: DeleteWorkflowInput{
-				Name:  "my-workflow",
-				Force: true,
-			},
-			wantValid: true,
-		},
-		{
-			name: "empty name should be invalid",
+			name: "empty name returns error",
 			input: DeleteWorkflowInput{
 				Name: "",
 			},
-			wantValid: false,
+			wantErr:     true,
+			errContains: "workflow name cannot be empty",
 		},
 		{
-			name: "whitespace-only name should be invalid",
+			name: "whitespace-only name returns error",
 			input: DeleteWorkflowInput{
 				Name: "   ",
 			},
-			wantValid: false,
+			wantErr:     true,
+			errContains: "workflow name cannot be empty",
+		},
+		{
+			name: "whitespace-padded name returns error",
+			input: DeleteWorkflowInput{
+				Name: "  \t\n  ",
+			},
+			wantErr:     true,
+			errContains: "workflow name cannot be empty",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Validate that empty/whitespace names are caught
-			// This mirrors what the handler does with strings.TrimSpace
-			isValid := strings.TrimSpace(tt.input.Name) != ""
-			assert.Equal(t, tt.wantValid, isValid)
+			_, _, err := handler(context.Background(), nil, tt.input)
+			if tt.wantErr {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.errContains)
+			}
 		})
 	}
 }
