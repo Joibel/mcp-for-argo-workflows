@@ -34,6 +34,9 @@ func NewServer(name, version string) *Server {
 func (s *Server) RegisterTools(client *argo.Client) {
 	// Register submit_workflow tool
 	mcp.AddTool(s.mcp, tools.SubmitWorkflowTool(), tools.SubmitWorkflowHandler(client))
+
+	// Register get_workflow tool
+	mcp.AddTool(s.mcp, tools.GetWorkflowTool(), tools.GetWorkflowHandler(client))
 }
 
 // GetMCPServer returns the underlying MCP server instance.
