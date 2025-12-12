@@ -21,6 +21,40 @@ var (
 	ErrArchivedWorkflowsNotSupported = errors.New("archived workflows are only supported with Argo Server connection")
 )
 
+// ClientInterface defines the interface for interacting with Argo Workflows.
+// This interface is implemented by both the real Client and mock implementations.
+type ClientInterface interface {
+	// WorkflowService returns the workflow service client.
+	WorkflowService() workflow.WorkflowServiceClient
+
+	// CronWorkflowService returns the cron workflow service client.
+	CronWorkflowService() (cronworkflow.CronWorkflowServiceClient, error)
+
+	// WorkflowTemplateService returns the workflow template service client.
+	WorkflowTemplateService() (workflowtemplate.WorkflowTemplateServiceClient, error)
+
+	// ClusterWorkflowTemplateService returns the cluster workflow template service client.
+	ClusterWorkflowTemplateService() (clusterworkflowtemplate.ClusterWorkflowTemplateServiceClient, error)
+
+	// ArchivedWorkflowService returns the archived workflow service client.
+	ArchivedWorkflowService() (workflowarchive.ArchivedWorkflowServiceClient, error)
+
+	// InfoService returns the info service client.
+	InfoService() (info.InfoServiceClient, error)
+
+	// IsArgoServerMode returns true if connected via Argo Server.
+	IsArgoServerMode() bool
+
+	// DefaultNamespace returns the default namespace configured for this client.
+	DefaultNamespace() string
+
+	// Context returns the context associated with this client.
+	Context() context.Context
+}
+
+// Ensure Client implements ClientInterface.
+var _ ClientInterface = (*Client)(nil)
+
 // Client wraps the Argo Workflows API client and provides service client getters.
 type Client struct {
 	config    *Config

@@ -69,7 +69,7 @@ func ListWorkflowsTool() *mcp.Tool {
 }
 
 // ListWorkflowsHandler returns a handler function for the list_workflows tool.
-func ListWorkflowsHandler(client *argo.Client) func(context.Context, *mcp.CallToolRequest, ListWorkflowsInput) (*mcp.CallToolResult, *ListWorkflowsOutput, error) {
+func ListWorkflowsHandler(client argo.ClientInterface) func(context.Context, *mcp.CallToolRequest, ListWorkflowsInput) (*mcp.CallToolResult, *ListWorkflowsOutput, error) {
 	return func(ctx context.Context, _ *mcp.CallToolRequest, input ListWorkflowsInput) (*mcp.CallToolResult, *ListWorkflowsOutput, error) {
 		// Determine namespace
 		namespace := client.DefaultNamespace()

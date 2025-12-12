@@ -59,7 +59,7 @@ func SubmitWorkflowTool() *mcp.Tool {
 }
 
 // SubmitWorkflowHandler returns a handler function for the submit_workflow tool.
-func SubmitWorkflowHandler(client *argo.Client) func(context.Context, *mcp.CallToolRequest, SubmitWorkflowInput) (*mcp.CallToolResult, *SubmitWorkflowOutput, error) {
+func SubmitWorkflowHandler(client argo.ClientInterface) func(context.Context, *mcp.CallToolRequest, SubmitWorkflowInput) (*mcp.CallToolResult, *SubmitWorkflowOutput, error) {
 	return func(ctx context.Context, req *mcp.CallToolRequest, input SubmitWorkflowInput) (*mcp.CallToolResult, *SubmitWorkflowOutput, error) {
 		// Validate manifest is provided
 		if strings.TrimSpace(input.Manifest) == "" {
