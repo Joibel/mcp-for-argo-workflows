@@ -1,7 +1,7 @@
 # Project variables
 BINARY_NAME := mcp-for-argo-workflows
-BINARY_PATH := bin/$(BINARY_NAME)
 MODULE := github.com/Joibel/mcp-for-argo-workflows
+DIST_DIR := dist
 
 # Build variables
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo "dev")
@@ -18,21 +18,25 @@ GOFMT := gofmt
 GOIMPORTS := goimports
 GOLANGCI_LINT := golangci-lint
 
-# Cross-compilation
-GOOS ?= $(shell go env GOOS)
-GOARCH ?= $(shell go env GOARCH)
+# Source files for dependency tracking (exclude dist/ and vendor/)
+GO_FILES := $(shell find . -name '*.go' -type f -not -path './dist/*' -not -path './vendor/*')
+GO_MOD := go.mod go.sum
 
-.PHONY: all build test lint lint-fix fmt vet clean tools help
+# Platform-specific binary paths
+DIST_DARWIN_AMD64 := $(DIST_DIR)/$(BINARY_NAME)-darwin-amd64
+DIST_DARWIN_ARM64 := $(DIST_DIR)/$(BINARY_NAME)-darwin-arm64
+DIST_LINUX_AMD64 := $(DIST_DIR)/$(BINARY_NAME)-linux-amd64
+DIST_LINUX_ARM64 := $(DIST_DIR)/$(BINARY_NAME)-linux-arm64
+DIST_WINDOWS_AMD64 := $(DIST_DIR)/$(BINARY_NAME)-windows-amd64.exe
+DIST_CHECKSUMS := $(DIST_DIR)/checksums.txt
+
+# All distribution binaries
+DIST_BINARIES := $(DIST_DARWIN_AMD64) $(DIST_DARWIN_ARM64) $(DIST_LINUX_AMD64) $(DIST_LINUX_ARM64) $(DIST_WINDOWS_AMD64)
+
+.PHONY: all test lint lint-fix fmt vet clean tools help build-all dist-clean
 
 # Default target
-all: fmt vet lint test build
-
-## build: Compile the binary
-build:
-	@echo "Building $(BINARY_NAME)..."
-	@mkdir -p bin
-	GOOS=$(GOOS) GOARCH=$(GOARCH) $(GO) build -ldflags="$(LDFLAGS)" -o $(BINARY_PATH) ./cmd/$(BINARY_NAME)
-	@echo "Built $(BINARY_PATH)"
+all: fmt vet lint test $(DIST_LINUX_AMD64)
 
 ## test: Run tests with race detection and coverage
 test:
@@ -68,7 +72,7 @@ vet:
 ## clean: Remove build artifacts
 clean:
 	@echo "Cleaning..."
-	@rm -rf bin/
+	@rm -rf $(DIST_DIR)/
 	@rm -f coverage.out coverage.html
 	@echo "Clean complete"
 
@@ -82,3 +86,52 @@ tools:
 help:
 	@echo "Available targets:"
 	@grep -E '^## ' $(MAKEFILE_LIST) | sed 's/## /  /'
+
+# =============================================================================
+# Cross-compilation targets (real file targets with dependencies)
+# =============================================================================
+
+## build-all: Build binaries for all platforms
+build-all: $(DIST_BINARIES) $(DIST_CHECKSUMS)
+	@echo "All platform builds complete. Binaries in $(DIST_DIR)/"
+
+# macOS Intel
+$(DIST_DARWIN_AMD64): $(GO_FILES) $(GO_MOD)
+	@echo "Building for darwin/amd64..."
+	@mkdir -p $(DIST_DIR)
+	CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 $(GO) build -ldflags="$(LDFLAGS)" -o $@ ./cmd/$(BINARY_NAME)
+
+# macOS Apple Silicon
+$(DIST_DARWIN_ARM64): $(GO_FILES) $(GO_MOD)
+	@echo "Building for darwin/arm64..."
+	@mkdir -p $(DIST_DIR)
+	CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 $(GO) build -ldflags="$(LDFLAGS)" -o $@ ./cmd/$(BINARY_NAME)
+
+# Linux x86_64
+$(DIST_LINUX_AMD64): $(GO_FILES) $(GO_MOD)
+	@echo "Building for linux/amd64..."
+	@mkdir -p $(DIST_DIR)
+	CGO_ENABLED=0 GOOS=linux GOARCH=amd64 $(GO) build -ldflags="$(LDFLAGS)" -o $@ ./cmd/$(BINARY_NAME)
+
+# Linux ARM64
+$(DIST_LINUX_ARM64): $(GO_FILES) $(GO_MOD)
+	@echo "Building for linux/arm64..."
+	@mkdir -p $(DIST_DIR)
+	CGO_ENABLED=0 GOOS=linux GOARCH=arm64 $(GO) build -ldflags="$(LDFLAGS)" -o $@ ./cmd/$(BINARY_NAME)
+
+# Windows x86_64
+$(DIST_WINDOWS_AMD64): $(GO_FILES) $(GO_MOD)
+	@echo "Building for windows/amd64..."
+	@mkdir -p $(DIST_DIR)
+	CGO_ENABLED=0 GOOS=windows GOARCH=amd64 $(GO) build -ldflags="$(LDFLAGS)" -o $@ ./cmd/$(BINARY_NAME)
+
+## checksums: Generate SHA256 checksums for all binaries
+$(DIST_CHECKSUMS): $(DIST_BINARIES)
+	@echo "Generating checksums..."
+	@cd $(DIST_DIR) && shasum -a 256 $(BINARY_NAME)-* > checksums.txt
+	@echo "Checksums written to $(DIST_CHECKSUMS)"
+
+## dist-clean: Remove distribution artifacts
+dist-clean:
+	@echo "Cleaning dist directory..."
+	@rm -rf $(DIST_DIR)/
