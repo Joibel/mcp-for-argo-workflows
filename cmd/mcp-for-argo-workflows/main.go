@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"os"
 
+	"github.com/Joibel/mcp-for-argo-workflows/internal/argo"
 	"github.com/Joibel/mcp-for-argo-workflows/internal/config"
 	"github.com/Joibel/mcp-for-argo-workflows/internal/server"
 	"github.com/Joibel/mcp-for-argo-workflows/internal/version"
@@ -33,14 +34,22 @@ func run(ctx context.Context) error {
 	}
 
 	// Validate configuration
-	if err := cfg.Validate(); err != nil {
-		return fmt.Errorf("invalid configuration: %w", err)
+	if validateErr := cfg.Validate(); validateErr != nil {
+		return fmt.Errorf("invalid configuration: %w", validateErr)
+	}
+
+	// Create the Argo Workflows client
+	argoClient, err := argo.NewClient(cfg.ToArgoConfig())
+	if err != nil {
+		return fmt.Errorf("failed to create Argo client: %w", err)
 	}
 
 	// Create the MCP server with name and version
 	srv := server.NewServer(serverName, version.Version)
 
-	// TODO: Register tools (will be implemented in future issues)
+	// Register Argo Workflows tools
+	srv.RegisterTools(argoClient)
+
 	slog.Info("MCP server created",
 		"name", serverName,
 		"version", version.Version,
