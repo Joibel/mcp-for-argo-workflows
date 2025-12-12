@@ -15,7 +15,8 @@ spec:
     inputs:
       parameters:
       - name: message
+      - name: count
     container:
       image: docker/whalesay:latest
       command: [cowsay]
-      args: ["{{inputs.parameters.message}}"]
+      args: ["{{inputs.parameters.message}} (count: {{inputs.parameters.count}})"]

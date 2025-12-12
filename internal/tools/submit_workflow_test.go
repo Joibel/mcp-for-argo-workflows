@@ -131,6 +131,8 @@ func TestApplyParameterOverrides(t *testing.T) {
 			for i, want := range tt.wantParams {
 				got := gotParams[i]
 				assert.Equal(t, want.Name, got.Name, "param[%d].Name mismatch", i)
+				require.NotNil(t, got.Value, "param[%d].Value is nil", i)
+				require.NotNil(t, want.Value, "want param[%d].Value is nil", i)
 				assert.Equal(t, want.Value.String(), got.Value.String(), "param[%d].Value mismatch", i)
 			}
 		})
@@ -395,6 +397,9 @@ spec:
 			// Setup mock expectations
 			tt.setupMock(mockService)
 
+			// Verify mock expectations even on error paths
+			defer mockService.AssertExpectations(t)
+
 			// Create handler and call it
 			handler := SubmitWorkflowHandler(mockClient)
 			ctx := context.Background()
@@ -412,9 +417,6 @@ spec:
 			require.Nil(t, result) // Handler returns nil for result
 			require.NotNil(t, output)
 			tt.validate(t, output)
-
-			// Verify mock expectations
-			mockService.AssertExpectations(t)
 		})
 	}
 }

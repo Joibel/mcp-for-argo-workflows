@@ -398,6 +398,9 @@ func TestListWorkflowsHandler(t *testing.T) {
 			// Setup mock expectations
 			tt.setupMock(mockService)
 
+			// Verify mock expectations even on error paths
+			defer mockService.AssertExpectations(t)
+
 			// Create handler and call it
 			handler := ListWorkflowsHandler(mockClient)
 			ctx := context.Background()
@@ -415,9 +418,6 @@ func TestListWorkflowsHandler(t *testing.T) {
 			require.NotNil(t, result)
 			require.NotNil(t, output)
 			tt.validate(t, result, output)
-
-			// Verify mock expectations
-			mockService.AssertExpectations(t)
 		})
 	}
 }
