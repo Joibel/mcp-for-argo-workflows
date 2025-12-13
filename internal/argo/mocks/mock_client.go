@@ -18,10 +18,11 @@ import (
 // MockClient is a mock implementation of the Argo client.
 type MockClient struct {
 	mock.Mock
-	workflowService workflow.WorkflowServiceClient
-	ctx             context.Context
-	namespace       string
-	argoServerMode  bool
+	workflowService         workflow.WorkflowServiceClient
+	workflowTemplateService workflowtemplate.WorkflowTemplateServiceClient
+	ctx                     context.Context
+	namespace               string
+	argoServerMode          bool
 }
 
 // Ensure MockClient implements argo.ClientInterface.
@@ -38,6 +39,11 @@ func NewMockClient(namespace string, argoServerMode bool) *MockClient {
 // SetWorkflowService sets the workflow service client for this mock.
 func (m *MockClient) SetWorkflowService(service workflow.WorkflowServiceClient) {
 	m.workflowService = service
+}
+
+// SetWorkflowTemplateService sets the workflow template service client for this mock.
+func (m *MockClient) SetWorkflowTemplateService(service workflowtemplate.WorkflowTemplateServiceClient) {
+	m.workflowTemplateService = service
 }
 
 // SetContext sets the context for this mock client.
@@ -63,8 +69,11 @@ func (m *MockClient) CronWorkflowService() (cronworkflow.CronWorkflowServiceClie
 	return svc, args.Error(1)
 }
 
-// WorkflowTemplateService returns the workflow template service client (stub).
+// WorkflowTemplateService returns the workflow template service client.
 func (m *MockClient) WorkflowTemplateService() (workflowtemplate.WorkflowTemplateServiceClient, error) {
+	if m.workflowTemplateService != nil {
+		return m.workflowTemplateService, nil
+	}
 	args := m.Called()
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
