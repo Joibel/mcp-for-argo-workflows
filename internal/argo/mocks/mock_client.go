@@ -18,11 +18,12 @@ import (
 // MockClient is a mock implementation of the Argo client.
 type MockClient struct {
 	mock.Mock
-	workflowService         workflow.WorkflowServiceClient
-	workflowTemplateService workflowtemplate.WorkflowTemplateServiceClient
-	ctx                     context.Context
-	namespace               string
-	argoServerMode          bool
+	workflowService                workflow.WorkflowServiceClient
+	workflowTemplateService        workflowtemplate.WorkflowTemplateServiceClient
+	clusterWorkflowTemplateService clusterworkflowtemplate.ClusterWorkflowTemplateServiceClient
+	ctx                            context.Context
+	namespace                      string
+	argoServerMode                 bool
 }
 
 // Ensure MockClient implements argo.ClientInterface.
@@ -44,6 +45,11 @@ func (m *MockClient) SetWorkflowService(service workflow.WorkflowServiceClient) 
 // SetWorkflowTemplateService sets the workflow template service client for this mock.
 func (m *MockClient) SetWorkflowTemplateService(service workflowtemplate.WorkflowTemplateServiceClient) {
 	m.workflowTemplateService = service
+}
+
+// SetClusterWorkflowTemplateService sets the cluster workflow template service client for this mock.
+func (m *MockClient) SetClusterWorkflowTemplateService(service clusterworkflowtemplate.ClusterWorkflowTemplateServiceClient) {
+	m.clusterWorkflowTemplateService = service
 }
 
 // SetContext sets the context for this mock client.
@@ -85,8 +91,11 @@ func (m *MockClient) WorkflowTemplateService() (workflowtemplate.WorkflowTemplat
 	return svc, args.Error(1)
 }
 
-// ClusterWorkflowTemplateService returns the cluster workflow template service client (stub).
+// ClusterWorkflowTemplateService returns the cluster workflow template service client.
 func (m *MockClient) ClusterWorkflowTemplateService() (clusterworkflowtemplate.ClusterWorkflowTemplateServiceClient, error) {
+	if m.clusterWorkflowTemplateService != nil {
+		return m.clusterWorkflowTemplateService, nil
+	}
 	args := m.Called()
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
