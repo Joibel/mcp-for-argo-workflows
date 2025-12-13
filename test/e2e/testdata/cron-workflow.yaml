@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: CronWorkflow
+metadata:
+  name: test-cron
+spec:
+  schedule: "0 0 * * *"
+  timezone: "America/Los_Angeles"
+  startingDeadlineSeconds: 60
+  concurrencyPolicy: "Replace"
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 1
+  suspend: false
+  workflowSpec:
+    entrypoint: main
+    templates:
+      - name: main
+        container:
+          image: busybox:1.35
+          command: [echo]
+          args: ["Hello from cron workflow"]
