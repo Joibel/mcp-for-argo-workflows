@@ -80,12 +80,11 @@ func TestListWorkflowTemplatesHandler(t *testing.T) {
 	testTime := time.Date(2025, 1, 15, 10, 30, 0, 0, time.UTC)
 
 	tests := []struct {
-		setupMock     func(*mocks.MockWorkflowTemplateServiceClient)
-		validate      func(*testing.T, *ListWorkflowTemplatesOutput, *mcp.CallToolResult)
-		name          string
-		input         ListWorkflowTemplatesInput
-		wantErr       bool
-		expectAPICall bool
+		setupMock func(*mocks.MockWorkflowTemplateServiceClient)
+		validate  func(*testing.T, *ListWorkflowTemplatesOutput, *mcp.CallToolResult)
+		name      string
+		input     ListWorkflowTemplatesInput
+		wantErr   bool
 	}{
 		{
 			name: "success - list templates in namespace",
@@ -117,8 +116,7 @@ func TestListWorkflowTemplatesHandler(t *testing.T) {
 					nil,
 				)
 			},
-			wantErr:       false,
-			expectAPICall: true,
+			wantErr: false,
 			validate: func(t *testing.T, output *ListWorkflowTemplatesOutput, result *mcp.CallToolResult) {
 				assert.Equal(t, 2, output.Total)
 				assert.Len(t, output.Templates, 2)
@@ -157,8 +155,7 @@ func TestListWorkflowTemplatesHandler(t *testing.T) {
 					nil,
 				)
 			},
-			wantErr:       false,
-			expectAPICall: true,
+			wantErr: false,
 			validate: func(t *testing.T, output *ListWorkflowTemplatesOutput, _ *mcp.CallToolResult) {
 				assert.Equal(t, 1, output.Total)
 				assert.Equal(t, "template-myapp", output.Templates[0].Name)
@@ -177,8 +174,7 @@ func TestListWorkflowTemplatesHandler(t *testing.T) {
 					nil,
 				)
 			},
-			wantErr:       false,
-			expectAPICall: true,
+			wantErr: false,
 			validate: func(t *testing.T, output *ListWorkflowTemplatesOutput, result *mcp.CallToolResult) {
 				assert.Equal(t, 0, output.Total)
 				assert.Empty(t, output.Templates)
@@ -202,8 +198,7 @@ func TestListWorkflowTemplatesHandler(t *testing.T) {
 					nil,
 				)
 			},
-			wantErr:       false,
-			expectAPICall: true,
+			wantErr: false,
 			validate: func(t *testing.T, output *ListWorkflowTemplatesOutput, _ *mcp.CallToolResult) {
 				assert.Equal(t, 0, output.Total)
 				assert.Empty(t, output.Templates)
@@ -220,8 +215,7 @@ func TestListWorkflowTemplatesHandler(t *testing.T) {
 					errors.New("connection refused"),
 				)
 			},
-			wantErr:       true,
-			expectAPICall: true,
+			wantErr: true,
 		},
 		{
 			name: "error - namespace not found",
@@ -234,8 +228,7 @@ func TestListWorkflowTemplatesHandler(t *testing.T) {
 					errors.New("namespaces \"nonexistent\" not found"),
 				)
 			},
-			wantErr:       true,
-			expectAPICall: true,
+			wantErr: true,
 		},
 	}
 
