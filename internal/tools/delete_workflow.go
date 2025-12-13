@@ -75,6 +75,9 @@ func DeleteWorkflowHandler(client argo.ClientInterface) func(context.Context, *m
 			Message:   fmt.Sprintf("Workflow %q deleted successfully", name),
 		}
 
-		return nil, output, nil
+		// Build human-readable result
+		resultText := fmt.Sprintf("Workflow %q in namespace %q deleted successfully", name, namespace)
+
+		return TextResult(resultText), output, nil
 	}
 }

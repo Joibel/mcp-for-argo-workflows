@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"strings"
 	"time"
 
 	"github.com/argoproj/argo-workflows/v3/pkg/apiclient/workflow"
@@ -72,16 +71,15 @@ func WaitWorkflowTool() *mcp.Tool {
 // WaitWorkflowHandler returns a handler function for the wait_workflow tool.
 func WaitWorkflowHandler(client argo.ClientInterface) func(context.Context, *mcp.CallToolRequest, WaitWorkflowInput) (*mcp.CallToolResult, *WaitWorkflowOutput, error) {
 	return func(_ context.Context, _ *mcp.CallToolRequest, input WaitWorkflowInput) (*mcp.CallToolResult, *WaitWorkflowOutput, error) {
-		// Validate and normalize name (use local variable to avoid mutating input)
-		workflowName := strings.TrimSpace(input.Name)
-		if workflowName == "" {
-			return nil, nil, fmt.Errorf("workflow name cannot be empty")
+		// Validate and normalize name
+		workflowName, err := ValidateName(input.Name)
+		if err != nil {
+			return nil, nil, err
 		}
 
 		// Parse and validate timeout if provided (before client access)
 		var timeout time.Duration
 		if input.Timeout != "" {
-			var err error
 			timeout, err = time.ParseDuration(input.Timeout)
 			if err != nil {
 				return nil, nil, fmt.Errorf("invalid timeout format: %w", err)
@@ -91,11 +89,8 @@ func WaitWorkflowHandler(client argo.ClientInterface) func(context.Context, *mcp
 			}
 		}
 
-		// Determine namespace (trim for consistency with name validation)
-		namespace := strings.TrimSpace(input.Namespace)
-		if namespace == "" {
-			namespace = client.DefaultNamespace()
-		}
+		// Determine namespace
+		namespace := ResolveNamespace(input.Namespace, client)
 
 		// Create a context with timeout or cancellation for cleanup
 		// Use client.Context() which contains the KubeClient required by the Argo API
@@ -214,12 +209,6 @@ func WaitWorkflowHandler(client argo.ClientInterface) func(context.Context, *mcp
 			resultText += " [timed out]"
 		}
 
-		result := &mcp.CallToolResult{
-			Content: []mcp.Content{
-				&mcp.TextContent{Text: resultText},
-			},
-		}
-
-		return result, output, nil
+		return TextResult(resultText), output, nil
 	}
 }
