@@ -78,7 +78,7 @@ func GetWorkflowTemplateTool() *mcp.Tool {
 
 // GetWorkflowTemplateHandler returns a handler function for the get_workflow_template tool.
 func GetWorkflowTemplateHandler(client argo.ClientInterface) func(context.Context, *mcp.CallToolRequest, GetWorkflowTemplateInput) (*mcp.CallToolResult, *GetWorkflowTemplateOutput, error) {
-	return func(_ context.Context, _ *mcp.CallToolRequest, input GetWorkflowTemplateInput) (*mcp.CallToolResult, *GetWorkflowTemplateOutput, error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, input GetWorkflowTemplateInput) (*mcp.CallToolResult, *GetWorkflowTemplateOutput, error) {
 		// Validate required input
 		if input.Name == "" {
 			return nil, nil, fmt.Errorf("name is required")
@@ -97,7 +97,7 @@ func GetWorkflowTemplateHandler(client argo.ClientInterface) func(context.Contex
 		}
 
 		// Get the workflow template
-		wft, err := wftService.GetWorkflowTemplate(client.Context(), &workflowtemplate.WorkflowTemplateGetRequest{
+		wft, err := wftService.GetWorkflowTemplate(ctx, &workflowtemplate.WorkflowTemplateGetRequest{
 			Name:      input.Name,
 			Namespace: namespace,
 		})

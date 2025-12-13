@@ -42,7 +42,7 @@ func LintWorkflowTool() *mcp.Tool {
 
 // LintWorkflowHandler returns a handler function for the lint_workflow tool.
 func LintWorkflowHandler(client argo.ClientInterface) func(context.Context, *mcp.CallToolRequest, LintWorkflowInput) (*mcp.CallToolResult, *LintWorkflowOutput, error) {
-	return func(_ context.Context, _ *mcp.CallToolRequest, input LintWorkflowInput) (*mcp.CallToolResult, *LintWorkflowOutput, error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, input LintWorkflowInput) (*mcp.CallToolResult, *LintWorkflowOutput, error) {
 		// Validate manifest is provided
 		if strings.TrimSpace(input.Manifest) == "" {
 			return nil, nil, fmt.Errorf("manifest cannot be empty")
@@ -75,8 +75,8 @@ func LintWorkflowHandler(client argo.ClientInterface) func(context.Context, *mcp
 		// Get the workflow service client
 		wfService := client.WorkflowService()
 
-		// Lint the workflow (use client.Context() which contains the KubeClient)
-		_, err := wfService.LintWorkflow(client.Context(), &workflow.WorkflowLintRequest{
+		// Lint the workflow
+		_, err := wfService.LintWorkflow(ctx, &workflow.WorkflowLintRequest{
 			Namespace: namespace,
 			Workflow:  &wf,
 		})

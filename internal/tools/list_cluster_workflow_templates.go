@@ -47,7 +47,7 @@ func ListClusterWorkflowTemplatesTool() *mcp.Tool {
 
 // ListClusterWorkflowTemplatesHandler returns a handler function for the list_cluster_workflow_templates tool.
 func ListClusterWorkflowTemplatesHandler(client argo.ClientInterface) func(context.Context, *mcp.CallToolRequest, ListClusterWorkflowTemplatesInput) (*mcp.CallToolResult, *ListClusterWorkflowTemplatesOutput, error) {
-	return func(_ context.Context, _ *mcp.CallToolRequest, input ListClusterWorkflowTemplatesInput) (*mcp.CallToolResult, *ListClusterWorkflowTemplatesOutput, error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, input ListClusterWorkflowTemplatesInput) (*mcp.CallToolResult, *ListClusterWorkflowTemplatesOutput, error) {
 		// Build the list request
 		req := &clusterworkflowtemplate.ClusterWorkflowTemplateListRequest{}
 
@@ -64,8 +64,8 @@ func ListClusterWorkflowTemplatesHandler(client argo.ClientInterface) func(conte
 			return nil, nil, fmt.Errorf("failed to get cluster workflow template service: %w", err)
 		}
 
-		// List the cluster workflow templates (use client.Context() which contains the KubeClient)
-		cwftList, err := cwftService.ListClusterWorkflowTemplates(client.Context(), req)
+		// List the cluster workflow templates
+		cwftList, err := cwftService.ListClusterWorkflowTemplates(ctx, req)
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to list cluster workflow templates: %w", err)
 		}

@@ -21,9 +21,10 @@ type MockClient struct {
 	workflowService                workflow.WorkflowServiceClient
 	workflowTemplateService        workflowtemplate.WorkflowTemplateServiceClient
 	clusterWorkflowTemplateService clusterworkflowtemplate.ClusterWorkflowTemplateServiceClient
-	ctx                            context.Context
-	namespace                      string
-	argoServerMode                 bool
+	// ctx mirrors the real Client's context field for testing.
+	ctx            context.Context //nolint:containedctx // Mirrors real Client's Argo SDK pattern
+	namespace      string
+	argoServerMode bool
 }
 
 // Ensure MockClient implements argo.ClientInterface.

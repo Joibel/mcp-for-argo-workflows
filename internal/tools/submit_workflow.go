@@ -119,8 +119,8 @@ func SubmitWorkflowHandler(client argo.ClientInterface) func(context.Context, *m
 		// Get the workflow service client
 		wfService := client.WorkflowService()
 
-		// Create the workflow (use client.Context() which contains the KubeClient)
-		createdWf, err := wfService.CreateWorkflow(client.Context(), &workflow.WorkflowCreateRequest{
+		// Create the workflow
+		createdWf, err := wfService.CreateWorkflow(ctx, &workflow.WorkflowCreateRequest{
 			Namespace: namespace,
 			Workflow:  &wf,
 		})

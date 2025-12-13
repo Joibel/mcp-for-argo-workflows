@@ -59,14 +59,19 @@ var _ ClientInterface = (*Client)(nil)
 type Client struct {
 	config    *Config
 	apiClient apiclient.Client
-	ctx       context.Context
+	// ctx is returned by apiclient.NewClientFromOpts and contains authentication
+	// metadata required for API calls. This is the standard Argo SDK pattern.
+	ctx context.Context //nolint:containedctx // Required by Argo SDK design
 }
 
 // NewClient creates a new Argo Workflows client based on the provided configuration.
 // It supports two connection modes:
 //   - Argo Server mode: When config.ArgoServer is set, connects via gRPC
 //   - Direct K8s mode: When config.ArgoServer is empty, uses kubeconfig
-func NewClient(config *Config) (*Client, error) {
+//
+// The provided context is used as the base context for the client. Cancelling this
+// context will affect all operations using the client.
+func NewClient(ctx context.Context, config *Config) (*Client, error) {
 	if config == nil {
 		return nil, errors.New("config cannot be nil")
 	}
@@ -109,10 +114,10 @@ func NewClient(config *Config) (*Client, error) {
 		}
 	}
 
-	// Set context for API calls
-	opts.Context = context.Background()
+	// Use the provided context as the base for API calls
+	opts.Context = ctx
 
-	ctx, apiClient, err := apiclient.NewClientFromOpts(opts)
+	clientCtx, apiClient, err := apiclient.NewClientFromOpts(opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Argo API client: %w", err)
 	}
@@ -120,7 +125,7 @@ func NewClient(config *Config) (*Client, error) {
 	return &Client{
 		config:    config,
 		apiClient: apiClient,
-		ctx:       ctx,
+		ctx:       clientCtx,
 	}, nil
 }
 

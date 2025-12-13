@@ -94,7 +94,7 @@ func TestRunHTTP_GracefulShutdown(t *testing.T) {
 	// Server should shut down gracefully within reasonable time
 	select {
 	case err := <-errChan:
-		assert.NoError(t, err, "server should shut down gracefully")
+		require.NoError(t, err, "server should shut down gracefully")
 	case <-time.After(2 * time.Second):
 		t.Fatal("server did not shut down within timeout")
 	}
@@ -211,7 +211,7 @@ func TestRunHTTP_MultipleShutdowns(t *testing.T) {
 	// Server should still shut down gracefully once
 	select {
 	case runErr := <-errChan:
-		assert.NoError(t, runErr)
+		require.NoError(t, runErr)
 	case <-time.After(2 * time.Second):
 		t.Fatal("server did not shut down within timeout")
 	}
@@ -276,7 +276,7 @@ func TestRunHTTP_ConcurrentRequests(t *testing.T) {
 	}
 
 	// At least some requests should succeed
-	assert.Greater(t, successCount, 0, "at least some concurrent requests should succeed")
+	assert.Positive(t, successCount, "at least some concurrent requests should succeed")
 
 	// Cancel to trigger shutdown
 	cancel()
@@ -327,7 +327,7 @@ func TestRunHTTP_QuickSuccession(t *testing.T) {
 	// Shut down first server
 	cancel1()
 	runErr1 := <-errChan1
-	assert.NoError(t, runErr1)
+	require.NoError(t, runErr1)
 
 	// Wait for port to be released (TCP TIME_WAIT state)
 	// Use a simple polling approach to check when the port is available

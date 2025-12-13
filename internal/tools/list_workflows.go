@@ -14,6 +14,8 @@ import (
 )
 
 // ValidWorkflowPhases contains the allowed workflow phases for status filtering.
+//
+//nolint:gochecknoglobals // Constant lookup map for valid workflow phases
 var ValidWorkflowPhases = map[string]bool{
 	"Pending":   true,
 	"Running":   true,
@@ -104,8 +106,8 @@ func ListWorkflowsHandler(client argo.ClientInterface) func(context.Context, *mc
 		// Get the workflow service client
 		wfService := client.WorkflowService()
 
-		// List workflows (use client.Context() which contains the KubeClient)
-		listResp, err := wfService.ListWorkflows(client.Context(), &workflow.WorkflowListRequest{
+		// List workflows
+		listResp, err := wfService.ListWorkflows(ctx, &workflow.WorkflowListRequest{
 			Namespace:   namespace,
 			ListOptions: listOpts,
 			Fields:      "items.metadata,items.status.phase,items.status.message,items.status.finishedAt",

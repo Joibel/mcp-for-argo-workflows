@@ -69,7 +69,9 @@ func TestListWorkflowsHandler(t *testing.T) {
 				assert.False(t, result.IsError)
 				assert.Len(t, result.Content, 1)
 				require.IsType(t, &mcp.TextContent{}, result.Content[0])
-				assert.Contains(t, result.Content[0].(*mcp.TextContent).Text, "Found 2 workflow(s)")
+				textContent, ok := result.Content[0].(*mcp.TextContent)
+				require.True(t, ok, "content should be TextContent")
+				assert.Contains(t, textContent.Text, "Found 2 workflow(s)")
 				assert.Equal(t, 2, output.Total)
 				require.Len(t, output.Workflows, 2)
 				assert.Equal(t, "workflow-1", output.Workflows[0].Name)
@@ -233,7 +235,7 @@ func TestListWorkflowsHandler(t *testing.T) {
 			validate: func(t *testing.T, result *mcp.CallToolResult, output *ListWorkflowsOutput) {
 				assert.Equal(t, 0, output.Total)
 				assert.NotNil(t, output.Workflows)
-				assert.Len(t, output.Workflows, 0)
+				assert.Empty(t, output.Workflows)
 			},
 		},
 		{
@@ -276,7 +278,9 @@ func TestListWorkflowsHandler(t *testing.T) {
 			wantErr: false,
 			validate: func(t *testing.T, result *mcp.CallToolResult, output *ListWorkflowsOutput) {
 				require.IsType(t, &mcp.TextContent{}, result.Content[0])
-				assert.Contains(t, result.Content[0].(*mcp.TextContent).Text, "across all namespaces")
+				textContent, ok := result.Content[0].(*mcp.TextContent)
+				require.True(t, ok, "content should be TextContent")
+				assert.Contains(t, textContent.Text, "across all namespaces")
 				assert.Equal(t, 2, output.Total)
 				require.Len(t, output.Workflows, 2)
 				assert.Equal(t, "namespace1", output.Workflows[0].Namespace)
@@ -300,7 +304,7 @@ func TestListWorkflowsHandler(t *testing.T) {
 			validate: func(t *testing.T, result *mcp.CallToolResult, output *ListWorkflowsOutput) {
 				assert.Equal(t, 0, output.Total)
 				assert.NotNil(t, output.Workflows)
-				assert.Len(t, output.Workflows, 0)
+				assert.Empty(t, output.Workflows)
 			},
 		},
 		{

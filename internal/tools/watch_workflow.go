@@ -88,7 +88,7 @@ func WatchWorkflowTool() *mcp.Tool {
 
 // WatchWorkflowHandler returns a handler function for the watch_workflow tool.
 func WatchWorkflowHandler(client argo.ClientInterface) func(context.Context, *mcp.CallToolRequest, WatchWorkflowInput) (*mcp.CallToolResult, *WatchWorkflowOutput, error) {
-	return func(_ context.Context, _ *mcp.CallToolRequest, input WatchWorkflowInput) (*mcp.CallToolResult, *WatchWorkflowOutput, error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, input WatchWorkflowInput) (*mcp.CallToolResult, *WatchWorkflowOutput, error) {
 		// Validate and normalize name
 		workflowName, err := ValidateName(input.Name)
 		if err != nil {
@@ -111,13 +111,12 @@ func WatchWorkflowHandler(client argo.ClientInterface) func(context.Context, *mc
 		namespace := ResolveNamespace(input.Namespace, client)
 
 		// Create a context with timeout or cancellation for cleanup
-		// Use client.Context() which contains the KubeClient required by the Argo API
 		var watchCtx context.Context
 		var cancel context.CancelFunc
 		if timeout > 0 {
-			watchCtx, cancel = context.WithTimeout(client.Context(), timeout)
+			watchCtx, cancel = context.WithTimeout(ctx, timeout)
 		} else {
-			watchCtx, cancel = context.WithCancel(client.Context())
+			watchCtx, cancel = context.WithCancel(ctx)
 		}
 		defer cancel()
 
@@ -249,6 +248,8 @@ func isWorkflowCompleted(phase wfv1.WorkflowPhase) bool {
 	switch phase {
 	case wfv1.WorkflowSucceeded, wfv1.WorkflowFailed, wfv1.WorkflowError:
 		return true
+	case wfv1.WorkflowUnknown, wfv1.WorkflowPending, wfv1.WorkflowRunning:
+		return false
 	default:
 		return false
 	}

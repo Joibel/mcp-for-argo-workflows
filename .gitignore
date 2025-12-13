@@ -35,3 +35,5 @@ Thumbs.db
 # Debug files
 debug
 __debug_bin*
+
+.claude/settings.local.json

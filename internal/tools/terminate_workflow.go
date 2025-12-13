@@ -45,7 +45,7 @@ func TerminateWorkflowTool() *mcp.Tool {
 
 // TerminateWorkflowHandler returns a handler function for the terminate_workflow tool.
 func TerminateWorkflowHandler(client argo.ClientInterface) func(context.Context, *mcp.CallToolRequest, TerminateWorkflowInput) (*mcp.CallToolResult, *TerminateWorkflowOutput, error) {
-	return func(_ context.Context, _ *mcp.CallToolRequest, input TerminateWorkflowInput) (*mcp.CallToolResult, *TerminateWorkflowOutput, error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, input TerminateWorkflowInput) (*mcp.CallToolResult, *TerminateWorkflowOutput, error) {
 		// Validate and normalize name
 		workflowName, err := ValidateName(input.Name)
 		if err != nil {
@@ -58,8 +58,8 @@ func TerminateWorkflowHandler(client argo.ClientInterface) func(context.Context,
 		// Get the workflow service client
 		wfService := client.WorkflowService()
 
-		// Terminate the workflow (use client.Context() which contains the KubeClient)
-		wf, err := wfService.TerminateWorkflow(client.Context(), &workflow.WorkflowTerminateRequest{
+		// Terminate the workflow
+		wf, err := wfService.TerminateWorkflow(ctx, &workflow.WorkflowTerminateRequest{
 			Name:      workflowName,
 			Namespace: namespace,
 		})

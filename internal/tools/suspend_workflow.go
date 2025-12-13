@@ -45,7 +45,7 @@ func SuspendWorkflowTool() *mcp.Tool {
 
 // SuspendWorkflowHandler returns a handler function for the suspend_workflow tool.
 func SuspendWorkflowHandler(client argo.ClientInterface) func(context.Context, *mcp.CallToolRequest, SuspendWorkflowInput) (*mcp.CallToolResult, *SuspendWorkflowOutput, error) {
-	return func(_ context.Context, _ *mcp.CallToolRequest, input SuspendWorkflowInput) (*mcp.CallToolResult, *SuspendWorkflowOutput, error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, input SuspendWorkflowInput) (*mcp.CallToolResult, *SuspendWorkflowOutput, error) {
 		// Validate and normalize name
 		workflowName, err := ValidateName(input.Name)
 		if err != nil {
@@ -58,8 +58,8 @@ func SuspendWorkflowHandler(client argo.ClientInterface) func(context.Context, *
 		// Get the workflow service client
 		wfService := client.WorkflowService()
 
-		// Suspend the workflow (use client.Context() which contains the KubeClient)
-		wf, err := wfService.SuspendWorkflow(client.Context(), &workflow.WorkflowSuspendRequest{
+		// Suspend the workflow
+		wf, err := wfService.SuspendWorkflow(ctx, &workflow.WorkflowSuspendRequest{
 			Name:      workflowName,
 			Namespace: namespace,
 		})

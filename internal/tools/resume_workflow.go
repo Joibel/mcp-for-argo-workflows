@@ -48,7 +48,7 @@ func ResumeWorkflowTool() *mcp.Tool {
 
 // ResumeWorkflowHandler returns a handler function for the resume_workflow tool.
 func ResumeWorkflowHandler(client argo.ClientInterface) func(context.Context, *mcp.CallToolRequest, ResumeWorkflowInput) (*mcp.CallToolResult, *ResumeWorkflowOutput, error) {
-	return func(_ context.Context, _ *mcp.CallToolRequest, input ResumeWorkflowInput) (*mcp.CallToolResult, *ResumeWorkflowOutput, error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, input ResumeWorkflowInput) (*mcp.CallToolResult, *ResumeWorkflowOutput, error) {
 		// Validate and normalize name
 		workflowName, err := ValidateName(input.Name)
 		if err != nil {
@@ -61,8 +61,8 @@ func ResumeWorkflowHandler(client argo.ClientInterface) func(context.Context, *m
 		// Get the workflow service client
 		wfService := client.WorkflowService()
 
-		// Resume the workflow (use client.Context() which contains the KubeClient)
-		wf, err := wfService.ResumeWorkflow(client.Context(), &workflow.WorkflowResumeRequest{
+		// Resume the workflow
+		wf, err := wfService.ResumeWorkflow(ctx, &workflow.WorkflowResumeRequest{
 			Name:              workflowName,
 			Namespace:         namespace,
 			NodeFieldSelector: input.NodeFieldSelector,

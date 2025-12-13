@@ -71,7 +71,7 @@ func LogsWorkflowTool() *mcp.Tool {
 
 // LogsWorkflowHandler returns a handler function for the logs_workflow tool.
 func LogsWorkflowHandler(client argo.ClientInterface) func(context.Context, *mcp.CallToolRequest, LogsWorkflowInput) (*mcp.CallToolResult, *LogsWorkflowOutput, error) {
-	return func(_ context.Context, _ *mcp.CallToolRequest, input LogsWorkflowInput) (*mcp.CallToolResult, *LogsWorkflowOutput, error) { //nolint:gocognit // Handler logic is sequential and readable
+	return func(ctx context.Context, _ *mcp.CallToolRequest, input LogsWorkflowInput) (*mcp.CallToolResult, *LogsWorkflowOutput, error) { //nolint:gocognit // Handler logic is sequential and readable
 		// Validate and normalize name
 		workflowName, err := ValidateName(input.Name)
 		if err != nil {
@@ -82,8 +82,7 @@ func LogsWorkflowHandler(client argo.ClientInterface) func(context.Context, *mcp
 		namespace := ResolveNamespace(input.Namespace, client)
 
 		// Create a cancelable context for the stream to ensure proper cleanup
-		// Use client.Context() which contains the KubeClient required by the Argo API
-		streamCtx, cancel := context.WithCancel(client.Context())
+		streamCtx, cancel := context.WithCancel(ctx)
 		defer cancel()
 
 		// Set default tail lines
@@ -155,11 +154,12 @@ func LogsWorkflowHandler(client argo.ClientInterface) func(context.Context, *mcp
 			Truncated: truncated,
 		}
 
-		if truncated {
+		switch {
+		case truncated:
 			output.Message = fmt.Sprintf("Logs truncated after %d bytes (max: %d bytes)", totalBytes, maxLogBytes)
-		} else if len(logs) == 0 {
+		case len(logs) == 0:
 			output.Message = "No logs available"
-		} else {
+		default:
 			output.Message = fmt.Sprintf("Retrieved %d log entries", len(logs))
 		}
 
