@@ -92,7 +92,15 @@ func TestWorkflow_FullLifecycle(t *testing.T) {
 	require.NoError(t, err, "Failed to get workflow logs")
 	require.NotNil(t, logsOutput)
 	assert.NotEmpty(t, logsOutput.Logs, "Logs should not be empty")
-	assert.Contains(t, logsOutput.Logs, "Hello World", "Logs should contain expected output")
+	// Check that at least one log entry contains the expected output
+	foundHelloWorld := false
+	for _, entry := range logsOutput.Logs {
+		if strings.Contains(entry.Content, "Hello World") {
+			foundHelloWorld = true
+			break
+		}
+	}
+	assert.True(t, foundHelloWorld, "Logs should contain expected output 'Hello World'")
 
 	// Step 5: Delete workflow
 	t.Log("Deleting workflow...")
@@ -169,7 +177,7 @@ func TestWorkflow_SuspendResume(t *testing.T) {
 
 	// Get workflow to verify it's suspended
 	wfService := cluster.ArgoClient.WorkflowService()
-	wf, err := wfService.GetWorkflow(ctx, &workflow.WorkflowGetRequest{
+	wf, err := wfService.GetWorkflow(cluster.ArgoClient.Context(), &workflow.WorkflowGetRequest{
 		Namespace: cluster.ArgoNamespace,
 		Name:      workflowName,
 	})

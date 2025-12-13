@@ -4,6 +4,7 @@ package e2e
 
 import (
 	"context"
+	"fmt"
 	"testing"
 	"time"
 
@@ -152,18 +153,18 @@ func TestWorkflowTemplate_SubmitWithRef(t *testing.T) {
 
 	// Step 2: Submit a workflow that references the template
 	t.Log("Submitting workflow from template...")
-	workflowManifest := `apiVersion: argoproj.io/v1alpha1
+	workflowManifest := fmt.Sprintf(`apiVersion: argoproj.io/v1alpha1
 kind: Workflow
 metadata:
   generateName: from-template-
 spec:
   workflowTemplateRef:
-    name: test-template
+    name: %s
   arguments:
     parameters:
       - name: message
         value: "Hello from workflow using template"
-`
+`, templateName)
 
 	submitHandler := tools.SubmitWorkflowHandler(cluster.ArgoClient)
 	submitInput := tools.SubmitWorkflowInput{
