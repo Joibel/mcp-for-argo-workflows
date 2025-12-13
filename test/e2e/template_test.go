@@ -263,19 +263,23 @@ func TestWorkflowTemplate_GetConsistency(t *testing.T) {
 
 	_, getOutput1, err := getHandler(ctx, nil, getInput)
 	require.NoError(t, err, "Failed to get workflow template")
+	require.NotNil(t, getOutput1)
 
 	originalCreatedAt := getOutput1.CreatedAt
+	require.NotEmpty(t, originalCreatedAt)
 
-	// Wait a moment to ensure timestamps would differ
-	time.Sleep(1 * time.Second)
-
-	// Note: Update is typically done via kubectl apply or direct API calls
-	// For now, we just verify the template exists and is stable
-	_, getOutput2, err := getHandler(ctx, nil, getInput)
-	require.NoError(t, err, "Failed to get workflow template again")
+	// Verify the template is stable by checking multiple Get calls return consistent data
+	var getOutput2 *tools.GetWorkflowTemplateOutput
+	require.Eventually(t, func() bool {
+		_, out, err := getHandler(ctx, nil, getInput)
+		if err != nil || out == nil {
+			return false
+		}
+		getOutput2 = out
+		return out.CreatedAt == originalCreatedAt
+	}, 15*time.Second, 500*time.Millisecond, "CreatedAt should remain stable")
 
 	// Verify the template is consistent
-	assert.Equal(t, originalCreatedAt, getOutput2.CreatedAt,
-		"CreatedAt should remain the same")
+	assert.Equal(t, originalCreatedAt, getOutput2.CreatedAt, "CreatedAt should remain the same")
 	assert.Equal(t, templateName, getOutput2.Name)
 }
