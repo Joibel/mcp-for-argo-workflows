@@ -2,25 +2,52 @@ version: "2"
 
 linters:
   enable:
-    # Bug Prevention (critical)
-    - errcheck        # Unchecked errors
-    - staticcheck     # Advanced static analysis
-    - bodyclose       # HTTP response body closure
-    - nilerr          # nil error returns
-    - errorlint       # Go 1.13+ error wrapping
-
-    # Performance
-    - ineffassign     # Unused assignments
-    - unparam         # Unused parameters
-    - copyloopvar     # Loop variable capture (Go 1.22+)
-
-    # Style
-    - revive          # Configurable golint replacement
-    - goconst         # Repeated strings
-    - nakedret        # Naked returns
-
-    # Security
-    - gosec           # Security issues
+    - asasalint
+    - bidichk
+    - bodyclose
+    - containedctx
+    - contextcheck
+    - copyloopvar
+    - dogsled
+    # dupl disabled - too many false positives for similar workflow handlers
+    - dupword
+    - durationcheck
+    - errcheck
+    - errorlint
+    - exhaustive
+    - forcetypeassert
+    - gochecknoglobals
+    - goconst
+    - gocritic
+    - goprintffuncname
+    - gosec
+    - grouper
+    - ireturn
+    - ineffassign
+    - loggercheck
+    - makezero
+    - mirror
+    - misspell
+    - nakedret
+    - nilerr
+    - noctx
+    - nonamedreturns
+    - nosprintfhostport
+    - prealloc
+    - predeclared
+    - promlinter
+    - revive
+    - sqlclosecheck
+    - staticcheck
+    - tagliatelle
+    - testifylint
+    - thelper
+    - tparallel
+    - unconvert
+    - unparam
+    - usestdlibvars
+    - wastedassign
+    - whitespace
 
   settings:
     errcheck:
@@ -62,12 +89,24 @@ linters:
 
   exclusions:
     rules:
-      # Test files can have longer functions
+      # Test files can have longer functions and similar test patterns
       - path: _test\.go
         linters:
           - goconst
           - unparam
           - errcheck
+          - noctx      # Test HTTP clients don't need context
+          - thelper    # Table-driven test validate funcs don't need t.Helper()
+
+      # Mock files have similar structure by design
+      - path: mocks/
+        linters:
+          - ireturn    # Mocks must return interfaces to match real implementations
+
+      # Argo client wrapper must return Argo SDK interfaces
+      - path: internal/argo/client\.go
+        linters:
+          - ireturn    # Returns Argo SDK interfaces by design
 
 formatters:
   enable:

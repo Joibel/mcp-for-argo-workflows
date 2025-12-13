@@ -53,7 +53,7 @@ func ListWorkflowTemplatesTool() *mcp.Tool {
 
 // ListWorkflowTemplatesHandler returns a handler function for the list_workflow_templates tool.
 func ListWorkflowTemplatesHandler(client argo.ClientInterface) func(context.Context, *mcp.CallToolRequest, ListWorkflowTemplatesInput) (*mcp.CallToolResult, *ListWorkflowTemplatesOutput, error) {
-	return func(_ context.Context, _ *mcp.CallToolRequest, input ListWorkflowTemplatesInput) (*mcp.CallToolResult, *ListWorkflowTemplatesOutput, error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, input ListWorkflowTemplatesInput) (*mcp.CallToolResult, *ListWorkflowTemplatesOutput, error) {
 		// Determine namespace
 		namespace := input.Namespace
 		if namespace == "" {
@@ -72,8 +72,8 @@ func ListWorkflowTemplatesHandler(client argo.ClientInterface) func(context.Cont
 			listOpts.LabelSelector = input.Labels
 		}
 
-		// List workflow templates (use client.Context() which contains the KubeClient)
-		listResp, err := wftService.ListWorkflowTemplates(client.Context(), &workflowtemplate.WorkflowTemplateListRequest{
+		// List workflow templates
+		listResp, err := wftService.ListWorkflowTemplates(ctx, &workflowtemplate.WorkflowTemplateListRequest{
 			Namespace:   namespace,
 			ListOptions: listOpts,
 		})

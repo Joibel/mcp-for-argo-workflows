@@ -42,7 +42,7 @@ func DeleteWorkflowTemplateTool() *mcp.Tool {
 
 // DeleteWorkflowTemplateHandler returns a handler function for the delete_workflow_template tool.
 func DeleteWorkflowTemplateHandler(client argo.ClientInterface) func(context.Context, *mcp.CallToolRequest, DeleteWorkflowTemplateInput) (*mcp.CallToolResult, *DeleteWorkflowTemplateOutput, error) {
-	return func(_ context.Context, _ *mcp.CallToolRequest, input DeleteWorkflowTemplateInput) (*mcp.CallToolResult, *DeleteWorkflowTemplateOutput, error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, input DeleteWorkflowTemplateInput) (*mcp.CallToolResult, *DeleteWorkflowTemplateOutput, error) {
 		// Validate and normalize name
 		name, err := ValidateName(input.Name)
 		if err != nil {
@@ -58,8 +58,8 @@ func DeleteWorkflowTemplateHandler(client argo.ClientInterface) func(context.Con
 			return nil, nil, fmt.Errorf("failed to get workflow template service: %w", err)
 		}
 
-		// Delete the workflow template (use client.Context() which contains the KubeClient)
-		_, err = wftService.DeleteWorkflowTemplate(client.Context(), &workflowtemplate.WorkflowTemplateDeleteRequest{
+		// Delete the workflow template
+		_, err = wftService.DeleteWorkflowTemplate(ctx, &workflowtemplate.WorkflowTemplateDeleteRequest{
 			Namespace: namespace,
 			Name:      name,
 		})

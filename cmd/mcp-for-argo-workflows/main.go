@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"log/slog"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/Joibel/mcp-for-argo-workflows/internal/argo"
 	"github.com/Joibel/mcp-for-argo-workflows/internal/config"
@@ -20,7 +22,13 @@ func main() {
 	logger := slog.New(slog.NewTextHandler(os.Stderr, nil))
 	slog.SetDefault(logger)
 
-	if err := run(context.Background()); err != nil {
+	// Create root context with signal handling for graceful shutdown
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+
+	err := run(ctx)
+	cancel() // Ensure signal handler is stopped before exit
+
+	if err != nil {
 		slog.Error("server error", "error", err)
 		os.Exit(1)
 	}
@@ -38,8 +46,8 @@ func run(ctx context.Context) error {
 		return fmt.Errorf("invalid configuration: %w", validateErr)
 	}
 
-	// Create the Argo Workflows client
-	argoClient, err := argo.NewClient(cfg.ToArgoConfig())
+	// Create the Argo Workflows client with the root context
+	argoClient, err := argo.NewClient(ctx, cfg.ToArgoConfig())
 	if err != nil {
 		return fmt.Errorf("failed to create Argo client: %w", err)
 	}

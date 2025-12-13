@@ -46,6 +46,7 @@ func (s *Server) RunHTTP(ctx context.Context, addr string) error {
 	select {
 	case <-ctx.Done():
 		slog.Info("shutting down HTTP server")
+		//nolint:contextcheck // Use fresh context for graceful shutdown after cancellation
 		if err := httpServer.Shutdown(context.Background()); err != nil {
 			return err
 		}

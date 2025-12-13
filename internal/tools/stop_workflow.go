@@ -52,7 +52,7 @@ func StopWorkflowTool() *mcp.Tool {
 
 // StopWorkflowHandler returns a handler function for the stop_workflow tool.
 func StopWorkflowHandler(client argo.ClientInterface) func(context.Context, *mcp.CallToolRequest, StopWorkflowInput) (*mcp.CallToolResult, *StopWorkflowOutput, error) {
-	return func(_ context.Context, _ *mcp.CallToolRequest, input StopWorkflowInput) (*mcp.CallToolResult, *StopWorkflowOutput, error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, input StopWorkflowInput) (*mcp.CallToolResult, *StopWorkflowOutput, error) {
 		// Validate and normalize name
 		workflowName := strings.TrimSpace(input.Name)
 		if workflowName == "" {
@@ -68,8 +68,8 @@ func StopWorkflowHandler(client argo.ClientInterface) func(context.Context, *mcp
 		// Get the workflow service client
 		wfService := client.WorkflowService()
 
-		// Stop the workflow (use client.Context() which contains the KubeClient)
-		wf, err := wfService.StopWorkflow(client.Context(), &workflow.WorkflowStopRequest{
+		// Stop the workflow
+		wf, err := wfService.StopWorkflow(ctx, &workflow.WorkflowStopRequest{
 			Name:              workflowName,
 			Namespace:         namespace,
 			NodeFieldSelector: input.NodeFieldSelector,

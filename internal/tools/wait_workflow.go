@@ -70,7 +70,7 @@ func WaitWorkflowTool() *mcp.Tool {
 
 // WaitWorkflowHandler returns a handler function for the wait_workflow tool.
 func WaitWorkflowHandler(client argo.ClientInterface) func(context.Context, *mcp.CallToolRequest, WaitWorkflowInput) (*mcp.CallToolResult, *WaitWorkflowOutput, error) {
-	return func(_ context.Context, _ *mcp.CallToolRequest, input WaitWorkflowInput) (*mcp.CallToolResult, *WaitWorkflowOutput, error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, input WaitWorkflowInput) (*mcp.CallToolResult, *WaitWorkflowOutput, error) {
 		// Validate and normalize name
 		workflowName, err := ValidateName(input.Name)
 		if err != nil {
@@ -93,13 +93,12 @@ func WaitWorkflowHandler(client argo.ClientInterface) func(context.Context, *mcp
 		namespace := ResolveNamespace(input.Namespace, client)
 
 		// Create a context with timeout or cancellation for cleanup
-		// Use client.Context() which contains the KubeClient required by the Argo API
 		var waitCtx context.Context
 		var cancel context.CancelFunc
 		if timeout > 0 {
-			waitCtx, cancel = context.WithTimeout(client.Context(), timeout)
+			waitCtx, cancel = context.WithTimeout(ctx, timeout)
 		} else {
-			waitCtx, cancel = context.WithCancel(client.Context())
+			waitCtx, cancel = context.WithCancel(ctx)
 		}
 		defer cancel()
 

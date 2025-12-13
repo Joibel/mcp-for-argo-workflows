@@ -49,7 +49,7 @@ func RetryWorkflowTool() *mcp.Tool {
 
 // RetryWorkflowHandler returns a handler function for the retry_workflow tool.
 func RetryWorkflowHandler(client argo.ClientInterface) func(context.Context, *mcp.CallToolRequest, RetryWorkflowInput) (*mcp.CallToolResult, *RetryWorkflowOutput, error) {
-	return func(_ context.Context, _ *mcp.CallToolRequest, input RetryWorkflowInput) (*mcp.CallToolResult, *RetryWorkflowOutput, error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, input RetryWorkflowInput) (*mcp.CallToolResult, *RetryWorkflowOutput, error) {
 		// Validate and normalize name
 		workflowName := strings.TrimSpace(input.Name)
 		if workflowName == "" {
@@ -74,8 +74,8 @@ func RetryWorkflowHandler(client argo.ClientInterface) func(context.Context, *mc
 			Parameters:        input.Parameters,
 		}
 
-		// Retry the workflow (use client.Context() which contains the KubeClient)
-		retriedWf, err := wfService.RetryWorkflow(client.Context(), req)
+		// Retry the workflow
+		retriedWf, err := wfService.RetryWorkflow(ctx, req)
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to retry workflow: %w", err)
 		}

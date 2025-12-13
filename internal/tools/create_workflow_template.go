@@ -46,7 +46,7 @@ func CreateWorkflowTemplateTool() *mcp.Tool {
 
 // CreateWorkflowTemplateHandler returns a handler function for the create_workflow_template tool.
 func CreateWorkflowTemplateHandler(client argo.ClientInterface) func(context.Context, *mcp.CallToolRequest, CreateWorkflowTemplateInput) (*mcp.CallToolResult, *CreateWorkflowTemplateOutput, error) {
-	return func(_ context.Context, _ *mcp.CallToolRequest, input CreateWorkflowTemplateInput) (*mcp.CallToolResult, *CreateWorkflowTemplateOutput, error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, input CreateWorkflowTemplateInput) (*mcp.CallToolResult, *CreateWorkflowTemplateOutput, error) {
 		// Validate manifest is provided
 		if strings.TrimSpace(input.Manifest) == "" {
 			return nil, nil, fmt.Errorf("manifest cannot be empty")
@@ -79,8 +79,8 @@ func CreateWorkflowTemplateHandler(client argo.ClientInterface) func(context.Con
 			return nil, nil, fmt.Errorf("failed to get workflow template service: %w", err)
 		}
 
-		// Create the workflow template (use client.Context() which contains the KubeClient)
-		createdWft, err := wftService.CreateWorkflowTemplate(client.Context(), &workflowtemplate.WorkflowTemplateCreateRequest{
+		// Create the workflow template
+		createdWft, err := wftService.CreateWorkflowTemplate(ctx, &workflowtemplate.WorkflowTemplateCreateRequest{
 			Namespace: namespace,
 			Template:  &wft,
 		})

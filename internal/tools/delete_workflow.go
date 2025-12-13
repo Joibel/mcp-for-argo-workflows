@@ -45,7 +45,7 @@ func DeleteWorkflowTool() *mcp.Tool {
 
 // DeleteWorkflowHandler returns a handler function for the delete_workflow tool.
 func DeleteWorkflowHandler(client argo.ClientInterface) func(context.Context, *mcp.CallToolRequest, DeleteWorkflowInput) (*mcp.CallToolResult, *DeleteWorkflowOutput, error) {
-	return func(_ context.Context, _ *mcp.CallToolRequest, input DeleteWorkflowInput) (*mcp.CallToolResult, *DeleteWorkflowOutput, error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, input DeleteWorkflowInput) (*mcp.CallToolResult, *DeleteWorkflowOutput, error) {
 		// Validate and normalize name
 		name, err := ValidateName(input.Name)
 		if err != nil {
@@ -58,8 +58,8 @@ func DeleteWorkflowHandler(client argo.ClientInterface) func(context.Context, *m
 		// Get the workflow service client
 		wfService := client.WorkflowService()
 
-		// Delete the workflow (use client.Context() which contains the KubeClient)
-		_, err = wfService.DeleteWorkflow(client.Context(), &workflow.WorkflowDeleteRequest{
+		// Delete the workflow
+		_, err = wfService.DeleteWorkflow(ctx, &workflow.WorkflowDeleteRequest{
 			Namespace: namespace,
 			Name:      name,
 			Force:     input.Force,

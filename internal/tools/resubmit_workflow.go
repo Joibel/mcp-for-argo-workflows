@@ -58,7 +58,7 @@ func ResubmitWorkflowTool() *mcp.Tool {
 
 // ResubmitWorkflowHandler returns a handler function for the resubmit_workflow tool.
 func ResubmitWorkflowHandler(client argo.ClientInterface) func(context.Context, *mcp.CallToolRequest, ResubmitWorkflowInput) (*mcp.CallToolResult, *ResubmitWorkflowOutput, error) {
-	return func(_ context.Context, _ *mcp.CallToolRequest, input ResubmitWorkflowInput) (*mcp.CallToolResult, *ResubmitWorkflowOutput, error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, input ResubmitWorkflowInput) (*mcp.CallToolResult, *ResubmitWorkflowOutput, error) {
 		// Validate and normalize name
 		workflowName := strings.TrimSpace(input.Name)
 		if workflowName == "" {
@@ -82,8 +82,8 @@ func ResubmitWorkflowHandler(client argo.ClientInterface) func(context.Context, 
 			Parameters: input.Parameters,
 		}
 
-		// Resubmit the workflow (use client.Context() which contains the KubeClient)
-		newWf, err := wfService.ResubmitWorkflow(client.Context(), req)
+		// Resubmit the workflow
+		newWf, err := wfService.ResubmitWorkflow(ctx, req)
 		if err != nil {
 			return nil, nil, fmt.Errorf("failed to resubmit workflow: %w", err)
 		}
