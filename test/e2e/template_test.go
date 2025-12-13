@@ -5,6 +5,7 @@ package e2e
 import (
 	"context"
 	"fmt"
+	"strings"
 	"testing"
 	"time"
 
@@ -207,8 +208,15 @@ spec:
 	require.NoError(t, err, "Failed to get workflow logs")
 	require.NotNil(t, logsOutput)
 
-	assert.Contains(t, logsOutput.Logs, "Hello from workflow using template",
-		"Logs should contain the custom message parameter")
+	// Check that at least one log entry contains the expected output
+	foundMessage := false
+	for _, entry := range logsOutput.Logs {
+		if strings.Contains(entry.Content, "Hello from workflow using template") {
+			foundMessage = true
+			break
+		}
+	}
+	assert.True(t, foundMessage, "Logs should contain the custom message parameter")
 }
 
 // TestWorkflowTemplate_GetConsistency tests that getting a template returns consistent data.
