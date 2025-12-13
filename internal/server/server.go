@@ -58,6 +58,9 @@ func (s *Server) RegisterTools(client *argo.Client) {
 
 	// Register retry_workflow tool
 	mcp.AddTool(s.mcp, tools.RetryWorkflowTool(), tools.RetryWorkflowHandler(client))
+
+	// Register resubmit_workflow tool
+	mcp.AddTool(s.mcp, tools.ResubmitWorkflowTool(), tools.ResubmitWorkflowHandler(client))
 }
 
 // GetMCPServer returns the underlying MCP server instance.
