@@ -11,6 +11,7 @@ reviews:
 
   # Request changes workflow - auto-approve when comments are resolved
   request_changes_workflow: true
+  fail_commit_status: true
 
   # Review output options
   high_level_summary: true
