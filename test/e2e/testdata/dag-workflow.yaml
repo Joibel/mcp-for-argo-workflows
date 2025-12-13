@@ -1,0 +1,46 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: dag-workflow-
+spec:
+  entrypoint: main
+  templates:
+    - name: main
+      dag:
+        tasks:
+          - name: task-a
+            template: echo
+            arguments:
+              parameters:
+                - name: message
+                  value: "Task A"
+          - name: task-b
+            template: echo
+            dependencies: [task-a]
+            arguments:
+              parameters:
+                - name: message
+                  value: "Task B"
+          - name: task-c
+            template: echo
+            dependencies: [task-a]
+            arguments:
+              parameters:
+                - name: message
+                  value: "Task C"
+          - name: task-d
+            template: echo
+            dependencies: [task-b, task-c]
+            arguments:
+              parameters:
+                - name: message
+                  value: "Task D"
+
+    - name: echo
+      inputs:
+        parameters:
+          - name: message
+      container:
+        image: busybox:1.35
+        command: [echo]
+        args: ["{{inputs.parameters.message}}"]

@@ -1,0 +1,19 @@
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: test-template
+spec:
+  entrypoint: main
+  arguments:
+    parameters:
+      - name: message
+        value: "Hello from template"
+  templates:
+    - name: main
+      inputs:
+        parameters:
+          - name: message
+      container:
+        image: busybox:1.35
+        command: [echo]
+        args: ["{{inputs.parameters.message}}"]
