@@ -27,11 +27,12 @@ func TestResubmitWorkflowTool(t *testing.T) {
 
 func TestResubmitWorkflowHandler(t *testing.T) {
 	tests := []struct {
-		setupMock func(*mocks.MockWorkflowServiceClient)
-		validate  func(*testing.T, *ResubmitWorkflowOutput, *mcp.CallToolResult)
-		name      string
-		input     ResubmitWorkflowInput
-		wantErr   bool
+		setupMock     func(*mocks.MockWorkflowServiceClient)
+		validate      func(*testing.T, *ResubmitWorkflowOutput, *mcp.CallToolResult)
+		name          string
+		input         ResubmitWorkflowInput
+		wantErr       bool
+		expectAPICall bool
 	}{
 		{
 			name: "success - basic resubmit",
@@ -56,7 +57,8 @@ func TestResubmitWorkflowHandler(t *testing.T) {
 					nil,
 				)
 			},
-			wantErr: false,
+			wantErr:       false,
+			expectAPICall: true,
 			validate: func(t *testing.T, output *ResubmitWorkflowOutput, result *mcp.CallToolResult) {
 				assert.Equal(t, "completed-workflow-resubmit-12345", output.Name)
 				assert.Equal(t, "default", output.Namespace)
@@ -95,7 +97,8 @@ func TestResubmitWorkflowHandler(t *testing.T) {
 					nil,
 				)
 			},
-			wantErr: false,
+			wantErr:       false,
+			expectAPICall: true,
 			validate: func(t *testing.T, output *ResubmitWorkflowOutput, _ *mcp.CallToolResult) {
 				assert.Equal(t, "completed-workflow-resubmit-12345", output.Name)
 			},
@@ -127,7 +130,8 @@ func TestResubmitWorkflowHandler(t *testing.T) {
 					nil,
 				)
 			},
-			wantErr: false,
+			wantErr:       false,
+			expectAPICall: true,
 			validate: func(t *testing.T, output *ResubmitWorkflowOutput, _ *mcp.CallToolResult) {
 				assert.Equal(t, "completed-workflow-resubmit-12345", output.Name)
 			},
@@ -155,7 +159,8 @@ func TestResubmitWorkflowHandler(t *testing.T) {
 					nil,
 				)
 			},
-			wantErr: false,
+			wantErr:       false,
+			expectAPICall: true,
 			validate: func(t *testing.T, output *ResubmitWorkflowOutput, _ *mcp.CallToolResult) {
 				assert.Equal(t, "argo", output.Namespace)
 			},
@@ -168,7 +173,8 @@ func TestResubmitWorkflowHandler(t *testing.T) {
 			setupMock: func(_ *mocks.MockWorkflowServiceClient) {
 				// No mock needed - should fail validation before API call
 			},
-			wantErr: true,
+			wantErr:       true,
+			expectAPICall: false,
 		},
 		{
 			name: "error - whitespace-only name",
@@ -178,7 +184,8 @@ func TestResubmitWorkflowHandler(t *testing.T) {
 			setupMock: func(_ *mocks.MockWorkflowServiceClient) {
 				// No mock needed - should fail validation before API call
 			},
-			wantErr: true,
+			wantErr:       true,
+			expectAPICall: false,
 		},
 		{
 			name: "error - workflow not found",
@@ -192,7 +199,8 @@ func TestResubmitWorkflowHandler(t *testing.T) {
 					errors.New("workflows.argoproj.io \"nonexistent-workflow\" not found"),
 				)
 			},
-			wantErr: true,
+			wantErr:       true,
+			expectAPICall: true,
 		},
 	}
 
@@ -219,6 +227,10 @@ func TestResubmitWorkflowHandler(t *testing.T) {
 			// Validate results
 			if tt.wantErr {
 				require.Error(t, err)
+				// Verify no API call was made for validation errors
+				if !tt.expectAPICall {
+					mockService.AssertNotCalled(t, "ResubmitWorkflow", mock.Anything, mock.Anything)
+				}
 				return
 			}
 

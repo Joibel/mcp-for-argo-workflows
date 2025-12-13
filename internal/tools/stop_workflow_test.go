@@ -27,11 +27,12 @@ func TestStopWorkflowTool(t *testing.T) {
 
 func TestStopWorkflowHandler(t *testing.T) {
 	tests := []struct {
-		setupMock func(*mocks.MockWorkflowServiceClient)
-		validate  func(*testing.T, *StopWorkflowOutput, *mcp.CallToolResult)
-		name      string
-		input     StopWorkflowInput
-		wantErr   bool
+		setupMock     func(*mocks.MockWorkflowServiceClient)
+		validate      func(*testing.T, *StopWorkflowOutput, *mcp.CallToolResult)
+		name          string
+		input         StopWorkflowInput
+		wantErr       bool
+		expectAPICall bool
 	}{
 		{
 			name: "success - stop running workflow",
@@ -55,7 +56,8 @@ func TestStopWorkflowHandler(t *testing.T) {
 					nil,
 				)
 			},
-			wantErr: false,
+			wantErr:       false,
+			expectAPICall: true,
 			validate: func(t *testing.T, output *StopWorkflowOutput, result *mcp.CallToolResult) {
 				assert.Equal(t, "running-workflow", output.Name)
 				assert.Equal(t, "default", output.Namespace)
@@ -91,7 +93,8 @@ func TestStopWorkflowHandler(t *testing.T) {
 					nil,
 				)
 			},
-			wantErr: false,
+			wantErr:       false,
+			expectAPICall: true,
 			validate: func(t *testing.T, output *StopWorkflowOutput, _ *mcp.CallToolResult) {
 				assert.Equal(t, "Stopping for maintenance", output.Message)
 			},
@@ -119,7 +122,8 @@ func TestStopWorkflowHandler(t *testing.T) {
 					nil,
 				)
 			},
-			wantErr: false,
+			wantErr:       false,
+			expectAPICall: true,
 			validate: func(t *testing.T, output *StopWorkflowOutput, _ *mcp.CallToolResult) {
 				assert.Equal(t, "running-workflow", output.Name)
 			},
@@ -146,7 +150,8 @@ func TestStopWorkflowHandler(t *testing.T) {
 					nil,
 				)
 			},
-			wantErr: false,
+			wantErr:       false,
+			expectAPICall: true,
 			validate: func(t *testing.T, output *StopWorkflowOutput, _ *mcp.CallToolResult) {
 				assert.Equal(t, "argo", output.Namespace)
 			},
@@ -159,7 +164,8 @@ func TestStopWorkflowHandler(t *testing.T) {
 			setupMock: func(_ *mocks.MockWorkflowServiceClient) {
 				// No mock needed - should fail validation before API call
 			},
-			wantErr: true,
+			wantErr:       true,
+			expectAPICall: false,
 		},
 		{
 			name: "error - whitespace-only name",
@@ -169,7 +175,8 @@ func TestStopWorkflowHandler(t *testing.T) {
 			setupMock: func(_ *mocks.MockWorkflowServiceClient) {
 				// No mock needed - should fail validation before API call
 			},
-			wantErr: true,
+			wantErr:       true,
+			expectAPICall: false,
 		},
 		{
 			name: "error - workflow not found",
@@ -183,7 +190,8 @@ func TestStopWorkflowHandler(t *testing.T) {
 					errors.New("workflows.argoproj.io \"nonexistent-workflow\" not found"),
 				)
 			},
-			wantErr: true,
+			wantErr:       true,
+			expectAPICall: true,
 		},
 	}
 
@@ -210,6 +218,10 @@ func TestStopWorkflowHandler(t *testing.T) {
 			// Validate results
 			if tt.wantErr {
 				require.Error(t, err)
+				// Verify no API call was made for validation errors
+				if !tt.expectAPICall {
+					mockService.AssertNotCalled(t, "StopWorkflow", mock.Anything, mock.Anything)
+				}
 				return
 			}
 

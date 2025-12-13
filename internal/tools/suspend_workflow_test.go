@@ -26,11 +26,12 @@ func TestSuspendWorkflowTool(t *testing.T) {
 
 func TestSuspendWorkflowHandler(t *testing.T) {
 	tests := []struct {
-		setupMock func(*mocks.MockWorkflowServiceClient)
-		validate  func(*testing.T, *SuspendWorkflowOutput, *mcp.CallToolResult)
-		name      string
-		input     SuspendWorkflowInput
-		wantErr   bool
+		setupMock     func(*mocks.MockWorkflowServiceClient)
+		validate      func(*testing.T, *SuspendWorkflowOutput, *mcp.CallToolResult)
+		name          string
+		input         SuspendWorkflowInput
+		wantErr       bool
+		expectAPICall bool
 	}{
 		{
 			name: "success - suspend running workflow",
@@ -54,7 +55,8 @@ func TestSuspendWorkflowHandler(t *testing.T) {
 					nil,
 				)
 			},
-			wantErr: false,
+			wantErr:       false,
+			expectAPICall: true,
 			validate: func(t *testing.T, output *SuspendWorkflowOutput, result *mcp.CallToolResult) {
 				assert.Equal(t, "running-workflow", output.Name)
 				assert.Equal(t, "default", output.Namespace)
@@ -88,7 +90,8 @@ func TestSuspendWorkflowHandler(t *testing.T) {
 					nil,
 				)
 			},
-			wantErr: false,
+			wantErr:       false,
+			expectAPICall: true,
 			validate: func(t *testing.T, output *SuspendWorkflowOutput, _ *mcp.CallToolResult) {
 				assert.Equal(t, "argo", output.Namespace)
 			},
@@ -101,7 +104,8 @@ func TestSuspendWorkflowHandler(t *testing.T) {
 			setupMock: func(_ *mocks.MockWorkflowServiceClient) {
 				// No mock needed - should fail validation before API call
 			},
-			wantErr: true,
+			wantErr:       true,
+			expectAPICall: false,
 		},
 		{
 			name: "error - whitespace-only name",
@@ -111,7 +115,8 @@ func TestSuspendWorkflowHandler(t *testing.T) {
 			setupMock: func(_ *mocks.MockWorkflowServiceClient) {
 				// No mock needed - should fail validation before API call
 			},
-			wantErr: true,
+			wantErr:       true,
+			expectAPICall: false,
 		},
 		{
 			name: "error - workflow not found",
@@ -125,7 +130,8 @@ func TestSuspendWorkflowHandler(t *testing.T) {
 					errors.New("workflows.argoproj.io \"nonexistent-workflow\" not found"),
 				)
 			},
-			wantErr: true,
+			wantErr:       true,
+			expectAPICall: true,
 		},
 		{
 			name: "error - workflow not running",
@@ -139,7 +145,8 @@ func TestSuspendWorkflowHandler(t *testing.T) {
 					errors.New("workflow is not running"),
 				)
 			},
-			wantErr: true,
+			wantErr:       true,
+			expectAPICall: true,
 		},
 	}
 
@@ -166,6 +173,10 @@ func TestSuspendWorkflowHandler(t *testing.T) {
 			// Validate results
 			if tt.wantErr {
 				require.Error(t, err)
+				// Verify no API call was made for validation errors
+				if !tt.expectAPICall {
+					mockService.AssertNotCalled(t, "SuspendWorkflow", mock.Anything, mock.Anything)
+				}
 				return
 			}
 

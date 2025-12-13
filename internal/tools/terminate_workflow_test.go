@@ -27,11 +27,12 @@ func TestTerminateWorkflowTool(t *testing.T) {
 
 func TestTerminateWorkflowHandler(t *testing.T) {
 	tests := []struct {
-		setupMock func(*mocks.MockWorkflowServiceClient)
-		validate  func(*testing.T, *TerminateWorkflowOutput, *mcp.CallToolResult)
-		name      string
-		input     TerminateWorkflowInput
-		wantErr   bool
+		setupMock     func(*mocks.MockWorkflowServiceClient)
+		validate      func(*testing.T, *TerminateWorkflowOutput, *mcp.CallToolResult)
+		name          string
+		input         TerminateWorkflowInput
+		wantErr       bool
+		expectAPICall bool
 	}{
 		{
 			name: "success - terminate running workflow",
@@ -55,7 +56,8 @@ func TestTerminateWorkflowHandler(t *testing.T) {
 					nil,
 				)
 			},
-			wantErr: false,
+			wantErr:       false,
+			expectAPICall: true,
 			validate: func(t *testing.T, output *TerminateWorkflowOutput, result *mcp.CallToolResult) {
 				assert.Equal(t, "running-workflow", output.Name)
 				assert.Equal(t, "default", output.Namespace)
@@ -89,7 +91,8 @@ func TestTerminateWorkflowHandler(t *testing.T) {
 					nil,
 				)
 			},
-			wantErr: false,
+			wantErr:       false,
+			expectAPICall: true,
 			validate: func(t *testing.T, output *TerminateWorkflowOutput, _ *mcp.CallToolResult) {
 				assert.Equal(t, "argo", output.Namespace)
 			},
@@ -102,7 +105,8 @@ func TestTerminateWorkflowHandler(t *testing.T) {
 			setupMock: func(_ *mocks.MockWorkflowServiceClient) {
 				// No mock needed - should fail validation before API call
 			},
-			wantErr: true,
+			wantErr:       true,
+			expectAPICall: false,
 		},
 		{
 			name: "error - whitespace-only name",
@@ -112,7 +116,8 @@ func TestTerminateWorkflowHandler(t *testing.T) {
 			setupMock: func(_ *mocks.MockWorkflowServiceClient) {
 				// No mock needed - should fail validation before API call
 			},
-			wantErr: true,
+			wantErr:       true,
+			expectAPICall: false,
 		},
 		{
 			name: "error - workflow not found",
@@ -126,7 +131,8 @@ func TestTerminateWorkflowHandler(t *testing.T) {
 					errors.New("workflows.argoproj.io \"nonexistent-workflow\" not found"),
 				)
 			},
-			wantErr: true,
+			wantErr:       true,
+			expectAPICall: true,
 		},
 	}
 
@@ -153,6 +159,10 @@ func TestTerminateWorkflowHandler(t *testing.T) {
 			// Validate results
 			if tt.wantErr {
 				require.Error(t, err)
+				// Verify no API call was made for validation errors
+				if !tt.expectAPICall {
+					mockService.AssertNotCalled(t, "TerminateWorkflow", mock.Anything, mock.Anything)
+				}
 				return
 			}
 
