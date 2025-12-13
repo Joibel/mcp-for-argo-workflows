@@ -31,6 +31,7 @@ func AllTools() []ToolRegistrar {
 		RegisterListWorkflowTemplates,
 		RegisterGetWorkflowTemplate,
 		RegisterCreateWorkflowTemplate,
+		RegisterDeleteWorkflowTemplate,
 	}
 }
 
@@ -126,4 +127,9 @@ func RegisterGetWorkflowTemplate(s *mcp.Server, client argo.ClientInterface) {
 // RegisterCreateWorkflowTemplate registers the create_workflow_template tool.
 func RegisterCreateWorkflowTemplate(s *mcp.Server, client argo.ClientInterface) {
 	mcp.AddTool(s, CreateWorkflowTemplateTool(), CreateWorkflowTemplateHandler(client))
+}
+
+// RegisterDeleteWorkflowTemplate registers the delete_workflow_template tool.
+func RegisterDeleteWorkflowTemplate(s *mcp.Server, client argo.ClientInterface) {
+	mcp.AddTool(s, DeleteWorkflowTemplateTool(), DeleteWorkflowTemplateHandler(client))
 }
