@@ -70,7 +70,7 @@ func WaitWorkflowTool() *mcp.Tool {
 }
 
 // WaitWorkflowHandler returns a handler function for the wait_workflow tool.
-func WaitWorkflowHandler(client *argo.Client) func(context.Context, *mcp.CallToolRequest, WaitWorkflowInput) (*mcp.CallToolResult, *WaitWorkflowOutput, error) {
+func WaitWorkflowHandler(client argo.ClientInterface) func(context.Context, *mcp.CallToolRequest, WaitWorkflowInput) (*mcp.CallToolResult, *WaitWorkflowOutput, error) {
 	return func(_ context.Context, _ *mcp.CallToolRequest, input WaitWorkflowInput) (*mcp.CallToolResult, *WaitWorkflowOutput, error) {
 		// Validate and normalize name (use local variable to avoid mutating input)
 		workflowName := strings.TrimSpace(input.Name)

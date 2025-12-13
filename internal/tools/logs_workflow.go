@@ -71,7 +71,7 @@ func LogsWorkflowTool() *mcp.Tool {
 }
 
 // LogsWorkflowHandler returns a handler function for the logs_workflow tool.
-func LogsWorkflowHandler(client *argo.Client) func(context.Context, *mcp.CallToolRequest, LogsWorkflowInput) (*mcp.CallToolResult, *LogsWorkflowOutput, error) {
+func LogsWorkflowHandler(client argo.ClientInterface) func(context.Context, *mcp.CallToolRequest, LogsWorkflowInput) (*mcp.CallToolResult, *LogsWorkflowOutput, error) {
 	return func(_ context.Context, _ *mcp.CallToolRequest, input LogsWorkflowInput) (*mcp.CallToolResult, *LogsWorkflowOutput, error) { //nolint:gocognit // Handler logic is sequential and readable
 		// Validate and normalize name (validate before accessing client)
 		input.Name = strings.TrimSpace(input.Name)

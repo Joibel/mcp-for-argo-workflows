@@ -88,7 +88,7 @@ func WatchWorkflowTool() *mcp.Tool {
 }
 
 // WatchWorkflowHandler returns a handler function for the watch_workflow tool.
-func WatchWorkflowHandler(client *argo.Client) func(context.Context, *mcp.CallToolRequest, WatchWorkflowInput) (*mcp.CallToolResult, *WatchWorkflowOutput, error) {
+func WatchWorkflowHandler(client argo.ClientInterface) func(context.Context, *mcp.CallToolRequest, WatchWorkflowInput) (*mcp.CallToolResult, *WatchWorkflowOutput, error) {
 	return func(_ context.Context, _ *mcp.CallToolRequest, input WatchWorkflowInput) (*mcp.CallToolResult, *WatchWorkflowOutput, error) {
 		// Validate and normalize name (use local variable to avoid mutating input)
 		workflowName := strings.TrimSpace(input.Name)
