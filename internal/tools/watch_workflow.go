@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"strings"
 	"time"
 
 	"github.com/argoproj/argo-workflows/v3/pkg/apiclient/workflow"
@@ -88,18 +87,17 @@ func WatchWorkflowTool() *mcp.Tool {
 }
 
 // WatchWorkflowHandler returns a handler function for the watch_workflow tool.
-func WatchWorkflowHandler(client *argo.Client) func(context.Context, *mcp.CallToolRequest, WatchWorkflowInput) (*mcp.CallToolResult, *WatchWorkflowOutput, error) {
+func WatchWorkflowHandler(client argo.ClientInterface) func(context.Context, *mcp.CallToolRequest, WatchWorkflowInput) (*mcp.CallToolResult, *WatchWorkflowOutput, error) {
 	return func(_ context.Context, _ *mcp.CallToolRequest, input WatchWorkflowInput) (*mcp.CallToolResult, *WatchWorkflowOutput, error) {
-		// Validate and normalize name (use local variable to avoid mutating input)
-		workflowName := strings.TrimSpace(input.Name)
-		if workflowName == "" {
-			return nil, nil, fmt.Errorf("workflow name cannot be empty")
+		// Validate and normalize name
+		workflowName, err := ValidateName(input.Name)
+		if err != nil {
+			return nil, nil, err
 		}
 
 		// Parse and validate timeout if provided (before client access)
 		var timeout time.Duration
 		if input.Timeout != "" {
-			var err error
 			timeout, err = time.ParseDuration(input.Timeout)
 			if err != nil {
 				return nil, nil, fmt.Errorf("invalid timeout format: %w", err)
@@ -109,11 +107,8 @@ func WatchWorkflowHandler(client *argo.Client) func(context.Context, *mcp.CallTo
 			}
 		}
 
-		// Determine namespace (trim for consistency with name validation)
-		namespace := strings.TrimSpace(input.Namespace)
-		if namespace == "" {
-			namespace = client.DefaultNamespace()
-		}
+		// Determine namespace
+		namespace := ResolveNamespace(input.Namespace, client)
 
 		// Create a context with timeout or cancellation for cleanup
 		// Use client.Context() which contains the KubeClient required by the Argo API
@@ -245,13 +240,7 @@ func WatchWorkflowHandler(client *argo.Client) func(context.Context, *mcp.CallTo
 			resultText += " [watch timed out]"
 		}
 
-		result := &mcp.CallToolResult{
-			Content: []mcp.Content{
-				&mcp.TextContent{Text: resultText},
-			},
-		}
-
-		return result, output, nil
+		return TextResult(resultText), output, nil
 	}
 }
 

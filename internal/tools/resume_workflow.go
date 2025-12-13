@@ -4,7 +4,6 @@ package tools
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/argoproj/argo-workflows/v3/pkg/apiclient/workflow"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -51,16 +50,13 @@ func ResumeWorkflowTool() *mcp.Tool {
 func ResumeWorkflowHandler(client argo.ClientInterface) func(context.Context, *mcp.CallToolRequest, ResumeWorkflowInput) (*mcp.CallToolResult, *ResumeWorkflowOutput, error) {
 	return func(_ context.Context, _ *mcp.CallToolRequest, input ResumeWorkflowInput) (*mcp.CallToolResult, *ResumeWorkflowOutput, error) {
 		// Validate and normalize name
-		workflowName := strings.TrimSpace(input.Name)
-		if workflowName == "" {
-			return nil, nil, fmt.Errorf("workflow name cannot be empty")
+		workflowName, err := ValidateName(input.Name)
+		if err != nil {
+			return nil, nil, err
 		}
 
 		// Determine namespace
-		namespace := strings.TrimSpace(input.Namespace)
-		if namespace == "" {
-			namespace = client.DefaultNamespace()
-		}
+		namespace := ResolveNamespace(input.Namespace, client)
 
 		// Get the workflow service client
 		wfService := client.WorkflowService()
@@ -87,12 +83,6 @@ func ResumeWorkflowHandler(client argo.ClientInterface) func(context.Context, *m
 		resultText := fmt.Sprintf("Workflow %q in namespace %q resumed. Phase: %s",
 			output.Name, output.Namespace, output.Phase)
 
-		result := &mcp.CallToolResult{
-			Content: []mcp.Content{
-				&mcp.TextContent{Text: resultText},
-			},
-		}
-
-		return result, output, nil
+		return TextResult(resultText), output, nil
 	}
 }

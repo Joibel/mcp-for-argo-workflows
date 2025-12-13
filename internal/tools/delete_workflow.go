@@ -4,7 +4,6 @@ package tools
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/argoproj/argo-workflows/v3/pkg/apiclient/workflow"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -45,27 +44,24 @@ func DeleteWorkflowTool() *mcp.Tool {
 }
 
 // DeleteWorkflowHandler returns a handler function for the delete_workflow tool.
-func DeleteWorkflowHandler(client *argo.Client) func(context.Context, *mcp.CallToolRequest, DeleteWorkflowInput) (*mcp.CallToolResult, *DeleteWorkflowOutput, error) {
-	return func(ctx context.Context, _ *mcp.CallToolRequest, input DeleteWorkflowInput) (*mcp.CallToolResult, *DeleteWorkflowOutput, error) {
+func DeleteWorkflowHandler(client argo.ClientInterface) func(context.Context, *mcp.CallToolRequest, DeleteWorkflowInput) (*mcp.CallToolResult, *DeleteWorkflowOutput, error) {
+	return func(_ context.Context, _ *mcp.CallToolRequest, input DeleteWorkflowInput) (*mcp.CallToolResult, *DeleteWorkflowOutput, error) {
 		// Validate and normalize name
-		input.Name = strings.TrimSpace(input.Name)
-		if input.Name == "" {
-			return nil, nil, fmt.Errorf("workflow name cannot be empty")
+		name, err := ValidateName(input.Name)
+		if err != nil {
+			return nil, nil, err
 		}
 
-		// Determine namespace (trim for consistency with name validation)
-		namespace := strings.TrimSpace(input.Namespace)
-		if namespace == "" {
-			namespace = client.DefaultNamespace()
-		}
+		// Determine namespace
+		namespace := ResolveNamespace(input.Namespace, client)
 
 		// Get the workflow service client
 		wfService := client.WorkflowService()
 
 		// Delete the workflow (use client.Context() which contains the KubeClient)
-		_, err := wfService.DeleteWorkflow(client.Context(), &workflow.WorkflowDeleteRequest{
+		_, err = wfService.DeleteWorkflow(client.Context(), &workflow.WorkflowDeleteRequest{
 			Namespace: namespace,
-			Name:      input.Name,
+			Name:      name,
 			Force:     input.Force,
 		})
 		if err != nil {
@@ -74,11 +70,14 @@ func DeleteWorkflowHandler(client *argo.Client) func(context.Context, *mcp.CallT
 
 		// Build the output
 		output := &DeleteWorkflowOutput{
-			Name:      input.Name,
+			Name:      name,
 			Namespace: namespace,
-			Message:   fmt.Sprintf("Workflow %q deleted successfully", input.Name),
+			Message:   fmt.Sprintf("Workflow %q deleted successfully", name),
 		}
 
-		return nil, output, nil
+		// Build human-readable result
+		resultText := fmt.Sprintf("Workflow %q in namespace %q deleted successfully", name, namespace)
+
+		return TextResult(resultText), output, nil
 	}
 }

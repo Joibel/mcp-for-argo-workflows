@@ -6,7 +6,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"strings"
 
 	"github.com/argoproj/argo-workflows/v3/pkg/apiclient/workflow"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -71,19 +70,16 @@ func LogsWorkflowTool() *mcp.Tool {
 }
 
 // LogsWorkflowHandler returns a handler function for the logs_workflow tool.
-func LogsWorkflowHandler(client *argo.Client) func(context.Context, *mcp.CallToolRequest, LogsWorkflowInput) (*mcp.CallToolResult, *LogsWorkflowOutput, error) {
+func LogsWorkflowHandler(client argo.ClientInterface) func(context.Context, *mcp.CallToolRequest, LogsWorkflowInput) (*mcp.CallToolResult, *LogsWorkflowOutput, error) {
 	return func(_ context.Context, _ *mcp.CallToolRequest, input LogsWorkflowInput) (*mcp.CallToolResult, *LogsWorkflowOutput, error) { //nolint:gocognit // Handler logic is sequential and readable
-		// Validate and normalize name (validate before accessing client)
-		input.Name = strings.TrimSpace(input.Name)
-		if input.Name == "" {
-			return nil, nil, fmt.Errorf("workflow name cannot be empty")
+		// Validate and normalize name
+		workflowName, err := ValidateName(input.Name)
+		if err != nil {
+			return nil, nil, err
 		}
 
-		// Determine namespace (trim for consistency with name validation)
-		namespace := strings.TrimSpace(input.Namespace)
-		if namespace == "" {
-			namespace = client.DefaultNamespace()
-		}
+		// Determine namespace
+		namespace := ResolveNamespace(input.Namespace, client)
 
 		// Create a cancelable context for the stream to ensure proper cleanup
 		// Use client.Context() which contains the KubeClient required by the Argo API
@@ -107,7 +103,7 @@ func LogsWorkflowHandler(client *argo.Client) func(context.Context, *mcp.CallToo
 		// Build the request
 		req := &workflow.WorkflowLogRequest{
 			Namespace:  namespace,
-			Name:       input.Name,
+			Name:       workflowName,
 			PodName:    input.PodName,
 			LogOptions: logOptions,
 			Grep:       input.Grep,
@@ -153,7 +149,7 @@ func LogsWorkflowHandler(client *argo.Client) func(context.Context, *mcp.CallToo
 
 		// Build the output
 		output := &LogsWorkflowOutput{
-			Name:      input.Name,
+			Name:      workflowName,
 			Namespace: namespace,
 			Logs:      logs,
 			Truncated: truncated,
