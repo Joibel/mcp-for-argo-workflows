@@ -4,6 +4,7 @@ package e2e
 
 import (
 	"context"
+	"strings"
 	"testing"
 	"time"
 
@@ -40,6 +41,16 @@ func TestWorkflow_FullLifecycle(t *testing.T) {
 
 	workflowName := submitOutput.Name
 	t.Logf("Submitted workflow: %s", workflowName)
+
+	// Cleanup at the end (also verified explicitly below)
+	defer func() {
+		deleteHandler := tools.DeleteWorkflowHandler(cluster.ArgoClient)
+		deleteInput := tools.DeleteWorkflowInput{
+			Namespace: cluster.ArgoNamespace,
+			Name:      workflowName,
+		}
+		_, _, _ = deleteHandler(ctx, nil, deleteInput)
+	}()
 
 	// Verify workflow was created
 	assert.True(t, cluster.WorkflowExists(t, cluster.ArgoNamespace, workflowName),
@@ -271,12 +282,12 @@ spec:
 				if tt.errContains != "" {
 					found := false
 					for _, errMsg := range lintOutput.Errors {
-						if assert.Contains(t, errMsg, tt.errContains) {
+						if strings.Contains(errMsg, tt.errContains) {
 							found = true
 							break
 						}
 					}
-					assert.True(t, found, "Should contain error about %s", tt.errContains)
+					assert.True(t, found, "Expected error containing %q, got: %v", tt.errContains, lintOutput.Errors)
 				}
 			} else {
 				require.NoError(t, err, "Lint handler should not return error")

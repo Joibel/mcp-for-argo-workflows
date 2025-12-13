@@ -46,7 +46,8 @@ func getProjectRoot() string {
 func buildBinary(t *testing.T) string {
 	t.Helper()
 	projectRoot := getProjectRoot()
-	binaryPath := filepath.Join(projectRoot, "dist", "mcp-for-argo-workflows-e2e-test")
+	// Use test name to avoid conflicts with parallel test execution
+	binaryPath := filepath.Join(projectRoot, "dist", fmt.Sprintf("mcp-for-argo-workflows-e2e-test-%s", t.Name()))
 
 	//nolint:gosec // Building binaries in tests is expected
 	buildCmd := exec.Command("go", "build", "-o", binaryPath, "./cmd/mcp-for-argo-workflows")
@@ -155,22 +156,25 @@ func installArgoWorkflows(t *testing.T, kubeconfigPath string) {
 	// Download the quick-start manifest to a temp file
 	manifestFile, err := os.CreateTemp("", "argo-install-*.yaml")
 	require.NoError(t, err, "Failed to create temp manifest file")
+	manifestPath := manifestFile.Name()
+
+	// Close file before curl writes to it
+	err = manifestFile.Close()
+	require.NoError(t, err, "Failed to close manifest file")
+
 	defer func() {
-		_ = os.Remove(manifestFile.Name()) //nolint:errcheck // Cleanup is best-effort
+		_ = os.Remove(manifestPath) //nolint:errcheck // Cleanup is best-effort
 	}()
 
 	// Download manifest
 	//nolint:gosec // Using curl to download manifests in tests is expected
-	downloadCmd := exec.Command("curl", "-sSL", "-o", manifestFile.Name(), ArgoQuickStartURL)
+	downloadCmd := exec.Command("curl", "-sSL", "-o", manifestPath, ArgoQuickStartURL)
 	output, err := downloadCmd.CombinedOutput()
 	require.NoError(t, err, "Failed to download Argo quick-start manifest: %s", string(output))
 
-	err = manifestFile.Close()
-	require.NoError(t, err, "Failed to close manifest file")
-
 	// Apply the manifest
 	//nolint:gosec // Using kubectl in tests is expected
-	applyCmd := exec.Command("kubectl", "apply", "-f", manifestFile.Name())
+	applyCmd := exec.Command("kubectl", "apply", "-f", manifestPath)
 	applyCmd.Env = append(os.Environ(), "KUBECONFIG="+kubeconfigPath)
 	output, err = applyCmd.CombinedOutput()
 	require.NoError(t, err, "Failed to apply Argo manifest: %s", string(output))

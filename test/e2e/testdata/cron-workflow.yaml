@@ -5,7 +5,7 @@ metadata:
 spec:
   schedule: "0 0 * * *"
   timezone: "America/Los_Angeles"
-  startingDeadlineSeconds: 0
+  startingDeadlineSeconds: 60
   concurrencyPolicy: "Replace"
   successfulJobsHistoryLimit: 1
   failedJobsHistoryLimit: 1

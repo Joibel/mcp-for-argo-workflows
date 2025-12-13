@@ -210,8 +210,8 @@ spec:
 		"Logs should contain the custom message parameter")
 }
 
-// TestWorkflowTemplate_Update tests updating a workflow template.
-func TestWorkflowTemplate_Update(t *testing.T) {
+// TestWorkflowTemplate_GetConsistency tests that getting a template returns consistent data.
+func TestWorkflowTemplate_GetConsistency(t *testing.T) {
 	if testing.Short() {
 		t.Skip("Skipping E2E test in short mode")
 	}
