@@ -125,6 +125,27 @@ func TestDetermineTemplateType(t *testing.T) {
 			expected: "http",
 		},
 		{
+			name: "plugin template",
+			template: &wfv1.Template{
+				Plugin: &wfv1.Plugin{},
+			},
+			expected: "plugin",
+		},
+		{
+			name: "containerSet template",
+			template: &wfv1.Template{
+				ContainerSet: &wfv1.ContainerSetTemplate{},
+			},
+			expected: "containerSet",
+		},
+		{
+			name: "data template",
+			template: &wfv1.Template{
+				Data: &wfv1.Data{},
+			},
+			expected: "data",
+		},
+		{
 			name:     "unknown template",
 			template: &wfv1.Template{},
 			expected: "unknown",
