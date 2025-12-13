@@ -138,7 +138,7 @@ func buildGetWorkflowOutput(wf *wfv1.Workflow) *GetWorkflowOutput {
 
 	// Set a default phase if empty
 	if output.Phase == "" {
-		output.Phase = "Pending"
+		output.Phase = PhasePending
 	}
 
 	// Set timing information
