@@ -14,6 +14,9 @@ import (
 	"github.com/Joibel/mcp-for-argo-workflows/internal/argo"
 )
 
+// PhasePending is the default phase for newly created workflows.
+const PhasePending = "Pending"
+
 // SubmitWorkflowInput defines the input parameters for the submit_workflow tool.
 type SubmitWorkflowInput struct {
 	// Namespace is the Kubernetes namespace (uses default if not specified).
@@ -136,7 +139,7 @@ func SubmitWorkflowHandler(client argo.ClientInterface) func(context.Context, *m
 
 		// Set a default phase if empty (newly created workflows may not have a phase yet)
 		if output.Phase == "" {
-			output.Phase = "Pending"
+			output.Phase = PhasePending
 		}
 
 		return nil, output, nil

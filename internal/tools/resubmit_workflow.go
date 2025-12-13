@@ -100,7 +100,7 @@ func ResubmitWorkflowHandler(client argo.ClientInterface) func(context.Context, 
 
 		// Set a default phase if empty
 		if output.Phase == "" {
-			output.Phase = "Pending"
+			output.Phase = PhasePending
 		}
 
 		// Build human-readable result
