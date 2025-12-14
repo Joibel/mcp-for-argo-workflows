@@ -7,36 +7,13 @@ spec:
   templates:
     - name: main
       steps:
-        - - name: step-1
+        - - name: step-{{item}}
             template: sleeper
             arguments:
               parameters:
                 - name: step-num
-                  value: "1"
-        - - name: step-2
-            template: sleeper
-            arguments:
-              parameters:
-                - name: step-num
-                  value: "2"
-        - - name: step-3
-            template: sleeper
-            arguments:
-              parameters:
-                - name: step-num
-                  value: "3"
-        - - name: step-4
-            template: sleeper
-            arguments:
-              parameters:
-                - name: step-num
-                  value: "4"
-        - - name: step-5
-            template: sleeper
-            arguments:
-              parameters:
-                - name: step-num
-                  value: "5"
+                  value: "{{item}}"
+            withItems: ["1", "2", "3", "4", "5"]
     - name: sleeper
       inputs:
         parameters:

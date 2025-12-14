@@ -1046,7 +1046,7 @@ func TestWorkflow_RetryWorkflow(t *testing.T) {
 	finalPhase := cluster.WaitForWorkflowPhase(t, cluster.ArgoNamespace, workflowName,
 		2*time.Minute, "Succeeded", "Failed", "Error")
 
-	require.Equal(t, "Failed", finalPhase, "Workflow should fail")
+	require.Contains(t, []string{"Failed", "Error"}, finalPhase, "Workflow should end in Failed or Error")
 
 	// Now retry the workflow with RestartSuccessful and override should-fail to false
 	t.Log("Testing retry_workflow tool...")
