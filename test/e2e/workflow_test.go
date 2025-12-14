@@ -24,6 +24,9 @@ func TestWorkflow_FullLifecycle(t *testing.T) {
 	ctx := context.Background()
 	cluster := SetupE2ECluster(ctx, t)
 
+	// Use the client's context which contains the KubeClient
+	clientCtx := cluster.ArgoClient.Context()
+
 	// Load test workflow
 	manifest := LoadTestDataFile(t, "hello-world.yaml")
 
@@ -35,7 +38,7 @@ func TestWorkflow_FullLifecycle(t *testing.T) {
 		Manifest:  manifest,
 	}
 
-	_, submitOutput, err := submitHandler(ctx, nil, submitInput)
+	_, submitOutput, err := submitHandler(clientCtx, nil, submitInput)
 	require.NoError(t, err, "Failed to submit workflow")
 	require.NotNil(t, submitOutput)
 
@@ -49,7 +52,7 @@ func TestWorkflow_FullLifecycle(t *testing.T) {
 			Namespace: cluster.ArgoNamespace,
 			Name:      workflowName,
 		}
-		_, _, _ = deleteHandler(ctx, nil, deleteInput)
+		_, _, _ = deleteHandler(clientCtx, nil, deleteInput)
 	}()
 
 	// Verify workflow was created
@@ -64,7 +67,7 @@ func TestWorkflow_FullLifecycle(t *testing.T) {
 		Name:      workflowName,
 	}
 
-	_, getOutput, err := getHandler(ctx, nil, getInput)
+	_, getOutput, err := getHandler(clientCtx, nil, getInput)
 	require.NoError(t, err, "Failed to get workflow")
 	require.NotNil(t, getOutput)
 
@@ -88,7 +91,7 @@ func TestWorkflow_FullLifecycle(t *testing.T) {
 		Name:      workflowName,
 	}
 
-	_, logsOutput, err := logsHandler(ctx, nil, logsInput)
+	_, logsOutput, err := logsHandler(clientCtx, nil, logsInput)
 	require.NoError(t, err, "Failed to get workflow logs")
 	require.NotNil(t, logsOutput)
 	assert.NotEmpty(t, logsOutput.Logs, "Logs should not be empty")
@@ -110,7 +113,7 @@ func TestWorkflow_FullLifecycle(t *testing.T) {
 		Name:      workflowName,
 	}
 
-	_, deleteOutput, err := deleteHandler(ctx, nil, deleteInput)
+	_, deleteOutput, err := deleteHandler(clientCtx, nil, deleteInput)
 	require.NoError(t, err, "Failed to delete workflow")
 	require.NotNil(t, deleteOutput)
 
@@ -131,6 +134,9 @@ func TestWorkflow_SuspendResume(t *testing.T) {
 	ctx := context.Background()
 	cluster := SetupE2ECluster(ctx, t)
 
+	// Use the client's context which contains the KubeClient
+	clientCtx := cluster.ArgoClient.Context()
+
 	// Load DAG workflow (longer running, easier to suspend)
 	manifest := LoadTestDataFile(t, "dag-workflow.yaml")
 
@@ -142,7 +148,7 @@ func TestWorkflow_SuspendResume(t *testing.T) {
 		Manifest:  manifest,
 	}
 
-	_, submitOutput, err := submitHandler(ctx, nil, submitInput)
+	_, submitOutput, err := submitHandler(clientCtx, nil, submitInput)
 	require.NoError(t, err, "Failed to submit workflow")
 
 	workflowName := submitOutput.Name
@@ -155,7 +161,7 @@ func TestWorkflow_SuspendResume(t *testing.T) {
 			Namespace: cluster.ArgoNamespace,
 			Name:      workflowName,
 		}
-		_, _, _ = deleteHandler(ctx, nil, deleteInput)
+		_, _, _ = deleteHandler(clientCtx, nil, deleteInput)
 	}()
 
 	// Wait a moment for workflow to start
@@ -169,7 +175,7 @@ func TestWorkflow_SuspendResume(t *testing.T) {
 		Name:      workflowName,
 	}
 
-	_, suspendOutput, err := suspendHandler(ctx, nil, suspendInput)
+	_, suspendOutput, err := suspendHandler(clientCtx, nil, suspendInput)
 	require.NoError(t, err, "Failed to suspend workflow")
 	require.NotNil(t, suspendOutput)
 
@@ -193,7 +199,7 @@ func TestWorkflow_SuspendResume(t *testing.T) {
 		Name:      workflowName,
 	}
 
-	_, resumeOutput, err := resumeHandler(ctx, nil, resumeInput)
+	_, resumeOutput, err := resumeHandler(clientCtx, nil, resumeInput)
 	require.NoError(t, err, "Failed to resume workflow")
 	require.NotNil(t, resumeOutput)
 
@@ -215,6 +221,9 @@ func TestWorkflow_Lint(t *testing.T) {
 
 	ctx := context.Background()
 	cluster := SetupE2ECluster(ctx, t)
+
+	// Use the client's context which contains the KubeClient
+	clientCtx := cluster.ArgoClient.Context()
 
 	lintHandler := tools.LintWorkflowHandler(cluster.ArgoClient)
 
@@ -278,7 +287,7 @@ spec:
 				Manifest:  tt.manifest,
 			}
 
-			_, lintOutput, err := lintHandler(ctx, nil, lintInput)
+			_, lintOutput, err := lintHandler(clientCtx, nil, lintInput)
 
 			if tt.wantErr {
 				// Lint should return an output with validation errors, not a Go error
@@ -316,6 +325,9 @@ func TestWorkflow_Submit(t *testing.T) {
 	ctx := context.Background()
 	cluster := SetupE2ECluster(ctx, t)
 
+	// Use the client's context which contains the KubeClient
+	clientCtx := cluster.ArgoClient.Context()
+
 	// Load test workflow
 	manifest := LoadTestDataFile(t, "hello-world.yaml")
 
@@ -327,7 +339,7 @@ func TestWorkflow_Submit(t *testing.T) {
 		Manifest:  manifest,
 	}
 
-	result, submitOutput, err := submitHandler(ctx, nil, submitInput)
+	result, submitOutput, err := submitHandler(clientCtx, nil, submitInput)
 	require.NoError(t, err, "submit_workflow should not return error")
 	require.NotNil(t, result)
 	require.NotNil(t, submitOutput)
@@ -341,7 +353,7 @@ func TestWorkflow_Submit(t *testing.T) {
 			Namespace: cluster.ArgoNamespace,
 			Name:      workflowName,
 		}
-		_, _, _ = deleteHandler(ctx, nil, deleteInput)
+		_, _, _ = deleteHandler(clientCtx, nil, deleteInput)
 	}()
 
 	// Verify submit output fields
@@ -368,6 +380,9 @@ func TestWorkflow_Get(t *testing.T) {
 	ctx := context.Background()
 	cluster := SetupE2ECluster(ctx, t)
 
+	// Use the client's context which contains the KubeClient
+	clientCtx := cluster.ArgoClient.Context()
+
 	// Submit a workflow first
 	manifest := LoadTestDataFile(t, "hello-world.yaml")
 	submitHandler := tools.SubmitWorkflowHandler(cluster.ArgoClient)
@@ -376,7 +391,7 @@ func TestWorkflow_Get(t *testing.T) {
 		Manifest:  manifest,
 	}
 
-	_, submitOutput, err := submitHandler(ctx, nil, submitInput)
+	_, submitOutput, err := submitHandler(clientCtx, nil, submitInput)
 	require.NoError(t, err, "Failed to submit workflow")
 
 	workflowName := submitOutput.Name
@@ -388,7 +403,7 @@ func TestWorkflow_Get(t *testing.T) {
 			Namespace: cluster.ArgoNamespace,
 			Name:      workflowName,
 		}
-		_, _, _ = deleteHandler(ctx, nil, deleteInput)
+		_, _, _ = deleteHandler(clientCtx, nil, deleteInput)
 	}()
 
 	// Test get_workflow tool handler
@@ -399,7 +414,7 @@ func TestWorkflow_Get(t *testing.T) {
 		Name:      workflowName,
 	}
 
-	result, getOutput, err := getHandler(ctx, nil, getInput)
+	result, getOutput, err := getHandler(clientCtx, nil, getInput)
 	require.NoError(t, err, "get_workflow should not return error")
 	require.NotNil(t, result)
 	require.NotNil(t, getOutput)
@@ -415,7 +430,7 @@ func TestWorkflow_Get(t *testing.T) {
 		2*time.Minute, "Succeeded", "Failed", "Error")
 
 	// Get again after completion
-	result, getOutput, err = getHandler(ctx, nil, getInput)
+	result, getOutput, err = getHandler(clientCtx, nil, getInput)
 	require.NoError(t, err, "get_workflow should not return error after completion")
 	require.NotNil(t, getOutput)
 
@@ -433,6 +448,9 @@ func TestWorkflow_Delete(t *testing.T) {
 	ctx := context.Background()
 	cluster := SetupE2ECluster(ctx, t)
 
+	// Use the client's context which contains the KubeClient
+	clientCtx := cluster.ArgoClient.Context()
+
 	// Submit a workflow first
 	manifest := LoadTestDataFile(t, "hello-world.yaml")
 	submitHandler := tools.SubmitWorkflowHandler(cluster.ArgoClient)
@@ -441,7 +459,7 @@ func TestWorkflow_Delete(t *testing.T) {
 		Manifest:  manifest,
 	}
 
-	_, submitOutput, err := submitHandler(ctx, nil, submitInput)
+	_, submitOutput, err := submitHandler(clientCtx, nil, submitInput)
 	require.NoError(t, err, "Failed to submit workflow")
 
 	workflowName := submitOutput.Name
@@ -458,7 +476,7 @@ func TestWorkflow_Delete(t *testing.T) {
 		Name:      workflowName,
 	}
 
-	result, deleteOutput, err := deleteHandler(ctx, nil, deleteInput)
+	result, deleteOutput, err := deleteHandler(clientCtx, nil, deleteInput)
 	require.NoError(t, err, "delete_workflow should not return error")
 	require.NotNil(t, result)
 	require.NotNil(t, deleteOutput)
@@ -482,7 +500,7 @@ func TestWorkflow_Delete(t *testing.T) {
 		Namespace: &namespace,
 	}
 
-	_, listOutput, err := listHandler(ctx, nil, listInput)
+	_, listOutput, err := listHandler(clientCtx, nil, listInput)
 	require.NoError(t, err, "list_workflows should not return error")
 
 	for _, wf := range listOutput.Workflows {
@@ -499,6 +517,9 @@ func TestWorkflow_Logs(t *testing.T) {
 	ctx := context.Background()
 	cluster := SetupE2ECluster(ctx, t)
 
+	// Use the client's context which contains the KubeClient
+	clientCtx := cluster.ArgoClient.Context()
+
 	// Submit workflow
 	manifest := LoadTestDataFile(t, "hello-world.yaml")
 	submitHandler := tools.SubmitWorkflowHandler(cluster.ArgoClient)
@@ -507,7 +528,7 @@ func TestWorkflow_Logs(t *testing.T) {
 		Manifest:  manifest,
 	}
 
-	_, submitOutput, err := submitHandler(ctx, nil, submitInput)
+	_, submitOutput, err := submitHandler(clientCtx, nil, submitInput)
 	require.NoError(t, err, "Failed to submit workflow")
 
 	workflowName := submitOutput.Name
@@ -519,7 +540,7 @@ func TestWorkflow_Logs(t *testing.T) {
 			Namespace: cluster.ArgoNamespace,
 			Name:      workflowName,
 		}
-		_, _, _ = deleteHandler(ctx, nil, deleteInput)
+		_, _, _ = deleteHandler(clientCtx, nil, deleteInput)
 	}()
 
 	// Wait for workflow to complete (so logs are available)
@@ -535,7 +556,7 @@ func TestWorkflow_Logs(t *testing.T) {
 		Name:      workflowName,
 	}
 
-	result, logsOutput, err := logsHandler(ctx, nil, logsInput)
+	result, logsOutput, err := logsHandler(clientCtx, nil, logsInput)
 	require.NoError(t, err, "logs_workflow should not return error")
 	require.NotNil(t, result)
 	require.NotNil(t, logsOutput)
@@ -569,6 +590,9 @@ func TestWorkflow_Logs_WithGrep(t *testing.T) {
 	ctx := context.Background()
 	cluster := SetupE2ECluster(ctx, t)
 
+	// Use the client's context which contains the KubeClient
+	clientCtx := cluster.ArgoClient.Context()
+
 	// Submit workflow
 	manifest := LoadTestDataFile(t, "hello-world.yaml")
 	submitHandler := tools.SubmitWorkflowHandler(cluster.ArgoClient)
@@ -577,7 +601,7 @@ func TestWorkflow_Logs_WithGrep(t *testing.T) {
 		Manifest:  manifest,
 	}
 
-	_, submitOutput, err := submitHandler(ctx, nil, submitInput)
+	_, submitOutput, err := submitHandler(clientCtx, nil, submitInput)
 	require.NoError(t, err, "Failed to submit workflow")
 
 	workflowName := submitOutput.Name
@@ -589,7 +613,7 @@ func TestWorkflow_Logs_WithGrep(t *testing.T) {
 			Namespace: cluster.ArgoNamespace,
 			Name:      workflowName,
 		}
-		_, _, _ = deleteHandler(ctx, nil, deleteInput)
+		_, _, _ = deleteHandler(clientCtx, nil, deleteInput)
 	}()
 
 	// Wait for workflow to complete
@@ -605,7 +629,7 @@ func TestWorkflow_Logs_WithGrep(t *testing.T) {
 		Grep:      "Hello",
 	}
 
-	result, logsOutput, err := logsHandler(ctx, nil, logsInput)
+	result, logsOutput, err := logsHandler(clientCtx, nil, logsInput)
 	require.NoError(t, err, "logs_workflow with grep should not return error")
 	require.NotNil(t, result)
 	require.NotNil(t, logsOutput)
@@ -629,6 +653,9 @@ func TestWorkflow_List(t *testing.T) {
 	ctx := context.Background()
 	cluster := SetupE2ECluster(ctx, t)
 
+	// Use the client's context which contains the KubeClient
+	clientCtx := cluster.ArgoClient.Context()
+
 	// Submit a workflow first
 	manifest := LoadTestDataFile(t, "hello-world.yaml")
 	submitHandler := tools.SubmitWorkflowHandler(cluster.ArgoClient)
@@ -637,7 +664,7 @@ func TestWorkflow_List(t *testing.T) {
 		Manifest:  manifest,
 	}
 
-	_, submitOutput, err := submitHandler(ctx, nil, submitInput)
+	_, submitOutput, err := submitHandler(clientCtx, nil, submitInput)
 	require.NoError(t, err, "Failed to submit workflow")
 
 	workflowName := submitOutput.Name
@@ -647,7 +674,7 @@ func TestWorkflow_List(t *testing.T) {
 			Namespace: cluster.ArgoNamespace,
 			Name:      workflowName,
 		}
-		_, _, _ = deleteHandler(ctx, nil, deleteInput)
+		_, _, _ = deleteHandler(clientCtx, nil, deleteInput)
 	}()
 
 	// List workflows
@@ -658,7 +685,7 @@ func TestWorkflow_List(t *testing.T) {
 		Namespace: &namespace,
 	}
 
-	_, listOutput, err := listHandler(ctx, nil, listInput)
+	_, listOutput, err := listHandler(clientCtx, nil, listInput)
 	require.NoError(t, err, "Failed to list workflows")
 	require.NotNil(t, listOutput)
 
@@ -685,6 +712,9 @@ func TestWorkflow_WaitWorkflow(t *testing.T) {
 	ctx := context.Background()
 	cluster := SetupE2ECluster(ctx, t)
 
+	// Use the client's context which contains the KubeClient
+	clientCtx := cluster.ArgoClient.Context()
+
 	// Load test workflow
 	manifest := LoadTestDataFile(t, "hello-world.yaml")
 
@@ -696,7 +726,7 @@ func TestWorkflow_WaitWorkflow(t *testing.T) {
 		Manifest:  manifest,
 	}
 
-	_, submitOutput, err := submitHandler(ctx, nil, submitInput)
+	_, submitOutput, err := submitHandler(clientCtx, nil, submitInput)
 	require.NoError(t, err, "Failed to submit workflow")
 	require.NotNil(t, submitOutput)
 
@@ -710,7 +740,7 @@ func TestWorkflow_WaitWorkflow(t *testing.T) {
 			Namespace: cluster.ArgoNamespace,
 			Name:      workflowName,
 		}
-		_, _, _ = deleteHandler(ctx, nil, deleteInput)
+		_, _, _ = deleteHandler(clientCtx, nil, deleteInput)
 	}()
 
 	// Use wait_workflow tool handler to wait for completion
@@ -722,7 +752,7 @@ func TestWorkflow_WaitWorkflow(t *testing.T) {
 		Timeout:   "2m",
 	}
 
-	result, waitOutput, err := waitHandler(ctx, nil, waitInput)
+	result, waitOutput, err := waitHandler(clientCtx, nil, waitInput)
 	require.NoError(t, err, "wait_workflow should not return error")
 	require.NotNil(t, result)
 	require.NotNil(t, waitOutput)
@@ -746,6 +776,9 @@ func TestWorkflow_WaitWorkflow_Timeout(t *testing.T) {
 	ctx := context.Background()
 	cluster := SetupE2ECluster(ctx, t)
 
+	// Use the client's context which contains the KubeClient
+	clientCtx := cluster.ArgoClient.Context()
+
 	// Load DAG workflow (takes longer to complete)
 	manifest := LoadTestDataFile(t, "dag-workflow.yaml")
 
@@ -757,7 +790,7 @@ func TestWorkflow_WaitWorkflow_Timeout(t *testing.T) {
 		Manifest:  manifest,
 	}
 
-	_, submitOutput, err := submitHandler(ctx, nil, submitInput)
+	_, submitOutput, err := submitHandler(clientCtx, nil, submitInput)
 	require.NoError(t, err, "Failed to submit workflow")
 	require.NotNil(t, submitOutput)
 
@@ -772,7 +805,7 @@ func TestWorkflow_WaitWorkflow_Timeout(t *testing.T) {
 			Namespace: cluster.ArgoNamespace,
 			Name:      workflowName,
 		}
-		_, _, _ = terminateHandler(ctx, nil, terminateInput)
+		_, _, _ = terminateHandler(clientCtx, nil, terminateInput)
 
 		// Then delete it
 		deleteHandler := tools.DeleteWorkflowHandler(cluster.ArgoClient)
@@ -780,7 +813,7 @@ func TestWorkflow_WaitWorkflow_Timeout(t *testing.T) {
 			Namespace: cluster.ArgoNamespace,
 			Name:      workflowName,
 		}
-		_, _, _ = deleteHandler(ctx, nil, deleteInput)
+		_, _, _ = deleteHandler(clientCtx, nil, deleteInput)
 	}()
 
 	// Wait for workflow to start (so we're not timing out on a non-existent workflow)
@@ -795,7 +828,7 @@ func TestWorkflow_WaitWorkflow_Timeout(t *testing.T) {
 		Timeout:   "3s", // Very short timeout - workflow won't complete in time
 	}
 
-	result, waitOutput, err := waitHandler(ctx, nil, waitInput)
+	result, waitOutput, err := waitHandler(clientCtx, nil, waitInput)
 	require.NoError(t, err, "wait_workflow should not return Go error on timeout")
 	require.NotNil(t, result)
 	require.NotNil(t, waitOutput)
@@ -815,6 +848,9 @@ func TestWorkflow_WatchWorkflow(t *testing.T) {
 	ctx := context.Background()
 	cluster := SetupE2ECluster(ctx, t)
 
+	// Use the client's context which contains the KubeClient
+	clientCtx := cluster.ArgoClient.Context()
+
 	// Load test workflow
 	manifest := LoadTestDataFile(t, "hello-world.yaml")
 
@@ -826,7 +862,7 @@ func TestWorkflow_WatchWorkflow(t *testing.T) {
 		Manifest:  manifest,
 	}
 
-	_, submitOutput, err := submitHandler(ctx, nil, submitInput)
+	_, submitOutput, err := submitHandler(clientCtx, nil, submitInput)
 	require.NoError(t, err, "Failed to submit workflow")
 	require.NotNil(t, submitOutput)
 
@@ -840,7 +876,7 @@ func TestWorkflow_WatchWorkflow(t *testing.T) {
 			Namespace: cluster.ArgoNamespace,
 			Name:      workflowName,
 		}
-		_, _, _ = deleteHandler(ctx, nil, deleteInput)
+		_, _, _ = deleteHandler(clientCtx, nil, deleteInput)
 	}()
 
 	// Use watch_workflow tool handler to watch until completion
@@ -852,7 +888,7 @@ func TestWorkflow_WatchWorkflow(t *testing.T) {
 		Timeout:   "2m",
 	}
 
-	result, watchOutput, err := watchHandler(ctx, nil, watchInput)
+	result, watchOutput, err := watchHandler(clientCtx, nil, watchInput)
 	require.NoError(t, err, "watch_workflow should not return error")
 	require.NotNil(t, result)
 	require.NotNil(t, watchOutput)
@@ -896,6 +932,9 @@ func TestWorkflow_WatchWorkflow_Timeout(t *testing.T) {
 	ctx := context.Background()
 	cluster := SetupE2ECluster(ctx, t)
 
+	// Use the client's context which contains the KubeClient
+	clientCtx := cluster.ArgoClient.Context()
+
 	// Load DAG workflow (takes longer to complete)
 	manifest := LoadTestDataFile(t, "dag-workflow.yaml")
 
@@ -907,7 +946,7 @@ func TestWorkflow_WatchWorkflow_Timeout(t *testing.T) {
 		Manifest:  manifest,
 	}
 
-	_, submitOutput, err := submitHandler(ctx, nil, submitInput)
+	_, submitOutput, err := submitHandler(clientCtx, nil, submitInput)
 	require.NoError(t, err, "Failed to submit workflow")
 	require.NotNil(t, submitOutput)
 
@@ -922,7 +961,7 @@ func TestWorkflow_WatchWorkflow_Timeout(t *testing.T) {
 			Namespace: cluster.ArgoNamespace,
 			Name:      workflowName,
 		}
-		_, _, _ = terminateHandler(ctx, nil, terminateInput)
+		_, _, _ = terminateHandler(clientCtx, nil, terminateInput)
 
 		// Then delete it
 		deleteHandler := tools.DeleteWorkflowHandler(cluster.ArgoClient)
@@ -930,7 +969,7 @@ func TestWorkflow_WatchWorkflow_Timeout(t *testing.T) {
 			Namespace: cluster.ArgoNamespace,
 			Name:      workflowName,
 		}
-		_, _, _ = deleteHandler(ctx, nil, deleteInput)
+		_, _, _ = deleteHandler(clientCtx, nil, deleteInput)
 	}()
 
 	// Wait for workflow to start (so we capture some events)
@@ -945,7 +984,7 @@ func TestWorkflow_WatchWorkflow_Timeout(t *testing.T) {
 		Timeout:   "5s", // Short timeout - workflow won't complete in time
 	}
 
-	result, watchOutput, err := watchHandler(ctx, nil, watchInput)
+	result, watchOutput, err := watchHandler(clientCtx, nil, watchInput)
 	require.NoError(t, err, "watch_workflow should not return Go error on timeout")
 	require.NotNil(t, result)
 	require.NotNil(t, watchOutput)
@@ -972,6 +1011,9 @@ func TestWorkflow_RetryWorkflow(t *testing.T) {
 	ctx := context.Background()
 	cluster := SetupE2ECluster(ctx, t)
 
+	// Use the client's context which contains the KubeClient
+	clientCtx := cluster.ArgoClient.Context()
+
 	// Load failing workflow
 	manifest := LoadTestDataFile(t, "failing-workflow.yaml")
 
@@ -983,7 +1025,7 @@ func TestWorkflow_RetryWorkflow(t *testing.T) {
 		Manifest:  manifest,
 	}
 
-	_, submitOutput, err := submitHandler(ctx, nil, submitInput)
+	_, submitOutput, err := submitHandler(clientCtx, nil, submitInput)
 	require.NoError(t, err, "Failed to submit workflow")
 
 	workflowName := submitOutput.Name
@@ -996,7 +1038,7 @@ func TestWorkflow_RetryWorkflow(t *testing.T) {
 			Namespace: cluster.ArgoNamespace,
 			Name:      workflowName,
 		}
-		_, _, _ = deleteHandler(ctx, nil, deleteInput)
+		_, _, _ = deleteHandler(clientCtx, nil, deleteInput)
 	}()
 
 	// Wait for workflow to fail
@@ -1015,7 +1057,7 @@ func TestWorkflow_RetryWorkflow(t *testing.T) {
 		RestartSuccessful: true, // Restart all nodes
 	}
 
-	result, retryOutput, err := retryHandler(ctx, nil, retryInput)
+	result, retryOutput, err := retryHandler(clientCtx, nil, retryInput)
 	require.NoError(t, err, "retry_workflow should not return error")
 	require.NotNil(t, result)
 	require.NotNil(t, retryOutput)
@@ -1038,7 +1080,7 @@ func TestWorkflow_RetryWorkflow(t *testing.T) {
 		Name:      workflowName,
 	}
 
-	_, getOutput, err := getHandler(ctx, nil, getInput)
+	_, getOutput, err := getHandler(clientCtx, nil, getInput)
 	require.NoError(t, err, "get_workflow should not return error")
 	require.NotNil(t, getOutput)
 
@@ -1056,6 +1098,9 @@ func TestWorkflow_ResubmitWorkflow(t *testing.T) {
 	ctx := context.Background()
 	cluster := SetupE2ECluster(ctx, t)
 
+	// Use the client's context which contains the KubeClient
+	clientCtx := cluster.ArgoClient.Context()
+
 	// Submit and complete a workflow first
 	manifest := LoadTestDataFile(t, "hello-world.yaml")
 	submitHandler := tools.SubmitWorkflowHandler(cluster.ArgoClient)
@@ -1064,7 +1109,7 @@ func TestWorkflow_ResubmitWorkflow(t *testing.T) {
 		Manifest:  manifest,
 	}
 
-	_, submitOutput, err := submitHandler(ctx, nil, submitInput)
+	_, submitOutput, err := submitHandler(clientCtx, nil, submitInput)
 	require.NoError(t, err, "Failed to submit workflow")
 
 	originalWorkflowName := submitOutput.Name
@@ -1081,12 +1126,12 @@ func TestWorkflow_ResubmitWorkflow(t *testing.T) {
 			Namespace: cluster.ArgoNamespace,
 			Name:      originalWorkflowName,
 		}
-		_, _, _ = deleteHandler(ctx, nil, deleteInput)
+		_, _, _ = deleteHandler(clientCtx, nil, deleteInput)
 
 		// Delete resubmitted if it exists
 		if newWorkflowName != "" {
 			deleteInput.Name = newWorkflowName
-			_, _, _ = deleteHandler(ctx, nil, deleteInput)
+			_, _, _ = deleteHandler(clientCtx, nil, deleteInput)
 		}
 	}()
 
@@ -1105,7 +1150,7 @@ func TestWorkflow_ResubmitWorkflow(t *testing.T) {
 		Name:      originalWorkflowName,
 	}
 
-	result, resubmitOutput, err := resubmitHandler(ctx, nil, resubmitInput)
+	result, resubmitOutput, err := resubmitHandler(clientCtx, nil, resubmitInput)
 	require.NoError(t, err, "resubmit_workflow should not return error")
 	require.NotNil(t, result)
 	require.NotNil(t, resubmitOutput)
@@ -1144,6 +1189,9 @@ func TestWorkflow_SuspendWorkflow(t *testing.T) {
 	ctx := context.Background()
 	cluster := SetupE2ECluster(ctx, t)
 
+	// Use the client's context which contains the KubeClient
+	clientCtx := cluster.ArgoClient.Context()
+
 	// Load long-running workflow
 	manifest := LoadTestDataFile(t, "long-running-workflow.yaml")
 
@@ -1155,7 +1203,7 @@ func TestWorkflow_SuspendWorkflow(t *testing.T) {
 		Manifest:  manifest,
 	}
 
-	_, submitOutput, err := submitHandler(ctx, nil, submitInput)
+	_, submitOutput, err := submitHandler(clientCtx, nil, submitInput)
 	require.NoError(t, err, "Failed to submit workflow")
 
 	workflowName := submitOutput.Name
@@ -1169,7 +1217,7 @@ func TestWorkflow_SuspendWorkflow(t *testing.T) {
 			Namespace: cluster.ArgoNamespace,
 			Name:      workflowName,
 		}
-		_, _, _ = terminateHandler(ctx, nil, terminateInput)
+		_, _, _ = terminateHandler(clientCtx, nil, terminateInput)
 
 		// Then delete
 		deleteHandler := tools.DeleteWorkflowHandler(cluster.ArgoClient)
@@ -1177,7 +1225,7 @@ func TestWorkflow_SuspendWorkflow(t *testing.T) {
 			Namespace: cluster.ArgoNamespace,
 			Name:      workflowName,
 		}
-		_, _, _ = deleteHandler(ctx, nil, deleteInput)
+		_, _, _ = deleteHandler(clientCtx, nil, deleteInput)
 	}()
 
 	// Wait for workflow to start running
@@ -1191,7 +1239,7 @@ func TestWorkflow_SuspendWorkflow(t *testing.T) {
 		Name:      workflowName,
 	}
 
-	result, suspendOutput, err := suspendHandler(ctx, nil, suspendInput)
+	result, suspendOutput, err := suspendHandler(clientCtx, nil, suspendInput)
 	require.NoError(t, err, "suspend_workflow should not return error")
 	require.NotNil(t, result)
 	require.NotNil(t, suspendOutput)
@@ -1223,6 +1271,9 @@ func TestWorkflow_ResumeWorkflow(t *testing.T) {
 	ctx := context.Background()
 	cluster := SetupE2ECluster(ctx, t)
 
+	// Use the client's context which contains the KubeClient
+	clientCtx := cluster.ArgoClient.Context()
+
 	// Load long-running workflow
 	manifest := LoadTestDataFile(t, "long-running-workflow.yaml")
 
@@ -1234,7 +1285,7 @@ func TestWorkflow_ResumeWorkflow(t *testing.T) {
 		Manifest:  manifest,
 	}
 
-	_, submitOutput, err := submitHandler(ctx, nil, submitInput)
+	_, submitOutput, err := submitHandler(clientCtx, nil, submitInput)
 	require.NoError(t, err, "Failed to submit workflow")
 
 	workflowName := submitOutput.Name
@@ -1248,7 +1299,7 @@ func TestWorkflow_ResumeWorkflow(t *testing.T) {
 			Namespace: cluster.ArgoNamespace,
 			Name:      workflowName,
 		}
-		_, _, _ = terminateHandler(ctx, nil, terminateInput)
+		_, _, _ = terminateHandler(clientCtx, nil, terminateInput)
 
 		// Then delete
 		deleteHandler := tools.DeleteWorkflowHandler(cluster.ArgoClient)
@@ -1256,7 +1307,7 @@ func TestWorkflow_ResumeWorkflow(t *testing.T) {
 			Namespace: cluster.ArgoNamespace,
 			Name:      workflowName,
 		}
-		_, _, _ = deleteHandler(ctx, nil, deleteInput)
+		_, _, _ = deleteHandler(clientCtx, nil, deleteInput)
 	}()
 
 	// Wait for workflow to start running
@@ -1270,7 +1321,7 @@ func TestWorkflow_ResumeWorkflow(t *testing.T) {
 		Name:      workflowName,
 	}
 
-	_, suspendOutput, err := suspendHandler(ctx, nil, suspendInput)
+	_, suspendOutput, err := suspendHandler(clientCtx, nil, suspendInput)
 	require.NoError(t, err, "Failed to suspend workflow")
 	require.NotNil(t, suspendOutput)
 
@@ -1292,7 +1343,7 @@ func TestWorkflow_ResumeWorkflow(t *testing.T) {
 		Name:      workflowName,
 	}
 
-	result, resumeOutput, err := resumeHandler(ctx, nil, resumeInput)
+	result, resumeOutput, err := resumeHandler(clientCtx, nil, resumeInput)
 	require.NoError(t, err, "resume_workflow should not return error")
 	require.NotNil(t, result)
 	require.NotNil(t, resumeOutput)
@@ -1326,6 +1377,9 @@ func TestWorkflow_StopWorkflow(t *testing.T) {
 	ctx := context.Background()
 	cluster := SetupE2ECluster(ctx, t)
 
+	// Use the client's context which contains the KubeClient
+	clientCtx := cluster.ArgoClient.Context()
+
 	// Load exit-handler workflow (has onExit handler)
 	manifest := LoadTestDataFile(t, "exit-handler-workflow.yaml")
 
@@ -1337,7 +1391,7 @@ func TestWorkflow_StopWorkflow(t *testing.T) {
 		Manifest:  manifest,
 	}
 
-	_, submitOutput, err := submitHandler(ctx, nil, submitInput)
+	_, submitOutput, err := submitHandler(clientCtx, nil, submitInput)
 	require.NoError(t, err, "Failed to submit workflow")
 
 	workflowName := submitOutput.Name
@@ -1350,7 +1404,7 @@ func TestWorkflow_StopWorkflow(t *testing.T) {
 			Namespace: cluster.ArgoNamespace,
 			Name:      workflowName,
 		}
-		_, _, _ = deleteHandler(ctx, nil, deleteInput)
+		_, _, _ = deleteHandler(clientCtx, nil, deleteInput)
 	}()
 
 	// Wait for workflow to start running
@@ -1365,7 +1419,7 @@ func TestWorkflow_StopWorkflow(t *testing.T) {
 		Message:   "Stopped by E2E test",
 	}
 
-	result, stopOutput, err := stopHandler(ctx, nil, stopInput)
+	result, stopOutput, err := stopHandler(clientCtx, nil, stopInput)
 	require.NoError(t, err, "stop_workflow should not return error")
 	require.NotNil(t, result)
 	require.NotNil(t, stopOutput)
@@ -1393,7 +1447,7 @@ func TestWorkflow_StopWorkflow(t *testing.T) {
 		Name:      workflowName,
 	}
 
-	_, logsOutput, err := logsHandler(ctx, nil, logsInput)
+	_, logsOutput, err := logsHandler(clientCtx, nil, logsInput)
 	require.NoError(t, err, "logs_workflow should not return error")
 
 	// Look for exit handler marker in logs
@@ -1416,6 +1470,9 @@ func TestWorkflow_TerminateWorkflow(t *testing.T) {
 	ctx := context.Background()
 	cluster := SetupE2ECluster(ctx, t)
 
+	// Use the client's context which contains the KubeClient
+	clientCtx := cluster.ArgoClient.Context()
+
 	// Load exit-handler workflow
 	manifest := LoadTestDataFile(t, "exit-handler-workflow.yaml")
 
@@ -1427,7 +1484,7 @@ func TestWorkflow_TerminateWorkflow(t *testing.T) {
 		Manifest:  manifest,
 	}
 
-	_, submitOutput, err := submitHandler(ctx, nil, submitInput)
+	_, submitOutput, err := submitHandler(clientCtx, nil, submitInput)
 	require.NoError(t, err, "Failed to submit workflow")
 
 	workflowName := submitOutput.Name
@@ -1440,7 +1497,7 @@ func TestWorkflow_TerminateWorkflow(t *testing.T) {
 			Namespace: cluster.ArgoNamespace,
 			Name:      workflowName,
 		}
-		_, _, _ = deleteHandler(ctx, nil, deleteInput)
+		_, _, _ = deleteHandler(clientCtx, nil, deleteInput)
 	}()
 
 	// Wait for workflow to start running
@@ -1454,7 +1511,7 @@ func TestWorkflow_TerminateWorkflow(t *testing.T) {
 		Name:      workflowName,
 	}
 
-	result, terminateOutput, err := terminateHandler(ctx, nil, terminateInput)
+	result, terminateOutput, err := terminateHandler(clientCtx, nil, terminateInput)
 	require.NoError(t, err, "terminate_workflow should not return error")
 	require.NotNil(t, result)
 	require.NotNil(t, terminateOutput)
@@ -1482,7 +1539,7 @@ func TestWorkflow_TerminateWorkflow(t *testing.T) {
 		Name:      workflowName,
 	}
 
-	_, logsOutput, err := logsHandler(ctx, nil, logsInput)
+	_, logsOutput, err := logsHandler(clientCtx, nil, logsInput)
 	require.NoError(t, err, "logs_workflow should not return error")
 
 	// Look for exit handler marker in logs - should NOT be present

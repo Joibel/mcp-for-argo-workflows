@@ -14,10 +14,10 @@ import (
 // DeleteWorkflowTemplateInput defines the input parameters for the delete_workflow_template tool.
 type DeleteWorkflowTemplateInput struct {
 	// Namespace is the Kubernetes namespace (uses default if not specified).
-	Namespace string `json:"namespace,omitempty" jsonschema:"description=Kubernetes namespace (uses default if not specified)"`
+	Namespace string `json:"namespace,omitempty" jsonschema:"Kubernetes namespace (uses default if not specified)"`
 
 	// Name is the WorkflowTemplate name.
-	Name string `json:"name" jsonschema:"required,description=WorkflowTemplate name"`
+	Name string `json:"name" jsonschema:"WorkflowTemplate name,required"`
 }
 
 // DeleteWorkflowTemplateOutput defines the output for the delete_workflow_template tool.
