@@ -58,6 +58,9 @@ func run(ctx context.Context) error {
 	// Register Argo Workflows tools
 	srv.RegisterTools(argoClient)
 
+	// Register Argo CRD schema resources
+	srv.RegisterResources()
+
 	slog.Info("MCP server created",
 		"name", serverName,
 		"version", version.Version,
