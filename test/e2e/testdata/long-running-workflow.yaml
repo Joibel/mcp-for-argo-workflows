@@ -6,14 +6,46 @@ spec:
   entrypoint: main
   templates:
     - name: main
+      steps:
+        - - name: step-1
+            template: sleeper
+            arguments:
+              parameters:
+                - name: step-num
+                  value: "1"
+        - - name: step-2
+            template: sleeper
+            arguments:
+              parameters:
+                - name: step-num
+                  value: "2"
+        - - name: step-3
+            template: sleeper
+            arguments:
+              parameters:
+                - name: step-num
+                  value: "3"
+        - - name: step-4
+            template: sleeper
+            arguments:
+              parameters:
+                - name: step-num
+                  value: "4"
+        - - name: step-5
+            template: sleeper
+            arguments:
+              parameters:
+                - name: step-num
+                  value: "5"
+    - name: sleeper
+      inputs:
+        parameters:
+          - name: step-num
       container:
         image: busybox:1.35
         command: [sh, -c]
         args:
           - |
-            echo "Starting long-running task..."
-            for i in 1 2 3 4 5 6 7 8 9 10; do
-              echo "Step $i of 10..."
-              sleep 5
-            done
-            echo "Completed!"
+            echo "Running step {{inputs.parameters.step-num}} of 5..."
+            sleep 5
+            echo "Step {{inputs.parameters.step-num}} completed!"

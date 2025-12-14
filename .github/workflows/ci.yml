@@ -57,8 +57,8 @@ jobs:
   test-e2e:
     name: E2E Tests
     runs-on: ubuntu-latest
-    # Run independently - don't block build
-    needs: [lint]
+    # Run after lint and test pass, but don't block build
+    needs: [lint, test]
     timeout-minutes: 30
     steps:
       - name: Checkout code

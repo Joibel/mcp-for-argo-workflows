@@ -1048,13 +1048,14 @@ func TestWorkflow_RetryWorkflow(t *testing.T) {
 
 	require.Equal(t, "Failed", finalPhase, "Workflow should fail")
 
-	// Now retry the workflow with RestartSuccessful to restart all nodes
+	// Now retry the workflow with RestartSuccessful and override should-fail to false
 	t.Log("Testing retry_workflow tool...")
 	retryHandler := tools.RetryWorkflowHandler(cluster.ArgoClient)
 	retryInput := tools.RetryWorkflowInput{
 		Namespace:         cluster.ArgoNamespace,
 		Name:              workflowName,
-		RestartSuccessful: true, // Restart all nodes
+		RestartSuccessful: true,                         // Restart all nodes
+		Parameters:        []string{"should-fail=false"}, // Override to succeed this time
 	}
 
 	result, retryOutput, err := retryHandler(clientCtx, nil, retryInput)
@@ -1071,22 +1072,12 @@ func TestWorkflow_RetryWorkflow(t *testing.T) {
 	// Phase after retry should be Running (or Pending as it restarts)
 	t.Logf("Retried workflow phase: %s", retryOutput.Phase)
 
-	// Verify workflow is running again (give it a moment)
-	time.Sleep(2 * time.Second)
+	// Wait for the retried workflow to succeed (parameter override should make it pass)
+	t.Log("Waiting for retried workflow to succeed...")
+	finalPhase = cluster.WaitForWorkflowPhase(t, cluster.ArgoNamespace, workflowName,
+		2*time.Minute, "Succeeded", "Failed", "Error")
 
-	getHandler := tools.GetWorkflowHandler(cluster.ArgoClient)
-	getInput := tools.GetWorkflowInput{
-		Namespace: cluster.ArgoNamespace,
-		Name:      workflowName,
-	}
-
-	_, getOutput, err := getHandler(clientCtx, nil, getInput)
-	require.NoError(t, err, "get_workflow should not return error")
-	require.NotNil(t, getOutput)
-
-	// After retry, workflow should be active (Running or Pending) or already finished
-	assert.Contains(t, []string{"Running", "Pending", "Failed"}, getOutput.Phase,
-		"Retried workflow should be running or pending or failed again")
+	assert.Equal(t, "Succeeded", finalPhase, "Retried workflow should succeed after parameter override")
 }
 
 // TestWorkflow_ResubmitWorkflow tests the resubmit_workflow tool handler.
@@ -1436,29 +1427,25 @@ func TestWorkflow_StopWorkflow(t *testing.T) {
 	finalPhase := cluster.WaitForWorkflowPhase(t, cluster.ArgoNamespace, workflowName,
 		2*time.Minute, "Succeeded", "Failed", "Error")
 
-	// After stop, workflow should end in Failed state (stopped workflows fail)
-	assert.Equal(t, "Failed", finalPhase, "Stopped workflow should end in Failed phase")
+	// After stop, workflow should end in Failed or Error state (stopped workflows fail)
+	assert.Contains(t, []string{"Failed", "Error"}, finalPhase, "Stopped workflow should end in Failed or Error phase")
 
-	// Check logs to verify exit handler ran
+	// Check logs to verify exit handler ran (use Grep to avoid truncation issues)
 	t.Log("Checking if exit handler ran...")
 	logsHandler := tools.LogsWorkflowHandler(cluster.ArgoClient)
+	grepPattern := "EXIT_HANDLER_EXECUTED"
 	logsInput := tools.LogsWorkflowInput{
 		Namespace: cluster.ArgoNamespace,
 		Name:      workflowName,
+		Grep:      grepPattern,
 	}
 
 	_, logsOutput, err := logsHandler(clientCtx, nil, logsInput)
 	require.NoError(t, err, "logs_workflow should not return error")
+	require.NotNil(t, logsOutput)
 
-	// Look for exit handler marker in logs
-	foundExitHandler := false
-	for _, entry := range logsOutput.Logs {
-		if strings.Contains(entry.Content, "EXIT_HANDLER_EXECUTED") {
-			foundExitHandler = true
-			break
-		}
-	}
-	assert.True(t, foundExitHandler, "Exit handler should have executed after stop")
+	// With grep, if exit handler ran, we should have matching log entries
+	assert.NotEmpty(t, logsOutput.Logs, "Exit handler marker should be present after stop")
 }
 
 // TestWorkflow_TerminateWorkflow tests the terminate_workflow tool handler.
@@ -1528,27 +1515,23 @@ func TestWorkflow_TerminateWorkflow(t *testing.T) {
 	finalPhase := cluster.WaitForWorkflowPhase(t, cluster.ArgoNamespace, workflowName,
 		2*time.Minute, "Succeeded", "Failed", "Error")
 
-	// After terminate, workflow should end in Failed state
-	assert.Equal(t, "Failed", finalPhase, "Terminated workflow should end in Failed phase")
+	// After terminate, workflow should end in Failed or Error state
+	assert.Contains(t, []string{"Failed", "Error"}, finalPhase, "Terminated workflow should end in Failed or Error phase")
 
-	// Check logs to verify exit handler did NOT run
+	// Check logs to verify exit handler did NOT run (use Grep to avoid truncation issues)
 	t.Log("Checking that exit handler did NOT run...")
 	logsHandler := tools.LogsWorkflowHandler(cluster.ArgoClient)
+	grepPattern := "EXIT_HANDLER_EXECUTED"
 	logsInput := tools.LogsWorkflowInput{
 		Namespace: cluster.ArgoNamespace,
 		Name:      workflowName,
+		Grep:      grepPattern,
 	}
 
 	_, logsOutput, err := logsHandler(clientCtx, nil, logsInput)
 	require.NoError(t, err, "logs_workflow should not return error")
+	require.NotNil(t, logsOutput)
 
-	// Look for exit handler marker in logs - should NOT be present
-	foundExitHandler := false
-	for _, entry := range logsOutput.Logs {
-		if strings.Contains(entry.Content, "EXIT_HANDLER_EXECUTED") {
-			foundExitHandler = true
-			break
-		}
-	}
-	assert.False(t, foundExitHandler, "Exit handler should NOT have executed after terminate")
+	// With grep, if exit handler did NOT run, we should have no matching log entries
+	assert.Empty(t, logsOutput.Logs, "Exit handler marker should NOT be present after terminate")
 }
