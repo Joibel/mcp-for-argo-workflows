@@ -7,11 +7,16 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
+const (
+	httpTemplateURI  = "argo://docs/template-types/http"
+	httpTemplateName = "template-types-http"
+)
+
 // TemplateTypesHTTPResource returns the MCP resource definition for http template documentation.
 func TemplateTypesHTTPResource() *mcp.Resource {
 	return &mcp.Resource{
-		URI:         "argo://docs/template-types/http",
-		Name:        "template-types-http",
+		URI:         httpTemplateURI,
+		Name:        httpTemplateName,
 		Title:       "HTTP Template Type",
 		Description: "Documentation for the HTTP Template Type",
 		MIMEType:    "text/markdown",
@@ -21,14 +26,14 @@ func TemplateTypesHTTPResource() *mcp.Resource {
 // TemplateTypesHTTPHandler returns a handler function for the http template type resource.
 func TemplateTypesHTTPHandler() mcp.ResourceHandler {
 	return func(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
-		if req.Params.URI != "argo://docs/template-types/http" {
+		if req.Params.URI != httpTemplateURI {
 			return nil, mcp.ResourceNotFoundError(req.Params.URI)
 		}
 
 		return &mcp.ReadResourceResult{
 			Contents: []*mcp.ResourceContents{
 				{
-					URI:      "argo://docs/template-types/http",
+					URI:      httpTemplateURI,
 					MIMEType: "text/markdown",
 					Text:     httpMarkdown,
 				},
@@ -49,7 +54,26 @@ Make HTTP requests as workflow steps.
 - **body** - Request body
 - **timeoutSeconds** - Request timeout
 
+## Example
+
+` + "```yaml" + `
+templates:
+  - name: http-request
+    http:
+      url: "https://api.example.com/webhook"
+      method: "POST"
+      headers:
+        - name: "Content-Type"
+          value: "application/json"
+      body: '{"message": "Hello from Argo"}'
+      timeoutSeconds: 30
+` + "```" + `
+
+## When to Use
+
+HTTP templates are ideal for calling REST APIs, webhooks, or external services.
+
 ## See Full Documentation
 
-This is a summary. For complete examples and best practices, refer to the Argo Workflows documentation.
+For complete examples and best practices, refer to the Argo Workflows documentation.
 `

@@ -7,11 +7,16 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
+const (
+	overviewTemplateURI  = "argo://docs/template-types"
+	overviewTemplateName = "template-types-overview"
+)
+
 // TemplateTypesOverviewResource returns the MCP resource definition for overview template documentation.
 func TemplateTypesOverviewResource() *mcp.Resource {
 	return &mcp.Resource{
-		URI:         "argo://docs/template-types",
-		Name:        "template-types-overview",
+		URI:         overviewTemplateURI,
+		Name:        overviewTemplateName,
 		Title:       "Argo Workflows Template Types Overview",
 		Description: "Documentation for the Argo Workflows Template Types Overview",
 		MIMEType:    "text/markdown",
@@ -21,14 +26,14 @@ func TemplateTypesOverviewResource() *mcp.Resource {
 // TemplateTypesOverviewHandler returns a handler function for the overview template type resource.
 func TemplateTypesOverviewHandler() mcp.ResourceHandler {
 	return func(ctx context.Context, req *mcp.ReadResourceRequest) (*mcp.ReadResourceResult, error) {
-		if req.Params.URI != "argo://docs/template-types" {
+		if req.Params.URI != overviewTemplateURI {
 			return nil, mcp.ResourceNotFoundError(req.Params.URI)
 		}
 
 		return &mcp.ReadResourceResult{
 			Contents: []*mcp.ResourceContents{
 				{
-					URI:      "argo://docs/template-types",
+					URI:      overviewTemplateURI,
 					MIMEType: "text/markdown",
 					Text:     overviewMarkdown,
 				},
@@ -46,7 +51,7 @@ Templates are the building blocks of Argo Workflows. Each template defines a uni
 For detailed documentation on each template type, use these resources:
 
 - **argo://docs/template-types/container** - Container template documentation
-- **argo://docs/template-types/script** - Script template documentation  
+- **argo://docs/template-types/script** - Script template documentation
 - **argo://docs/template-types/dag** - DAG template documentation
 - **argo://docs/template-types/steps** - Steps template documentation
 - **argo://docs/template-types/suspend** - Suspend template documentation
@@ -64,7 +69,7 @@ Argo Workflows supports several template types:
 - **HTTP** - Make HTTP requests
 - **Suspend** - Pause workflow execution
 
-### Orchestration Templates  
+### Orchestration Templates
 - **Steps** - Sequential and parallel step groups
 - **DAG** - Tasks with explicit dependencies
 
