@@ -15,6 +15,14 @@ func AllResources() []ResourceRegistrar {
 		RegisterWorkflowTemplateSchema,
 		RegisterClusterWorkflowTemplateSchema,
 		RegisterCronWorkflowSchema,
+		RegisterTemplateTypesOverview,
+		RegisterTemplateTypesContainer,
+		RegisterTemplateTypesScript,
+		RegisterTemplateTypesDAG,
+		RegisterTemplateTypesSteps,
+		RegisterTemplateTypesSuspend,
+		RegisterTemplateTypesResource,
+		RegisterTemplateTypesHTTP,
 	}
 }
 
@@ -43,4 +51,44 @@ func RegisterClusterWorkflowTemplateSchema(s *mcp.Server) {
 // RegisterCronWorkflowSchema registers the CronWorkflow schema resource.
 func RegisterCronWorkflowSchema(s *mcp.Server) {
 	s.AddResource(CronWorkflowSchemaResource(), CronWorkflowSchemaHandler())
+}
+
+// RegisterTemplateTypesOverview registers the template types overview resource.
+func RegisterTemplateTypesOverview(s *mcp.Server) {
+	s.AddResource(TemplateTypesOverviewResource(), TemplateTypesOverviewHandler())
+}
+
+// RegisterTemplateTypesContainer registers the container template type resource.
+func RegisterTemplateTypesContainer(s *mcp.Server) {
+	s.AddResource(TemplateTypesContainerResource(), TemplateTypesContainerHandler())
+}
+
+// RegisterTemplateTypesScript registers the script template type resource.
+func RegisterTemplateTypesScript(s *mcp.Server) {
+	s.AddResource(TemplateTypesScriptResource(), TemplateTypesScriptHandler())
+}
+
+// RegisterTemplateTypesDAG registers the DAG template type resource.
+func RegisterTemplateTypesDAG(s *mcp.Server) {
+	s.AddResource(TemplateTypesDAGResource(), TemplateTypesDAGHandler())
+}
+
+// RegisterTemplateTypesSteps registers the steps template type resource.
+func RegisterTemplateTypesSteps(s *mcp.Server) {
+	s.AddResource(TemplateTypesStepsResource(), TemplateTypesStepsHandler())
+}
+
+// RegisterTemplateTypesSuspend registers the suspend template type resource.
+func RegisterTemplateTypesSuspend(s *mcp.Server) {
+	s.AddResource(TemplateTypesSuspendResource(), TemplateTypesSuspendHandler())
+}
+
+// RegisterTemplateTypesResource registers the resource template type resource.
+func RegisterTemplateTypesResource(s *mcp.Server) {
+	s.AddResource(TemplateTypesResourceResource(), TemplateTypesResourceHandler())
+}
+
+// RegisterTemplateTypesHTTP registers the HTTP template type resource.
+func RegisterTemplateTypesHTTP(s *mcp.Server) {
+	s.AddResource(TemplateTypesHTTPResource(), TemplateTypesHTTPHandler())
 }
