@@ -307,6 +307,320 @@ spec:
 	}
 }
 
+// TestWorkflow_Submit tests the submit_workflow tool handler.
+func TestWorkflow_Submit(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping E2E test in short mode")
+	}
+
+	ctx := context.Background()
+	cluster := SetupE2ECluster(ctx, t)
+
+	// Load test workflow
+	manifest := LoadTestDataFile(t, "hello-world.yaml")
+
+	// Submit workflow using the tool handler
+	t.Log("Testing submit_workflow tool...")
+	submitHandler := tools.SubmitWorkflowHandler(cluster.ArgoClient)
+	submitInput := tools.SubmitWorkflowInput{
+		Namespace: cluster.ArgoNamespace,
+		Manifest:  manifest,
+	}
+
+	result, submitOutput, err := submitHandler(ctx, nil, submitInput)
+	require.NoError(t, err, "submit_workflow should not return error")
+	require.NotNil(t, result)
+	require.NotNil(t, submitOutput)
+
+	workflowName := submitOutput.Name
+
+	// Cleanup at the end
+	defer func() {
+		deleteHandler := tools.DeleteWorkflowHandler(cluster.ArgoClient)
+		deleteInput := tools.DeleteWorkflowInput{
+			Namespace: cluster.ArgoNamespace,
+			Name:      workflowName,
+		}
+		_, _, _ = deleteHandler(ctx, nil, deleteInput)
+	}()
+
+	// Verify submit output fields
+	assert.NotEmpty(t, submitOutput.Name, "Name should be set")
+	assert.Equal(t, cluster.ArgoNamespace, submitOutput.Namespace, "Namespace should match")
+	assert.NotEmpty(t, submitOutput.UID, "UID should be set")
+	assert.NotEmpty(t, submitOutput.Phase, "Phase should be set")
+	assert.NotEmpty(t, submitOutput.CreatedAt, "CreatedAt should be set")
+
+	// Verify workflow actually exists and is running
+	assert.True(t, cluster.WorkflowExists(t, cluster.ArgoNamespace, workflowName),
+		"Workflow should exist after submission")
+
+	// Verify it starts running (phase should be Pending or Running initially)
+	assert.Contains(t, []string{"Pending", "Running"}, submitOutput.Phase,
+		"Workflow should start in Pending or Running phase")
+}
+
+// TestWorkflow_Get tests the get_workflow tool handler.
+func TestWorkflow_Get(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping E2E test in short mode")
+	}
+
+	ctx := context.Background()
+	cluster := SetupE2ECluster(ctx, t)
+
+	// Submit a workflow first
+	manifest := LoadTestDataFile(t, "hello-world.yaml")
+	submitHandler := tools.SubmitWorkflowHandler(cluster.ArgoClient)
+	submitInput := tools.SubmitWorkflowInput{
+		Namespace: cluster.ArgoNamespace,
+		Manifest:  manifest,
+	}
+
+	_, submitOutput, err := submitHandler(ctx, nil, submitInput)
+	require.NoError(t, err, "Failed to submit workflow")
+
+	workflowName := submitOutput.Name
+
+	// Cleanup at the end
+	defer func() {
+		deleteHandler := tools.DeleteWorkflowHandler(cluster.ArgoClient)
+		deleteInput := tools.DeleteWorkflowInput{
+			Namespace: cluster.ArgoNamespace,
+			Name:      workflowName,
+		}
+		_, _, _ = deleteHandler(ctx, nil, deleteInput)
+	}()
+
+	// Test get_workflow tool handler
+	t.Log("Testing get_workflow tool...")
+	getHandler := tools.GetWorkflowHandler(cluster.ArgoClient)
+	getInput := tools.GetWorkflowInput{
+		Namespace: cluster.ArgoNamespace,
+		Name:      workflowName,
+	}
+
+	result, getOutput, err := getHandler(ctx, nil, getInput)
+	require.NoError(t, err, "get_workflow should not return error")
+	require.NotNil(t, result)
+	require.NotNil(t, getOutput)
+
+	// Verify all expected fields are present
+	assert.Equal(t, workflowName, getOutput.Name, "Name should match")
+	assert.Equal(t, cluster.ArgoNamespace, getOutput.Namespace, "Namespace should match")
+	assert.NotEmpty(t, getOutput.UID, "UID should be set")
+	assert.NotEmpty(t, getOutput.Phase, "Phase should be set")
+	assert.NotEmpty(t, getOutput.CreatedAt, "CreatedAt should be set")
+	assert.NotEmpty(t, getOutput.Entrypoint, "Entrypoint should be set")
+
+	// Wait for completion and verify final state
+	cluster.WaitForWorkflowPhase(t, cluster.ArgoNamespace, workflowName,
+		2*time.Minute, "Succeeded", "Failed", "Error")
+
+	// Get again after completion
+	result, getOutput, err = getHandler(ctx, nil, getInput)
+	require.NoError(t, err, "get_workflow should not return error after completion")
+	require.NotNil(t, getOutput)
+
+	assert.Equal(t, "Succeeded", getOutput.Phase, "Phase should be Succeeded")
+	assert.NotEmpty(t, getOutput.StartedAt, "StartedAt should be set after completion")
+	assert.NotEmpty(t, getOutput.FinishedAt, "FinishedAt should be set after completion")
+}
+
+// TestWorkflow_Delete tests the delete_workflow tool handler.
+func TestWorkflow_Delete(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping E2E test in short mode")
+	}
+
+	ctx := context.Background()
+	cluster := SetupE2ECluster(ctx, t)
+
+	// Submit a workflow first
+	manifest := LoadTestDataFile(t, "hello-world.yaml")
+	submitHandler := tools.SubmitWorkflowHandler(cluster.ArgoClient)
+	submitInput := tools.SubmitWorkflowInput{
+		Namespace: cluster.ArgoNamespace,
+		Manifest:  manifest,
+	}
+
+	_, submitOutput, err := submitHandler(ctx, nil, submitInput)
+	require.NoError(t, err, "Failed to submit workflow")
+
+	workflowName := submitOutput.Name
+
+	// Verify workflow exists
+	assert.True(t, cluster.WorkflowExists(t, cluster.ArgoNamespace, workflowName),
+		"Workflow should exist after submission")
+
+	// Test delete_workflow tool handler
+	t.Log("Testing delete_workflow tool...")
+	deleteHandler := tools.DeleteWorkflowHandler(cluster.ArgoClient)
+	deleteInput := tools.DeleteWorkflowInput{
+		Namespace: cluster.ArgoNamespace,
+		Name:      workflowName,
+	}
+
+	result, deleteOutput, err := deleteHandler(ctx, nil, deleteInput)
+	require.NoError(t, err, "delete_workflow should not return error")
+	require.NotNil(t, result)
+	require.NotNil(t, deleteOutput)
+
+	// Verify delete output
+	assert.Equal(t, workflowName, deleteOutput.Name, "Deleted workflow name should match")
+	assert.Equal(t, cluster.ArgoNamespace, deleteOutput.Namespace, "Namespace should match")
+	assert.True(t, deleteOutput.Deleted, "Deleted flag should be true")
+
+	// Give deletion time to propagate
+	time.Sleep(2 * time.Second)
+
+	// Verify workflow is removed from list
+	assert.False(t, cluster.WorkflowExists(t, cluster.ArgoNamespace, workflowName),
+		"Workflow should not exist after deletion")
+
+	// Verify it's not in list_workflows output
+	listHandler := tools.ListWorkflowsHandler(cluster.ArgoClient)
+	namespace := cluster.ArgoNamespace
+	listInput := tools.ListWorkflowsInput{
+		Namespace: &namespace,
+	}
+
+	_, listOutput, err := listHandler(ctx, nil, listInput)
+	require.NoError(t, err, "list_workflows should not return error")
+
+	for _, wf := range listOutput.Workflows {
+		assert.NotEqual(t, workflowName, wf.Name, "Deleted workflow should not appear in list")
+	}
+}
+
+// TestWorkflow_Logs tests the logs_workflow tool handler.
+func TestWorkflow_Logs(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping E2E test in short mode")
+	}
+
+	ctx := context.Background()
+	cluster := SetupE2ECluster(ctx, t)
+
+	// Submit workflow
+	manifest := LoadTestDataFile(t, "hello-world.yaml")
+	submitHandler := tools.SubmitWorkflowHandler(cluster.ArgoClient)
+	submitInput := tools.SubmitWorkflowInput{
+		Namespace: cluster.ArgoNamespace,
+		Manifest:  manifest,
+	}
+
+	_, submitOutput, err := submitHandler(ctx, nil, submitInput)
+	require.NoError(t, err, "Failed to submit workflow")
+
+	workflowName := submitOutput.Name
+
+	// Cleanup at the end
+	defer func() {
+		deleteHandler := tools.DeleteWorkflowHandler(cluster.ArgoClient)
+		deleteInput := tools.DeleteWorkflowInput{
+			Namespace: cluster.ArgoNamespace,
+			Name:      workflowName,
+		}
+		_, _, _ = deleteHandler(ctx, nil, deleteInput)
+	}()
+
+	// Wait for workflow to complete (so logs are available)
+	finalPhase := cluster.WaitForWorkflowPhase(t, cluster.ArgoNamespace, workflowName,
+		2*time.Minute, "Succeeded", "Failed", "Error")
+	require.Equal(t, "Succeeded", finalPhase, "Workflow should succeed")
+
+	// Test logs_workflow tool handler
+	t.Log("Testing logs_workflow tool...")
+	logsHandler := tools.LogsWorkflowHandler(cluster.ArgoClient)
+	logsInput := tools.LogsWorkflowInput{
+		Namespace: cluster.ArgoNamespace,
+		Name:      workflowName,
+	}
+
+	result, logsOutput, err := logsHandler(ctx, nil, logsInput)
+	require.NoError(t, err, "logs_workflow should not return error")
+	require.NotNil(t, result)
+	require.NotNil(t, logsOutput)
+
+	// Verify logs output
+	assert.NotEmpty(t, logsOutput.Logs, "Logs should not be empty")
+
+	// Verify log entries have expected structure
+	for _, entry := range logsOutput.Logs {
+		assert.NotEmpty(t, entry.PodName, "Log entry should have PodName")
+		assert.NotEmpty(t, entry.Content, "Log entry should have Content")
+	}
+
+	// Check that logs contain expected output from hello-world workflow
+	foundHelloWorld := false
+	for _, entry := range logsOutput.Logs {
+		if strings.Contains(entry.Content, "Hello World") {
+			foundHelloWorld = true
+			break
+		}
+	}
+	assert.True(t, foundHelloWorld, "Logs should contain 'Hello World' output")
+}
+
+// TestWorkflow_Logs_WithGrep tests logs_workflow with grep filtering.
+func TestWorkflow_Logs_WithGrep(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping E2E test in short mode")
+	}
+
+	ctx := context.Background()
+	cluster := SetupE2ECluster(ctx, t)
+
+	// Submit workflow
+	manifest := LoadTestDataFile(t, "hello-world.yaml")
+	submitHandler := tools.SubmitWorkflowHandler(cluster.ArgoClient)
+	submitInput := tools.SubmitWorkflowInput{
+		Namespace: cluster.ArgoNamespace,
+		Manifest:  manifest,
+	}
+
+	_, submitOutput, err := submitHandler(ctx, nil, submitInput)
+	require.NoError(t, err, "Failed to submit workflow")
+
+	workflowName := submitOutput.Name
+
+	// Cleanup at the end
+	defer func() {
+		deleteHandler := tools.DeleteWorkflowHandler(cluster.ArgoClient)
+		deleteInput := tools.DeleteWorkflowInput{
+			Namespace: cluster.ArgoNamespace,
+			Name:      workflowName,
+		}
+		_, _, _ = deleteHandler(ctx, nil, deleteInput)
+	}()
+
+	// Wait for workflow to complete
+	cluster.WaitForWorkflowPhase(t, cluster.ArgoNamespace, workflowName,
+		2*time.Minute, "Succeeded", "Failed", "Error")
+
+	// Test logs_workflow with grep filter
+	t.Log("Testing logs_workflow with grep filter...")
+	logsHandler := tools.LogsWorkflowHandler(cluster.ArgoClient)
+	grepPattern := "Hello"
+	logsInput := tools.LogsWorkflowInput{
+		Namespace: cluster.ArgoNamespace,
+		Name:      workflowName,
+		Grep:      &grepPattern,
+	}
+
+	result, logsOutput, err := logsHandler(ctx, nil, logsInput)
+	require.NoError(t, err, "logs_workflow with grep should not return error")
+	require.NotNil(t, result)
+	require.NotNil(t, logsOutput)
+
+	// Verify filtered logs contain the grep pattern
+	for _, entry := range logsOutput.Logs {
+		assert.Contains(t, entry.Content, "Hello",
+			"Filtered log entries should contain grep pattern")
+	}
+}
+
 // TestWorkflow_List tests listing workflows.
 func TestWorkflow_List(t *testing.T) {
 	if testing.Short() {
@@ -361,4 +675,287 @@ func TestWorkflow_List(t *testing.T) {
 		}
 	}
 	assert.True(t, found, "Submitted workflow should be in the list")
+}
+
+// TestWorkflow_WaitWorkflow tests the wait_workflow tool handler directly.
+func TestWorkflow_WaitWorkflow(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping E2E test in short mode")
+	}
+
+	ctx := context.Background()
+	cluster := SetupE2ECluster(ctx, t)
+
+	// Load test workflow
+	manifest := LoadTestDataFile(t, "hello-world.yaml")
+
+	// Submit workflow
+	t.Log("Submitting workflow...")
+	submitHandler := tools.SubmitWorkflowHandler(cluster.ArgoClient)
+	submitInput := tools.SubmitWorkflowInput{
+		Namespace: cluster.ArgoNamespace,
+		Manifest:  manifest,
+	}
+
+	_, submitOutput, err := submitHandler(ctx, nil, submitInput)
+	require.NoError(t, err, "Failed to submit workflow")
+	require.NotNil(t, submitOutput)
+
+	workflowName := submitOutput.Name
+	t.Logf("Submitted workflow: %s", workflowName)
+
+	// Cleanup at the end
+	defer func() {
+		deleteHandler := tools.DeleteWorkflowHandler(cluster.ArgoClient)
+		deleteInput := tools.DeleteWorkflowInput{
+			Namespace: cluster.ArgoNamespace,
+			Name:      workflowName,
+		}
+		_, _, _ = deleteHandler(ctx, nil, deleteInput)
+	}()
+
+	// Use wait_workflow tool handler to wait for completion
+	t.Log("Waiting for workflow using wait_workflow tool...")
+	waitHandler := tools.WaitWorkflowHandler(cluster.ArgoClient)
+	waitInput := tools.WaitWorkflowInput{
+		Namespace: cluster.ArgoNamespace,
+		Name:      workflowName,
+		Timeout:   "2m",
+	}
+
+	result, waitOutput, err := waitHandler(ctx, nil, waitInput)
+	require.NoError(t, err, "wait_workflow should not return error")
+	require.NotNil(t, result)
+	require.NotNil(t, waitOutput)
+
+	// Verify the wait output
+	assert.Equal(t, workflowName, waitOutput.Name, "Workflow name should match")
+	assert.Equal(t, cluster.ArgoNamespace, waitOutput.Namespace, "Namespace should match")
+	assert.Equal(t, "Succeeded", waitOutput.Phase, "Workflow should succeed")
+	assert.False(t, waitOutput.TimedOut, "Wait should not have timed out")
+	assert.NotEmpty(t, waitOutput.StartedAt, "StartedAt should be set")
+	assert.NotEmpty(t, waitOutput.FinishedAt, "FinishedAt should be set")
+	assert.NotEmpty(t, waitOutput.Duration, "Duration should be calculated")
+}
+
+// TestWorkflow_WaitWorkflow_Timeout tests that wait_workflow times out correctly.
+func TestWorkflow_WaitWorkflow_Timeout(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping E2E test in short mode")
+	}
+
+	ctx := context.Background()
+	cluster := SetupE2ECluster(ctx, t)
+
+	// Load DAG workflow (takes longer to complete)
+	manifest := LoadTestDataFile(t, "dag-workflow.yaml")
+
+	// Submit workflow
+	t.Log("Submitting DAG workflow...")
+	submitHandler := tools.SubmitWorkflowHandler(cluster.ArgoClient)
+	submitInput := tools.SubmitWorkflowInput{
+		Namespace: cluster.ArgoNamespace,
+		Manifest:  manifest,
+	}
+
+	_, submitOutput, err := submitHandler(ctx, nil, submitInput)
+	require.NoError(t, err, "Failed to submit workflow")
+	require.NotNil(t, submitOutput)
+
+	workflowName := submitOutput.Name
+	t.Logf("Submitted workflow: %s", workflowName)
+
+	// Cleanup at the end
+	defer func() {
+		// Terminate the workflow to clean up
+		terminateHandler := tools.TerminateWorkflowHandler(cluster.ArgoClient)
+		terminateInput := tools.TerminateWorkflowInput{
+			Namespace: cluster.ArgoNamespace,
+			Name:      workflowName,
+		}
+		_, _, _ = terminateHandler(ctx, nil, terminateInput)
+
+		// Then delete it
+		deleteHandler := tools.DeleteWorkflowHandler(cluster.ArgoClient)
+		deleteInput := tools.DeleteWorkflowInput{
+			Namespace: cluster.ArgoNamespace,
+			Name:      workflowName,
+		}
+		_, _, _ = deleteHandler(ctx, nil, deleteInput)
+	}()
+
+	// Wait for workflow to start (so we're not timing out on a non-existent workflow)
+	time.Sleep(2 * time.Second)
+
+	// Use wait_workflow with very short timeout
+	t.Log("Waiting for workflow with short timeout...")
+	waitHandler := tools.WaitWorkflowHandler(cluster.ArgoClient)
+	waitInput := tools.WaitWorkflowInput{
+		Namespace: cluster.ArgoNamespace,
+		Name:      workflowName,
+		Timeout:   "3s", // Very short timeout - workflow won't complete in time
+	}
+
+	result, waitOutput, err := waitHandler(ctx, nil, waitInput)
+	require.NoError(t, err, "wait_workflow should not return Go error on timeout")
+	require.NotNil(t, result)
+	require.NotNil(t, waitOutput)
+
+	// Verify timeout behavior
+	assert.Equal(t, workflowName, waitOutput.Name, "Workflow name should match")
+	assert.True(t, waitOutput.TimedOut, "Wait should have timed out")
+	assert.Contains(t, waitOutput.Message, "Timed out", "Message should indicate timeout")
+}
+
+// TestWorkflow_WatchWorkflow tests the watch_workflow tool handler.
+func TestWorkflow_WatchWorkflow(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping E2E test in short mode")
+	}
+
+	ctx := context.Background()
+	cluster := SetupE2ECluster(ctx, t)
+
+	// Load test workflow
+	manifest := LoadTestDataFile(t, "hello-world.yaml")
+
+	// Submit workflow
+	t.Log("Submitting workflow...")
+	submitHandler := tools.SubmitWorkflowHandler(cluster.ArgoClient)
+	submitInput := tools.SubmitWorkflowInput{
+		Namespace: cluster.ArgoNamespace,
+		Manifest:  manifest,
+	}
+
+	_, submitOutput, err := submitHandler(ctx, nil, submitInput)
+	require.NoError(t, err, "Failed to submit workflow")
+	require.NotNil(t, submitOutput)
+
+	workflowName := submitOutput.Name
+	t.Logf("Submitted workflow: %s", workflowName)
+
+	// Cleanup at the end
+	defer func() {
+		deleteHandler := tools.DeleteWorkflowHandler(cluster.ArgoClient)
+		deleteInput := tools.DeleteWorkflowInput{
+			Namespace: cluster.ArgoNamespace,
+			Name:      workflowName,
+		}
+		_, _, _ = deleteHandler(ctx, nil, deleteInput)
+	}()
+
+	// Use watch_workflow tool handler to watch until completion
+	t.Log("Watching workflow using watch_workflow tool...")
+	watchHandler := tools.WatchWorkflowHandler(cluster.ArgoClient)
+	watchInput := tools.WatchWorkflowInput{
+		Namespace: cluster.ArgoNamespace,
+		Name:      workflowName,
+		Timeout:   "2m",
+	}
+
+	result, watchOutput, err := watchHandler(ctx, nil, watchInput)
+	require.NoError(t, err, "watch_workflow should not return error")
+	require.NotNil(t, result)
+	require.NotNil(t, watchOutput)
+
+	// Verify the watch output
+	assert.Equal(t, workflowName, watchOutput.Name, "Workflow name should match")
+	assert.Equal(t, cluster.ArgoNamespace, watchOutput.Namespace, "Namespace should match")
+	assert.Equal(t, "Succeeded", watchOutput.Phase, "Workflow should succeed")
+	assert.False(t, watchOutput.TimedOut, "Watch should not have timed out")
+	assert.NotEmpty(t, watchOutput.StartedAt, "StartedAt should be set")
+	assert.NotEmpty(t, watchOutput.FinishedAt, "FinishedAt should be set")
+	assert.NotEmpty(t, watchOutput.Duration, "Duration should be calculated")
+
+	// Watch-specific: verify events were collected
+	assert.NotEmpty(t, watchOutput.Events, "Watch should have collected events")
+
+	// Verify event structure
+	for _, event := range watchOutput.Events {
+		assert.NotEmpty(t, event.Type, "Event type should be set")
+		assert.NotEmpty(t, event.Phase, "Event phase should be set")
+		assert.NotEmpty(t, event.Timestamp, "Event timestamp should be set")
+	}
+
+	// Verify we have at least one event with Succeeded phase
+	foundSucceeded := false
+	for _, event := range watchOutput.Events {
+		if event.Phase == "Succeeded" {
+			foundSucceeded = true
+			break
+		}
+	}
+	assert.True(t, foundSucceeded, "Should have captured a Succeeded event")
+}
+
+// TestWorkflow_WatchWorkflow_Timeout tests that watch_workflow times out and captures events.
+func TestWorkflow_WatchWorkflow_Timeout(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping E2E test in short mode")
+	}
+
+	ctx := context.Background()
+	cluster := SetupE2ECluster(ctx, t)
+
+	// Load DAG workflow (takes longer to complete)
+	manifest := LoadTestDataFile(t, "dag-workflow.yaml")
+
+	// Submit workflow
+	t.Log("Submitting DAG workflow...")
+	submitHandler := tools.SubmitWorkflowHandler(cluster.ArgoClient)
+	submitInput := tools.SubmitWorkflowInput{
+		Namespace: cluster.ArgoNamespace,
+		Manifest:  manifest,
+	}
+
+	_, submitOutput, err := submitHandler(ctx, nil, submitInput)
+	require.NoError(t, err, "Failed to submit workflow")
+	require.NotNil(t, submitOutput)
+
+	workflowName := submitOutput.Name
+	t.Logf("Submitted workflow: %s", workflowName)
+
+	// Cleanup at the end
+	defer func() {
+		// Terminate the workflow to clean up
+		terminateHandler := tools.TerminateWorkflowHandler(cluster.ArgoClient)
+		terminateInput := tools.TerminateWorkflowInput{
+			Namespace: cluster.ArgoNamespace,
+			Name:      workflowName,
+		}
+		_, _, _ = terminateHandler(ctx, nil, terminateInput)
+
+		// Then delete it
+		deleteHandler := tools.DeleteWorkflowHandler(cluster.ArgoClient)
+		deleteInput := tools.DeleteWorkflowInput{
+			Namespace: cluster.ArgoNamespace,
+			Name:      workflowName,
+		}
+		_, _, _ = deleteHandler(ctx, nil, deleteInput)
+	}()
+
+	// Wait for workflow to start (so we capture some events)
+	time.Sleep(2 * time.Second)
+
+	// Use watch_workflow with short timeout
+	t.Log("Watching workflow with short timeout...")
+	watchHandler := tools.WatchWorkflowHandler(cluster.ArgoClient)
+	watchInput := tools.WatchWorkflowInput{
+		Namespace: cluster.ArgoNamespace,
+		Name:      workflowName,
+		Timeout:   "5s", // Short timeout - workflow won't complete in time
+	}
+
+	result, watchOutput, err := watchHandler(ctx, nil, watchInput)
+	require.NoError(t, err, "watch_workflow should not return Go error on timeout")
+	require.NotNil(t, result)
+	require.NotNil(t, watchOutput)
+
+	// Verify timeout behavior
+	assert.Equal(t, workflowName, watchOutput.Name, "Workflow name should match")
+	assert.True(t, watchOutput.TimedOut, "Watch should have timed out")
+	assert.Contains(t, watchOutput.Message, "Watch timed out", "Message should indicate timeout")
+
+	// Watch should still have captured some events before timing out
+	assert.NotEmpty(t, watchOutput.Events, "Watch should have captured events before timeout")
 }
