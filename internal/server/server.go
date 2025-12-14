@@ -5,6 +5,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/Joibel/mcp-for-argo-workflows/internal/argo"
+	"github.com/Joibel/mcp-for-argo-workflows/internal/resources"
 	"github.com/Joibel/mcp-for-argo-workflows/internal/tools"
 )
 
@@ -33,6 +34,11 @@ func NewServer(name, version string) *Server {
 // RegisterTools registers all Argo Workflows MCP tools with the server.
 func (s *Server) RegisterTools(client argo.ClientInterface) {
 	tools.RegisterAll(s.mcp, client)
+}
+
+// RegisterResources registers all Argo Workflows MCP resources with the server.
+func (s *Server) RegisterResources() {
+	resources.RegisterAll(s.mcp)
 }
 
 // GetMCPServer returns the underlying MCP server instance.
