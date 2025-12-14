@@ -1,0 +1,29 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: exit-handler-workflow-
+spec:
+  entrypoint: main
+  onExit: exit-handler
+  templates:
+    - name: main
+      container:
+        image: busybox:1.35
+        command: [sh, -c]
+        args:
+          - |
+            echo "Main workflow running..."
+            for i in 1 2 3 4 5 6 7 8 9 10; do
+              echo "Step $i of 10..."
+              sleep 5
+            done
+            echo "Main workflow completed!"
+
+    - name: exit-handler
+      container:
+        image: busybox:1.35
+        command: [sh, -c]
+        args:
+          - |
+            echo "EXIT_HANDLER_EXECUTED"
+            echo "Cleanup complete."

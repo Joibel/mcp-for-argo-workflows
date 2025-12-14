@@ -962,3 +962,540 @@ func TestWorkflow_WatchWorkflow_Timeout(t *testing.T) {
 	// Watch should still have captured some events before timing out
 	assert.NotEmpty(t, watchOutput.Events, "Watch should have captured events before timeout")
 }
+
+// =============================================================================
+// Phase 4: Workflow Control Tools E2E Tests
+// =============================================================================
+
+// TestWorkflow_RetryWorkflow tests the retry_workflow tool handler.
+func TestWorkflow_RetryWorkflow(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping E2E test in short mode")
+	}
+
+	ctx := context.Background()
+	cluster := SetupE2ECluster(ctx, t)
+
+	// Load failing workflow
+	manifest := LoadTestDataFile(t, "failing-workflow.yaml")
+
+	// Submit failing workflow
+	t.Log("Submitting failing workflow...")
+	submitHandler := tools.SubmitWorkflowHandler(cluster.ArgoClient)
+	submitInput := tools.SubmitWorkflowInput{
+		Namespace: cluster.ArgoNamespace,
+		Manifest:  manifest,
+	}
+
+	_, submitOutput, err := submitHandler(ctx, nil, submitInput)
+	require.NoError(t, err, "Failed to submit workflow")
+
+	workflowName := submitOutput.Name
+	t.Logf("Submitted workflow: %s", workflowName)
+
+	// Cleanup at the end
+	defer func() {
+		deleteHandler := tools.DeleteWorkflowHandler(cluster.ArgoClient)
+		deleteInput := tools.DeleteWorkflowInput{
+			Namespace: cluster.ArgoNamespace,
+			Name:      workflowName,
+		}
+		_, _, _ = deleteHandler(ctx, nil, deleteInput)
+	}()
+
+	// Wait for workflow to fail
+	t.Log("Waiting for workflow to fail...")
+	finalPhase := cluster.WaitForWorkflowPhase(t, cluster.ArgoNamespace, workflowName,
+		2*time.Minute, "Succeeded", "Failed", "Error")
+
+	require.Equal(t, "Failed", finalPhase, "Workflow should fail")
+
+	// Now retry the workflow with RestartSuccessful to restart all nodes
+	t.Log("Testing retry_workflow tool...")
+	retryHandler := tools.RetryWorkflowHandler(cluster.ArgoClient)
+	retryInput := tools.RetryWorkflowInput{
+		Namespace:         cluster.ArgoNamespace,
+		Name:              workflowName,
+		RestartSuccessful: true, // Restart all nodes
+	}
+
+	result, retryOutput, err := retryHandler(ctx, nil, retryInput)
+	require.NoError(t, err, "retry_workflow should not return error")
+	require.NotNil(t, result)
+	require.NotNil(t, retryOutput)
+
+	// Verify retry output
+	assert.Equal(t, workflowName, retryOutput.Name, "Workflow name should match")
+	assert.Equal(t, cluster.ArgoNamespace, retryOutput.Namespace, "Namespace should match")
+	assert.NotEmpty(t, retryOutput.UID, "UID should be set")
+	assert.NotEmpty(t, retryOutput.Phase, "Phase should be set")
+
+	// Phase after retry should be Running (or Pending as it restarts)
+	t.Logf("Retried workflow phase: %s", retryOutput.Phase)
+
+	// Verify workflow is running again (give it a moment)
+	time.Sleep(2 * time.Second)
+
+	getHandler := tools.GetWorkflowHandler(cluster.ArgoClient)
+	getInput := tools.GetWorkflowInput{
+		Namespace: cluster.ArgoNamespace,
+		Name:      workflowName,
+	}
+
+	_, getOutput, err := getHandler(ctx, nil, getInput)
+	require.NoError(t, err, "get_workflow should not return error")
+	require.NotNil(t, getOutput)
+
+	// After retry, workflow should be active (Running or Pending) or already finished
+	assert.Contains(t, []string{"Running", "Pending", "Failed"}, getOutput.Phase,
+		"Retried workflow should be running or pending or failed again")
+}
+
+// TestWorkflow_ResubmitWorkflow tests the resubmit_workflow tool handler.
+func TestWorkflow_ResubmitWorkflow(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping E2E test in short mode")
+	}
+
+	ctx := context.Background()
+	cluster := SetupE2ECluster(ctx, t)
+
+	// Submit and complete a workflow first
+	manifest := LoadTestDataFile(t, "hello-world.yaml")
+	submitHandler := tools.SubmitWorkflowHandler(cluster.ArgoClient)
+	submitInput := tools.SubmitWorkflowInput{
+		Namespace: cluster.ArgoNamespace,
+		Manifest:  manifest,
+	}
+
+	_, submitOutput, err := submitHandler(ctx, nil, submitInput)
+	require.NoError(t, err, "Failed to submit workflow")
+
+	originalWorkflowName := submitOutput.Name
+	t.Logf("Submitted original workflow: %s", originalWorkflowName)
+
+	var newWorkflowName string
+
+	// Cleanup both workflows at the end
+	defer func() {
+		deleteHandler := tools.DeleteWorkflowHandler(cluster.ArgoClient)
+
+		// Delete original
+		deleteInput := tools.DeleteWorkflowInput{
+			Namespace: cluster.ArgoNamespace,
+			Name:      originalWorkflowName,
+		}
+		_, _, _ = deleteHandler(ctx, nil, deleteInput)
+
+		// Delete resubmitted if it exists
+		if newWorkflowName != "" {
+			deleteInput.Name = newWorkflowName
+			_, _, _ = deleteHandler(ctx, nil, deleteInput)
+		}
+	}()
+
+	// Wait for original workflow to complete
+	t.Log("Waiting for original workflow to complete...")
+	finalPhase := cluster.WaitForWorkflowPhase(t, cluster.ArgoNamespace, originalWorkflowName,
+		2*time.Minute, "Succeeded", "Failed", "Error")
+
+	require.Equal(t, "Succeeded", finalPhase, "Original workflow should succeed")
+
+	// Now resubmit the workflow
+	t.Log("Testing resubmit_workflow tool...")
+	resubmitHandler := tools.ResubmitWorkflowHandler(cluster.ArgoClient)
+	resubmitInput := tools.ResubmitWorkflowInput{
+		Namespace: cluster.ArgoNamespace,
+		Name:      originalWorkflowName,
+	}
+
+	result, resubmitOutput, err := resubmitHandler(ctx, nil, resubmitInput)
+	require.NoError(t, err, "resubmit_workflow should not return error")
+	require.NotNil(t, result)
+	require.NotNil(t, resubmitOutput)
+
+	newWorkflowName = resubmitOutput.Name
+
+	// Verify resubmit output
+	assert.NotEqual(t, originalWorkflowName, newWorkflowName,
+		"Resubmitted workflow should have a new name")
+	assert.Equal(t, cluster.ArgoNamespace, resubmitOutput.Namespace, "Namespace should match")
+	assert.NotEmpty(t, resubmitOutput.UID, "UID should be set")
+	assert.Equal(t, originalWorkflowName, resubmitOutput.OriginalWorkflow,
+		"OriginalWorkflow should reference the source workflow")
+	assert.NotEmpty(t, resubmitOutput.Phase, "Phase should be set")
+
+	t.Logf("Resubmitted workflow: %s (from %s)", newWorkflowName, originalWorkflowName)
+
+	// Verify new workflow exists and runs
+	assert.True(t, cluster.WorkflowExists(t, cluster.ArgoNamespace, newWorkflowName),
+		"Resubmitted workflow should exist")
+
+	// Wait for resubmitted workflow to complete
+	t.Log("Waiting for resubmitted workflow to complete...")
+	newFinalPhase := cluster.WaitForWorkflowPhase(t, cluster.ArgoNamespace, newWorkflowName,
+		2*time.Minute, "Succeeded", "Failed", "Error")
+
+	assert.Equal(t, "Succeeded", newFinalPhase, "Resubmitted workflow should succeed")
+}
+
+// TestWorkflow_SuspendWorkflow tests the suspend_workflow tool handler.
+func TestWorkflow_SuspendWorkflow(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping E2E test in short mode")
+	}
+
+	ctx := context.Background()
+	cluster := SetupE2ECluster(ctx, t)
+
+	// Load long-running workflow
+	manifest := LoadTestDataFile(t, "long-running-workflow.yaml")
+
+	// Submit workflow
+	t.Log("Submitting long-running workflow...")
+	submitHandler := tools.SubmitWorkflowHandler(cluster.ArgoClient)
+	submitInput := tools.SubmitWorkflowInput{
+		Namespace: cluster.ArgoNamespace,
+		Manifest:  manifest,
+	}
+
+	_, submitOutput, err := submitHandler(ctx, nil, submitInput)
+	require.NoError(t, err, "Failed to submit workflow")
+
+	workflowName := submitOutput.Name
+	t.Logf("Submitted workflow: %s", workflowName)
+
+	// Cleanup at the end
+	defer func() {
+		// Terminate first to stop the workflow
+		terminateHandler := tools.TerminateWorkflowHandler(cluster.ArgoClient)
+		terminateInput := tools.TerminateWorkflowInput{
+			Namespace: cluster.ArgoNamespace,
+			Name:      workflowName,
+		}
+		_, _, _ = terminateHandler(ctx, nil, terminateInput)
+
+		// Then delete
+		deleteHandler := tools.DeleteWorkflowHandler(cluster.ArgoClient)
+		deleteInput := tools.DeleteWorkflowInput{
+			Namespace: cluster.ArgoNamespace,
+			Name:      workflowName,
+		}
+		_, _, _ = deleteHandler(ctx, nil, deleteInput)
+	}()
+
+	// Wait for workflow to start running
+	time.Sleep(3 * time.Second)
+
+	// Test suspend_workflow tool handler
+	t.Log("Testing suspend_workflow tool...")
+	suspendHandler := tools.SuspendWorkflowHandler(cluster.ArgoClient)
+	suspendInput := tools.SuspendWorkflowInput{
+		Namespace: cluster.ArgoNamespace,
+		Name:      workflowName,
+	}
+
+	result, suspendOutput, err := suspendHandler(ctx, nil, suspendInput)
+	require.NoError(t, err, "suspend_workflow should not return error")
+	require.NotNil(t, result)
+	require.NotNil(t, suspendOutput)
+
+	// Verify suspend output
+	assert.Equal(t, workflowName, suspendOutput.Name, "Workflow name should match")
+	assert.Equal(t, cluster.ArgoNamespace, suspendOutput.Namespace, "Namespace should match")
+	assert.NotEmpty(t, suspendOutput.Phase, "Phase should be set")
+
+	t.Logf("Suspended workflow phase: %s", suspendOutput.Phase)
+
+	// Verify workflow is actually suspended by checking the spec
+	wfService := cluster.ArgoClient.WorkflowService()
+	wf, err := wfService.GetWorkflow(cluster.ArgoClient.Context(), &workflow.WorkflowGetRequest{
+		Namespace: cluster.ArgoNamespace,
+		Name:      workflowName,
+	})
+	require.NoError(t, err, "Failed to get workflow after suspend")
+	require.NotNil(t, wf.Spec.Suspend, "Workflow spec.suspend should be set")
+	assert.True(t, *wf.Spec.Suspend, "Workflow should be suspended")
+}
+
+// TestWorkflow_ResumeWorkflow tests the resume_workflow tool handler.
+func TestWorkflow_ResumeWorkflow(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping E2E test in short mode")
+	}
+
+	ctx := context.Background()
+	cluster := SetupE2ECluster(ctx, t)
+
+	// Load long-running workflow
+	manifest := LoadTestDataFile(t, "long-running-workflow.yaml")
+
+	// Submit workflow
+	t.Log("Submitting long-running workflow...")
+	submitHandler := tools.SubmitWorkflowHandler(cluster.ArgoClient)
+	submitInput := tools.SubmitWorkflowInput{
+		Namespace: cluster.ArgoNamespace,
+		Manifest:  manifest,
+	}
+
+	_, submitOutput, err := submitHandler(ctx, nil, submitInput)
+	require.NoError(t, err, "Failed to submit workflow")
+
+	workflowName := submitOutput.Name
+	t.Logf("Submitted workflow: %s", workflowName)
+
+	// Cleanup at the end
+	defer func() {
+		// Terminate first
+		terminateHandler := tools.TerminateWorkflowHandler(cluster.ArgoClient)
+		terminateInput := tools.TerminateWorkflowInput{
+			Namespace: cluster.ArgoNamespace,
+			Name:      workflowName,
+		}
+		_, _, _ = terminateHandler(ctx, nil, terminateInput)
+
+		// Then delete
+		deleteHandler := tools.DeleteWorkflowHandler(cluster.ArgoClient)
+		deleteInput := tools.DeleteWorkflowInput{
+			Namespace: cluster.ArgoNamespace,
+			Name:      workflowName,
+		}
+		_, _, _ = deleteHandler(ctx, nil, deleteInput)
+	}()
+
+	// Wait for workflow to start running
+	time.Sleep(3 * time.Second)
+
+	// First, suspend the workflow
+	t.Log("Suspending workflow first...")
+	suspendHandler := tools.SuspendWorkflowHandler(cluster.ArgoClient)
+	suspendInput := tools.SuspendWorkflowInput{
+		Namespace: cluster.ArgoNamespace,
+		Name:      workflowName,
+	}
+
+	_, suspendOutput, err := suspendHandler(ctx, nil, suspendInput)
+	require.NoError(t, err, "Failed to suspend workflow")
+	require.NotNil(t, suspendOutput)
+
+	// Verify it's suspended
+	wfService := cluster.ArgoClient.WorkflowService()
+	wf, err := wfService.GetWorkflow(cluster.ArgoClient.Context(), &workflow.WorkflowGetRequest{
+		Namespace: cluster.ArgoNamespace,
+		Name:      workflowName,
+	})
+	require.NoError(t, err, "Failed to get workflow")
+	require.NotNil(t, wf.Spec.Suspend, "Workflow should be suspended")
+	require.True(t, *wf.Spec.Suspend, "Workflow should be suspended")
+
+	// Now test resume_workflow tool handler
+	t.Log("Testing resume_workflow tool...")
+	resumeHandler := tools.ResumeWorkflowHandler(cluster.ArgoClient)
+	resumeInput := tools.ResumeWorkflowInput{
+		Namespace: cluster.ArgoNamespace,
+		Name:      workflowName,
+	}
+
+	result, resumeOutput, err := resumeHandler(ctx, nil, resumeInput)
+	require.NoError(t, err, "resume_workflow should not return error")
+	require.NotNil(t, result)
+	require.NotNil(t, resumeOutput)
+
+	// Verify resume output
+	assert.Equal(t, workflowName, resumeOutput.Name, "Workflow name should match")
+	assert.Equal(t, cluster.ArgoNamespace, resumeOutput.Namespace, "Namespace should match")
+	assert.NotEmpty(t, resumeOutput.Phase, "Phase should be set")
+
+	t.Logf("Resumed workflow phase: %s", resumeOutput.Phase)
+
+	// Verify workflow is no longer suspended
+	wf, err = wfService.GetWorkflow(cluster.ArgoClient.Context(), &workflow.WorkflowGetRequest{
+		Namespace: cluster.ArgoNamespace,
+		Name:      workflowName,
+	})
+	require.NoError(t, err, "Failed to get workflow after resume")
+
+	// After resume, Suspend should be nil or false
+	if wf.Spec.Suspend != nil {
+		assert.False(t, *wf.Spec.Suspend, "Workflow should no longer be suspended")
+	}
+}
+
+// TestWorkflow_StopWorkflow tests the stop_workflow tool handler.
+func TestWorkflow_StopWorkflow(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping E2E test in short mode")
+	}
+
+	ctx := context.Background()
+	cluster := SetupE2ECluster(ctx, t)
+
+	// Load exit-handler workflow (has onExit handler)
+	manifest := LoadTestDataFile(t, "exit-handler-workflow.yaml")
+
+	// Submit workflow
+	t.Log("Submitting exit-handler workflow...")
+	submitHandler := tools.SubmitWorkflowHandler(cluster.ArgoClient)
+	submitInput := tools.SubmitWorkflowInput{
+		Namespace: cluster.ArgoNamespace,
+		Manifest:  manifest,
+	}
+
+	_, submitOutput, err := submitHandler(ctx, nil, submitInput)
+	require.NoError(t, err, "Failed to submit workflow")
+
+	workflowName := submitOutput.Name
+	t.Logf("Submitted workflow: %s", workflowName)
+
+	// Cleanup at the end
+	defer func() {
+		deleteHandler := tools.DeleteWorkflowHandler(cluster.ArgoClient)
+		deleteInput := tools.DeleteWorkflowInput{
+			Namespace: cluster.ArgoNamespace,
+			Name:      workflowName,
+		}
+		_, _, _ = deleteHandler(ctx, nil, deleteInput)
+	}()
+
+	// Wait for workflow to start running
+	time.Sleep(3 * time.Second)
+
+	// Test stop_workflow tool handler (graceful stop - exit handlers should run)
+	t.Log("Testing stop_workflow tool...")
+	stopHandler := tools.StopWorkflowHandler(cluster.ArgoClient)
+	stopInput := tools.StopWorkflowInput{
+		Namespace: cluster.ArgoNamespace,
+		Name:      workflowName,
+		Message:   "Stopped by E2E test",
+	}
+
+	result, stopOutput, err := stopHandler(ctx, nil, stopInput)
+	require.NoError(t, err, "stop_workflow should not return error")
+	require.NotNil(t, result)
+	require.NotNil(t, stopOutput)
+
+	// Verify stop output
+	assert.Equal(t, workflowName, stopOutput.Name, "Workflow name should match")
+	assert.Equal(t, cluster.ArgoNamespace, stopOutput.Namespace, "Namespace should match")
+	assert.NotEmpty(t, stopOutput.Phase, "Phase should be set")
+
+	t.Logf("Stopped workflow phase: %s", stopOutput.Phase)
+
+	// Wait for workflow to complete (exit handler should run)
+	t.Log("Waiting for workflow to complete (exit handler should run)...")
+	finalPhase := cluster.WaitForWorkflowPhase(t, cluster.ArgoNamespace, workflowName,
+		2*time.Minute, "Succeeded", "Failed", "Error")
+
+	// After stop, workflow should end in Failed state (stopped workflows fail)
+	assert.Equal(t, "Failed", finalPhase, "Stopped workflow should end in Failed phase")
+
+	// Check logs to verify exit handler ran
+	t.Log("Checking if exit handler ran...")
+	logsHandler := tools.LogsWorkflowHandler(cluster.ArgoClient)
+	logsInput := tools.LogsWorkflowInput{
+		Namespace: cluster.ArgoNamespace,
+		Name:      workflowName,
+	}
+
+	_, logsOutput, err := logsHandler(ctx, nil, logsInput)
+	require.NoError(t, err, "logs_workflow should not return error")
+
+	// Look for exit handler marker in logs
+	foundExitHandler := false
+	for _, entry := range logsOutput.Logs {
+		if strings.Contains(entry.Content, "EXIT_HANDLER_EXECUTED") {
+			foundExitHandler = true
+			break
+		}
+	}
+	assert.True(t, foundExitHandler, "Exit handler should have executed after stop")
+}
+
+// TestWorkflow_TerminateWorkflow tests the terminate_workflow tool handler.
+func TestWorkflow_TerminateWorkflow(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping E2E test in short mode")
+	}
+
+	ctx := context.Background()
+	cluster := SetupE2ECluster(ctx, t)
+
+	// Load exit-handler workflow
+	manifest := LoadTestDataFile(t, "exit-handler-workflow.yaml")
+
+	// Submit workflow
+	t.Log("Submitting exit-handler workflow...")
+	submitHandler := tools.SubmitWorkflowHandler(cluster.ArgoClient)
+	submitInput := tools.SubmitWorkflowInput{
+		Namespace: cluster.ArgoNamespace,
+		Manifest:  manifest,
+	}
+
+	_, submitOutput, err := submitHandler(ctx, nil, submitInput)
+	require.NoError(t, err, "Failed to submit workflow")
+
+	workflowName := submitOutput.Name
+	t.Logf("Submitted workflow: %s", workflowName)
+
+	// Cleanup at the end
+	defer func() {
+		deleteHandler := tools.DeleteWorkflowHandler(cluster.ArgoClient)
+		deleteInput := tools.DeleteWorkflowInput{
+			Namespace: cluster.ArgoNamespace,
+			Name:      workflowName,
+		}
+		_, _, _ = deleteHandler(ctx, nil, deleteInput)
+	}()
+
+	// Wait for workflow to start running
+	time.Sleep(3 * time.Second)
+
+	// Test terminate_workflow tool handler (immediate termination - exit handlers should NOT run)
+	t.Log("Testing terminate_workflow tool...")
+	terminateHandler := tools.TerminateWorkflowHandler(cluster.ArgoClient)
+	terminateInput := tools.TerminateWorkflowInput{
+		Namespace: cluster.ArgoNamespace,
+		Name:      workflowName,
+	}
+
+	result, terminateOutput, err := terminateHandler(ctx, nil, terminateInput)
+	require.NoError(t, err, "terminate_workflow should not return error")
+	require.NotNil(t, result)
+	require.NotNil(t, terminateOutput)
+
+	// Verify terminate output
+	assert.Equal(t, workflowName, terminateOutput.Name, "Workflow name should match")
+	assert.Equal(t, cluster.ArgoNamespace, terminateOutput.Namespace, "Namespace should match")
+	assert.NotEmpty(t, terminateOutput.Phase, "Phase should be set")
+
+	t.Logf("Terminated workflow phase: %s", terminateOutput.Phase)
+
+	// Wait for workflow to complete
+	t.Log("Waiting for workflow to complete...")
+	finalPhase := cluster.WaitForWorkflowPhase(t, cluster.ArgoNamespace, workflowName,
+		2*time.Minute, "Succeeded", "Failed", "Error")
+
+	// After terminate, workflow should end in Failed state
+	assert.Equal(t, "Failed", finalPhase, "Terminated workflow should end in Failed phase")
+
+	// Check logs to verify exit handler did NOT run
+	t.Log("Checking that exit handler did NOT run...")
+	logsHandler := tools.LogsWorkflowHandler(cluster.ArgoClient)
+	logsInput := tools.LogsWorkflowInput{
+		Namespace: cluster.ArgoNamespace,
+		Name:      workflowName,
+	}
+
+	_, logsOutput, err := logsHandler(ctx, nil, logsInput)
+	require.NoError(t, err, "logs_workflow should not return error")
+
+	// Look for exit handler marker in logs - should NOT be present
+	foundExitHandler := false
+	for _, entry := range logsOutput.Logs {
+		if strings.Contains(entry.Content, "EXIT_HANDLER_EXECUTED") {
+			foundExitHandler = true
+			break
+		}
+	}
+	assert.False(t, foundExitHandler, "Exit handler should NOT have executed after terminate")
+}
