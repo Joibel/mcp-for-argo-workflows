@@ -348,9 +348,8 @@ func TestWorkflow_Submit(t *testing.T) {
 		Manifest:  manifest,
 	}
 
-	result, submitOutput, err := submitHandler(clientCtx, nil, submitInput)
+	_, submitOutput, err := submitHandler(clientCtx, nil, submitInput)
 	require.NoError(t, err, "submit_workflow should not return error")
-	require.NotNil(t, result)
 	require.NotNil(t, submitOutput)
 
 	workflowName := submitOutput.Name
@@ -423,9 +422,8 @@ func TestWorkflow_Get(t *testing.T) {
 		Name:      workflowName,
 	}
 
-	result, getOutput, err := getHandler(clientCtx, nil, getInput)
+	_, getOutput, err := getHandler(clientCtx, nil, getInput)
 	require.NoError(t, err, "get_workflow should not return error")
-	require.NotNil(t, result)
 	require.NotNil(t, getOutput)
 
 	// Verify all expected fields are present
@@ -439,7 +437,7 @@ func TestWorkflow_Get(t *testing.T) {
 		2*time.Minute, "Succeeded", "Failed", "Error")
 
 	// Get again after completion
-	result, getOutput, err = getHandler(clientCtx, nil, getInput)
+	_, getOutput, err = getHandler(clientCtx, nil, getInput)
 	require.NoError(t, err, "get_workflow should not return error after completion")
 	require.NotNil(t, getOutput)
 
@@ -487,9 +485,9 @@ func TestWorkflow_Delete(t *testing.T) {
 		Name:      workflowName,
 	}
 
-	result, deleteOutput, err := deleteHandler(clientCtx, nil, deleteInput)
+	_, deleteOutput, err := deleteHandler(clientCtx, nil, deleteInput)
 	require.NoError(t, err, "delete_workflow should not return error")
-	require.NotNil(t, result)
+	// Note: handlers return nil for *mcp.CallToolResult; only output matters
 	require.NotNil(t, deleteOutput)
 
 	// Verify delete output
@@ -571,9 +569,9 @@ func TestWorkflow_Logs(t *testing.T) {
 		Name:      workflowName,
 	}
 
-	result, logsOutput, err := logsHandler(clientCtx, nil, logsInput)
+	_, logsOutput, err := logsHandler(clientCtx, nil, logsInput)
 	require.NoError(t, err, "logs_workflow should not return error")
-	require.NotNil(t, result)
+	// Note: handlers return nil for *mcp.CallToolResult; only output matters
 	require.NotNil(t, logsOutput)
 
 	// Verify logs output
@@ -649,9 +647,9 @@ func TestWorkflow_Logs_WithGrep(t *testing.T) {
 		Grep:      "Hello",
 	}
 
-	result, logsOutput, err := logsHandler(clientCtx, nil, logsInput)
+	_, logsOutput, err := logsHandler(clientCtx, nil, logsInput)
 	require.NoError(t, err, "logs_workflow with grep should not return error")
-	require.NotNil(t, result)
+	// Note: handlers return nil for *mcp.CallToolResult; only output matters
 	require.NotNil(t, logsOutput)
 
 	// Verify grep returned at least some results
@@ -772,9 +770,9 @@ func TestWorkflow_WaitWorkflow(t *testing.T) {
 		Timeout:   "2m",
 	}
 
-	result, waitOutput, err := waitHandler(clientCtx, nil, waitInput)
+	_, waitOutput, err := waitHandler(clientCtx, nil, waitInput)
 	require.NoError(t, err, "wait_workflow should not return error")
-	require.NotNil(t, result)
+	// Note: handlers return nil for *mcp.CallToolResult; only output matters
 	require.NotNil(t, waitOutput)
 
 	// Verify the wait output
@@ -850,9 +848,9 @@ func TestWorkflow_WaitWorkflow_Timeout(t *testing.T) {
 		Timeout:   "3s", // Very short timeout - workflow won't complete in time
 	}
 
-	result, waitOutput, err := waitHandler(clientCtx, nil, waitInput)
+	_, waitOutput, err := waitHandler(clientCtx, nil, waitInput)
 	require.NoError(t, err, "wait_workflow should not return Go error on timeout")
-	require.NotNil(t, result)
+	// Note: handlers return nil for *mcp.CallToolResult; only output matters
 	require.NotNil(t, waitOutput)
 
 	// Verify timeout or completion behavior
@@ -918,9 +916,9 @@ func TestWorkflow_WatchWorkflow(t *testing.T) {
 		Timeout:   "2m",
 	}
 
-	result, watchOutput, err := watchHandler(clientCtx, nil, watchInput)
+	_, watchOutput, err := watchHandler(clientCtx, nil, watchInput)
 	require.NoError(t, err, "watch_workflow should not return error")
-	require.NotNil(t, result)
+	// Note: handlers return nil for *mcp.CallToolResult; only output matters
 	require.NotNil(t, watchOutput)
 
 	// Verify the watch output
@@ -1015,9 +1013,9 @@ func TestWorkflow_WatchWorkflow_Timeout(t *testing.T) {
 		Timeout:   "5s", // Short timeout - workflow won't complete in time
 	}
 
-	result, watchOutput, err := watchHandler(clientCtx, nil, watchInput)
+	_, watchOutput, err := watchHandler(clientCtx, nil, watchInput)
 	require.NoError(t, err, "watch_workflow should not return Go error on timeout")
-	require.NotNil(t, result)
+	// Note: handlers return nil for *mcp.CallToolResult; only output matters
 	require.NotNil(t, watchOutput)
 
 	// Verify timeout or completion behavior
@@ -1097,9 +1095,9 @@ func TestWorkflow_RetryWorkflow(t *testing.T) {
 		Parameters:        []string{"should-fail=false"}, // Override to succeed this time
 	}
 
-	result, retryOutput, err := retryHandler(clientCtx, nil, retryInput)
+	_, retryOutput, err := retryHandler(clientCtx, nil, retryInput)
 	require.NoError(t, err, "retry_workflow should not return error")
-	require.NotNil(t, result)
+	// Note: handlers return nil for *mcp.CallToolResult; only output matters
 	require.NotNil(t, retryOutput)
 
 	// Verify retry output
@@ -1185,9 +1183,9 @@ func TestWorkflow_ResubmitWorkflow(t *testing.T) {
 		Name:      originalWorkflowName,
 	}
 
-	result, resubmitOutput, err := resubmitHandler(clientCtx, nil, resubmitInput)
+	_, resubmitOutput, err := resubmitHandler(clientCtx, nil, resubmitInput)
 	require.NoError(t, err, "resubmit_workflow should not return error")
-	require.NotNil(t, result)
+	// Note: handlers return nil for *mcp.CallToolResult; only output matters
 	require.NotNil(t, resubmitOutput)
 
 	newWorkflowName = resubmitOutput.Name
@@ -1276,9 +1274,9 @@ func TestWorkflow_SuspendWorkflow(t *testing.T) {
 		Name:      workflowName,
 	}
 
-	result, suspendOutput, err := suspendHandler(clientCtx, nil, suspendInput)
+	_, suspendOutput, err := suspendHandler(clientCtx, nil, suspendInput)
 	require.NoError(t, err, "suspend_workflow should not return error")
-	require.NotNil(t, result)
+	// Note: handlers return nil for *mcp.CallToolResult; only output matters
 	require.NotNil(t, suspendOutput)
 
 	// Verify suspend output
@@ -1380,9 +1378,9 @@ func TestWorkflow_ResumeWorkflow(t *testing.T) {
 		Name:      workflowName,
 	}
 
-	result, resumeOutput, err := resumeHandler(clientCtx, nil, resumeInput)
+	_, resumeOutput, err := resumeHandler(clientCtx, nil, resumeInput)
 	require.NoError(t, err, "resume_workflow should not return error")
-	require.NotNil(t, result)
+	// Note: handlers return nil for *mcp.CallToolResult; only output matters
 	require.NotNil(t, resumeOutput)
 
 	// Verify resume output
@@ -1456,9 +1454,9 @@ func TestWorkflow_StopWorkflow(t *testing.T) {
 		Message:   "Stopped by E2E test",
 	}
 
-	result, stopOutput, err := stopHandler(clientCtx, nil, stopInput)
+	_, stopOutput, err := stopHandler(clientCtx, nil, stopInput)
 	require.NoError(t, err, "stop_workflow should not return error")
-	require.NotNil(t, result)
+	// Note: handlers return nil for *mcp.CallToolResult; only output matters
 	require.NotNil(t, stopOutput)
 
 	// Verify stop output
@@ -1551,9 +1549,9 @@ func TestWorkflow_TerminateWorkflow(t *testing.T) {
 		Name:      workflowName,
 	}
 
-	result, terminateOutput, err := terminateHandler(clientCtx, nil, terminateInput)
+	_, terminateOutput, err := terminateHandler(clientCtx, nil, terminateInput)
 	require.NoError(t, err, "terminate_workflow should not return error")
-	require.NotNil(t, result)
+	// Note: handlers return nil for *mcp.CallToolResult; only output matters
 	require.NotNil(t, terminateOutput)
 
 	// Verify terminate output
