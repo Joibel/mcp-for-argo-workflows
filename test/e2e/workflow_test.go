@@ -349,7 +349,6 @@ func TestWorkflow_Submit(t *testing.T) {
 	assert.Equal(t, cluster.ArgoNamespace, submitOutput.Namespace, "Namespace should match")
 	assert.NotEmpty(t, submitOutput.UID, "UID should be set")
 	assert.NotEmpty(t, submitOutput.Phase, "Phase should be set")
-	assert.NotEmpty(t, submitOutput.CreatedAt, "CreatedAt should be set")
 
 	// Verify workflow actually exists and is running
 	assert.True(t, cluster.WorkflowExists(t, cluster.ArgoNamespace, workflowName),
@@ -410,8 +409,6 @@ func TestWorkflow_Get(t *testing.T) {
 	assert.Equal(t, cluster.ArgoNamespace, getOutput.Namespace, "Namespace should match")
 	assert.NotEmpty(t, getOutput.UID, "UID should be set")
 	assert.NotEmpty(t, getOutput.Phase, "Phase should be set")
-	assert.NotEmpty(t, getOutput.CreatedAt, "CreatedAt should be set")
-	assert.NotEmpty(t, getOutput.Entrypoint, "Entrypoint should be set")
 
 	// Wait for completion and verify final state
 	cluster.WaitForWorkflowPhase(t, cluster.ArgoNamespace, workflowName,
@@ -469,7 +466,7 @@ func TestWorkflow_Delete(t *testing.T) {
 	// Verify delete output
 	assert.Equal(t, workflowName, deleteOutput.Name, "Deleted workflow name should match")
 	assert.Equal(t, cluster.ArgoNamespace, deleteOutput.Namespace, "Namespace should match")
-	assert.True(t, deleteOutput.Deleted, "Deleted flag should be true")
+	assert.NotEmpty(t, deleteOutput.Message, "Message should be set")
 
 	// Give deletion time to propagate
 	time.Sleep(2 * time.Second)
@@ -602,11 +599,10 @@ func TestWorkflow_Logs_WithGrep(t *testing.T) {
 	// Test logs_workflow with grep filter
 	t.Log("Testing logs_workflow with grep filter...")
 	logsHandler := tools.LogsWorkflowHandler(cluster.ArgoClient)
-	grepPattern := "Hello"
 	logsInput := tools.LogsWorkflowInput{
 		Namespace: cluster.ArgoNamespace,
 		Name:      workflowName,
-		Grep:      &grepPattern,
+		Grep:      "Hello",
 	}
 
 	result, logsOutput, err := logsHandler(ctx, nil, logsInput)

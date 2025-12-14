@@ -132,7 +132,7 @@ func SetupE2ECluster(ctx context.Context, t *testing.T) *E2ECluster {
 	waitForArgoController(t, kubeconfigPath)
 
 	// Create Argo client
-	argoClient, err := argo.NewClient(&argo.Config{
+	argoClient, err := argo.NewClient(ctx, &argo.Config{
 		Kubeconfig: kubeconfigPath,
 		Namespace:  ArgoNamespace,
 	})
