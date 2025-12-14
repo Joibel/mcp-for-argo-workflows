@@ -7,22 +7,22 @@ spec:
   templates:
     - name: main
       steps:
-        - - name: step-{{item}}
+        - - name: step-1
             template: sleeper
-            arguments:
-              parameters:
-                - name: step-num
-                  value: "{{item}}"
-            withItems: ["1", "2", "3", "4", "5"]
+        - - name: step-2
+            template: sleeper
+        - - name: step-3
+            template: sleeper
+        - - name: step-4
+            template: sleeper
+        - - name: step-5
+            template: sleeper
     - name: sleeper
-      inputs:
-        parameters:
-          - name: step-num
       container:
         image: busybox:1.35
         command: [sh, -c]
         args:
           - |
-            echo "Running step {{inputs.parameters.step-num}} of 5..."
-            sleep 5
-            echo "Step {{inputs.parameters.step-num}} completed!"
+            echo "Running step..."
+            sleep 3
+            echo "Step completed!"
