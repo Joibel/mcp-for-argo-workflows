@@ -54,6 +54,25 @@ jobs:
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
+  test-e2e:
+    name: E2E Tests
+    runs-on: ubuntu-latest
+    # Run independently - don't block build
+    needs: [lint]
+    timeout-minutes: 30
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25.5"
+          cache: true
+
+      - name: Run E2E tests
+        run: make test-e2e
+
   build:
     name: Build
     runs-on: ubuntu-latest
