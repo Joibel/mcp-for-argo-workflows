@@ -12,6 +12,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"sync"
 	"testing"
 	"time"
 
@@ -30,6 +31,13 @@ const (
 
 	// ArgoQuickStartURL is the URL to the Argo quick-start manifest.
 	ArgoQuickStartURL = "https://github.com/argoproj/argo-workflows/releases/download/" + ArgoVersion + "/quick-start-minimal.yaml"
+)
+
+// Shared cluster state for all E2E tests
+var (
+	sharedCluster     *E2ECluster
+	sharedClusterOnce sync.Once
+	sharedClusterErr  error
 )
 
 // getProjectRoot returns the project root directory.
@@ -84,61 +92,91 @@ type E2ECluster struct {
 	ArgoNamespace string
 }
 
-// SetupE2ECluster creates a k3s cluster, installs Argo Workflows, and returns
-// a configured E2ECluster. The cluster is automatically torn down when the test completes.
+// SetupE2ECluster returns the shared E2E cluster, creating it on first call.
+// All tests share the same cluster to speed up test execution.
+// The cluster is terminated when the test binary exits.
 func SetupE2ECluster(ctx context.Context, t *testing.T) *E2ECluster {
 	t.Helper()
 
-	t.Log("Starting k3s container...")
+	sharedClusterOnce.Do(func() {
+		sharedCluster, sharedClusterErr = createSharedCluster(ctx, t)
+	})
+
+	require.NoError(t, sharedClusterErr, "Failed to create shared E2E cluster")
+	require.NotNil(t, sharedCluster, "Shared cluster is nil")
+
+	return sharedCluster
+}
+
+// createSharedCluster creates the shared k3s cluster with Argo Workflows.
+func createSharedCluster(ctx context.Context, t *testing.T) (*E2ECluster, error) {
+	t.Log("Starting shared k3s container for all E2E tests...")
 
 	// Start k3s container
 	k3sContainer, err := k3s.Run(ctx, "rancher/k3s:v1.31.2-k3s1")
-	require.NoError(t, err, "Failed to start k3s container")
-
-	// Register cleanup to terminate container
-	t.Cleanup(func() {
-		t.Log("Terminating k3s container...")
-		if termErr := k3sContainer.Terminate(context.Background()); termErr != nil {
-			t.Logf("Failed to terminate k3s container: %v", termErr)
-		}
-	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to start k3s container: %w", err)
+	}
 
 	// Get kubeconfig from container
 	kubeconfig, err := k3sContainer.GetKubeConfig(ctx)
-	require.NoError(t, err, "Failed to get kubeconfig from k3s")
+	if err != nil {
+		_ = k3sContainer.Terminate(context.Background())
+		return nil, fmt.Errorf("failed to get kubeconfig from k3s: %w", err)
+	}
 
 	// Write kubeconfig to temp file
 	kubeconfigFile, err := os.CreateTemp("", "e2e-kubeconfig-*.yaml")
-	require.NoError(t, err, "Failed to create temp kubeconfig file")
+	if err != nil {
+		_ = k3sContainer.Terminate(context.Background())
+		return nil, fmt.Errorf("failed to create temp kubeconfig file: %w", err)
+	}
 
 	kubeconfigPath := kubeconfigFile.Name()
-	t.Cleanup(func() {
-		_ = os.Remove(kubeconfigPath) //nolint:errcheck // Cleanup is best-effort
-	})
 
 	_, err = kubeconfigFile.Write(kubeconfig)
-	require.NoError(t, err, "Failed to write kubeconfig")
+	if err != nil {
+		_ = os.Remove(kubeconfigPath)
+		_ = k3sContainer.Terminate(context.Background())
+		return nil, fmt.Errorf("failed to write kubeconfig: %w", err)
+	}
 	err = kubeconfigFile.Close()
-	require.NoError(t, err, "Failed to close kubeconfig file")
+	if err != nil {
+		_ = os.Remove(kubeconfigPath)
+		_ = k3sContainer.Terminate(context.Background())
+		return nil, fmt.Errorf("failed to close kubeconfig file: %w", err)
+	}
 
 	t.Logf("Kubeconfig written to: %s", kubeconfigPath)
 
 	// Install Argo Workflows
 	t.Log("Installing Argo Workflows...")
-	installArgoWorkflows(t, kubeconfigPath)
+	if err := installArgoWorkflowsShared(t, kubeconfigPath); err != nil {
+		_ = os.Remove(kubeconfigPath)
+		_ = k3sContainer.Terminate(context.Background())
+		return nil, fmt.Errorf("failed to install Argo Workflows: %w", err)
+	}
 
 	// Wait for Argo controller to be ready
 	t.Log("Waiting for Argo controller to be ready...")
-	waitForArgoController(t, kubeconfigPath)
+	if err := waitForArgoControllerShared(t, kubeconfigPath); err != nil {
+		_ = os.Remove(kubeconfigPath)
+		_ = k3sContainer.Terminate(context.Background())
+		return nil, fmt.Errorf("argo controller not ready: %w", err)
+	}
 
 	// Create Argo client
 	argoClient, err := argo.NewClient(ctx, &argo.Config{
 		Kubeconfig: kubeconfigPath,
 		Namespace:  ArgoNamespace,
 	})
-	require.NoError(t, err, "Failed to create Argo client")
+	if err != nil {
+		_ = os.Remove(kubeconfigPath)
+		_ = k3sContainer.Terminate(context.Background())
+		return nil, fmt.Errorf("failed to create Argo client: %w", err)
+	}
 
-	t.Log("E2E cluster setup complete")
+	t.Log("Shared E2E cluster setup complete")
 
 	return &E2ECluster{
 		Kubeconfig:     string(kubeconfig),
@@ -146,11 +184,11 @@ func SetupE2ECluster(ctx context.Context, t *testing.T) *E2ECluster {
 		ArgoNamespace:  ArgoNamespace,
 		ArgoClient:     argoClient,
 		container:      k3sContainer,
-	}
+	}, nil
 }
 
-// installArgoWorkflows installs Argo Workflows in the k3s cluster.
-func installArgoWorkflows(t *testing.T, kubeconfigPath string) {
+// installArgoWorkflowsShared installs Argo Workflows in the k3s cluster (non-fatal version).
+func installArgoWorkflowsShared(t *testing.T, kubeconfigPath string) error {
 	t.Helper()
 
 	// Create the argo namespace first (quick-start manifest expects it to exist)
@@ -158,16 +196,22 @@ func installArgoWorkflows(t *testing.T, kubeconfigPath string) {
 	nsCmd := exec.Command("kubectl", "create", "namespace", ArgoNamespace)
 	nsCmd.Env = append(os.Environ(), "KUBECONFIG="+kubeconfigPath)
 	output, err := nsCmd.CombinedOutput()
-	require.NoError(t, err, "Failed to create argo namespace: %s", string(output))
+	if err != nil {
+		return fmt.Errorf("failed to create argo namespace: %s: %w", string(output), err)
+	}
 
 	// Download the quick-start manifest to a temp file
 	manifestFile, err := os.CreateTemp("", "argo-install-*.yaml")
-	require.NoError(t, err, "Failed to create temp manifest file")
+	if err != nil {
+		return fmt.Errorf("failed to create temp manifest file: %w", err)
+	}
 	manifestPath := manifestFile.Name()
 
 	// Close file before curl writes to it
 	err = manifestFile.Close()
-	require.NoError(t, err, "Failed to close manifest file")
+	if err != nil {
+		return fmt.Errorf("failed to close manifest file: %w", err)
+	}
 
 	defer func() {
 		_ = os.Remove(manifestPath) //nolint:errcheck // Cleanup is best-effort
@@ -177,20 +221,25 @@ func installArgoWorkflows(t *testing.T, kubeconfigPath string) {
 	//nolint:gosec // Using curl to download manifests in tests is expected
 	downloadCmd := exec.Command("curl", "-sSL", "-o", manifestPath, ArgoQuickStartURL)
 	output, err = downloadCmd.CombinedOutput()
-	require.NoError(t, err, "Failed to download Argo quick-start manifest: %s", string(output))
+	if err != nil {
+		return fmt.Errorf("failed to download Argo quick-start manifest: %s: %w", string(output), err)
+	}
 
 	// Apply the manifest
 	//nolint:gosec // Using kubectl in tests is expected
 	applyCmd := exec.Command("kubectl", "apply", "-f", manifestPath)
 	applyCmd.Env = append(os.Environ(), "KUBECONFIG="+kubeconfigPath)
 	output, err = applyCmd.CombinedOutput()
-	require.NoError(t, err, "Failed to apply Argo manifest: %s", string(output))
+	if err != nil {
+		return fmt.Errorf("failed to apply Argo manifest: %s: %w", string(output), err)
+	}
 
 	t.Logf("Argo Workflows %s installed", ArgoVersion)
+	return nil
 }
 
-// waitForArgoController waits for the Argo controller deployment to be ready.
-func waitForArgoController(t *testing.T, kubeconfigPath string) {
+// waitForArgoControllerShared waits for the Argo controller deployment to be ready (non-fatal version).
+func waitForArgoControllerShared(t *testing.T, kubeconfigPath string) error {
 	t.Helper()
 
 	// Wait for the argo namespace to exist
@@ -203,7 +252,7 @@ func waitForArgoController(t *testing.T, kubeconfigPath string) {
 	for {
 		select {
 		case <-ctx.Done():
-			t.Fatal("Timeout waiting for Argo controller to be ready")
+			return fmt.Errorf("timeout waiting for Argo controller to be ready")
 		case <-ticker.C:
 			// Check if the deployment is ready
 			cmd := exec.Command("kubectl", "wait", "--for=condition=available",
@@ -215,13 +264,27 @@ func waitForArgoController(t *testing.T, kubeconfigPath string) {
 
 			if err == nil {
 				t.Log("Argo controller is ready")
-				return
+				return nil
 			}
 
 			// Log the error but continue waiting
 			t.Logf("Waiting for Argo controller... %s", string(output))
 		}
 	}
+}
+
+// installArgoWorkflows installs Argo Workflows in the k3s cluster.
+func installArgoWorkflows(t *testing.T, kubeconfigPath string) {
+	t.Helper()
+	err := installArgoWorkflowsShared(t, kubeconfigPath)
+	require.NoError(t, err, "Failed to install Argo Workflows")
+}
+
+// waitForArgoController waits for the Argo controller deployment to be ready.
+func waitForArgoController(t *testing.T, kubeconfigPath string) {
+	t.Helper()
+	err := waitForArgoControllerShared(t, kubeconfigPath)
+	require.NoError(t, err, "Argo controller not ready")
 }
 
 // LoadTestDataFile reads a test data file from the testdata directory.
