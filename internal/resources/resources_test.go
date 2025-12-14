@@ -158,8 +158,8 @@ func TestCronWorkflowSchemaHandler(t *testing.T) {
 func TestAllResources(t *testing.T) {
 	registrars := AllResources()
 
-	// Should have exactly 4 resource registrars
-	assert.Len(t, registrars, 4, "Expected 4 resource registrars")
+	// Should have exactly 12 resource registrars (4 schema + 8 template types)
+	assert.Len(t, registrars, 12, "Expected 12 resource registrars")
 
 	// Verify all are not nil
 	for i, registrar := range registrars {
@@ -180,4 +180,297 @@ func TestRegisterAll(t *testing.T) {
 
 	// The server should now have resources registered
 	// This is a smoke test to ensure registration doesn't panic
+}
+
+// Template Types Overview Tests
+
+func TestTemplateTypesOverviewResource(t *testing.T) {
+	resource := TemplateTypesOverviewResource()
+
+	assert.Equal(t, "argo://docs/template-types", resource.URI)
+	assert.Equal(t, "template-types-overview", resource.Name)
+	assert.Equal(t, "Argo Workflows Template Types Overview", resource.Title)
+	assert.Equal(t, "text/markdown", resource.MIMEType)
+	assert.NotEmpty(t, resource.Description)
+}
+
+func TestTemplateTypesOverviewHandler(t *testing.T) {
+	handler := TemplateTypesOverviewHandler()
+	ctx := context.Background()
+
+	t.Run("valid URI", func(t *testing.T) {
+		req := &mcp.ReadResourceRequest{
+			Params: &mcp.ReadResourceParams{
+				URI: "argo://docs/template-types",
+			},
+		}
+
+		result, err := handler(ctx, req)
+		require.NoError(t, err)
+		require.NotNil(t, result)
+		require.Len(t, result.Contents, 1)
+
+		content := result.Contents[0]
+		assert.Equal(t, "argo://docs/template-types", content.URI)
+		assert.Equal(t, "text/markdown", content.MIMEType)
+		assert.NotEmpty(t, content.Text)
+		assert.Contains(t, content.Text, "Template Types Overview")
+		assert.Contains(t, content.Text, "Container")
+		assert.Contains(t, content.Text, "Script")
+		assert.Contains(t, content.Text, "DAG")
+		assert.Contains(t, content.Text, "Steps")
+	})
+
+	t.Run("invalid URI", func(t *testing.T) {
+		req := &mcp.ReadResourceRequest{
+			Params: &mcp.ReadResourceParams{
+				URI: "argo://docs/invalid",
+			},
+		}
+
+		result, err := handler(ctx, req)
+		require.Error(t, err)
+		assert.Nil(t, result)
+	})
+}
+
+// Container Template Tests
+
+func TestTemplateTypesContainerResource(t *testing.T) {
+	resource := TemplateTypesContainerResource()
+
+	assert.Equal(t, "argo://docs/template-types/container", resource.URI)
+	assert.Equal(t, "template-types-container", resource.Name)
+	assert.Equal(t, "Container Template Type", resource.Title)
+	assert.Equal(t, "text/markdown", resource.MIMEType)
+}
+
+func TestTemplateTypesContainerHandler(t *testing.T) {
+	handler := TemplateTypesContainerHandler()
+	ctx := context.Background()
+
+	req := &mcp.ReadResourceRequest{
+		Params: &mcp.ReadResourceParams{
+			URI: "argo://docs/template-types/container",
+		},
+	}
+
+	result, err := handler(ctx, req)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.Len(t, result.Contents, 1)
+
+	content := result.Contents[0]
+	assert.Equal(t, "argo://docs/template-types/container", content.URI)
+	assert.NotEmpty(t, content.Text)
+	assert.Contains(t, content.Text, "Container Template Type")
+	assert.Contains(t, content.Text, "image")
+	assert.Contains(t, content.Text, "command")
+	assert.Contains(t, content.Text, "args")
+}
+
+// Script Template Tests
+
+func TestTemplateTypesScriptResource(t *testing.T) {
+	resource := TemplateTypesScriptResource()
+
+	assert.Equal(t, "argo://docs/template-types/script", resource.URI)
+	assert.Equal(t, "template-types-script", resource.Name)
+	assert.Equal(t, "Script Template Type", resource.Title)
+	assert.Equal(t, "text/markdown", resource.MIMEType)
+}
+
+func TestTemplateTypesScriptHandler(t *testing.T) {
+	handler := TemplateTypesScriptHandler()
+	ctx := context.Background()
+
+	req := &mcp.ReadResourceRequest{
+		Params: &mcp.ReadResourceParams{
+			URI: "argo://docs/template-types/script",
+		},
+	}
+
+	result, err := handler(ctx, req)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.Len(t, result.Contents, 1)
+
+	content := result.Contents[0]
+	assert.Equal(t, "argo://docs/template-types/script", content.URI)
+	assert.NotEmpty(t, content.Text)
+	assert.Contains(t, content.Text, "Script Template Type")
+	assert.Contains(t, content.Text, "source")
+	assert.Contains(t, content.Text, "inline")
+}
+
+// DAG Template Tests
+
+func TestTemplateTypesDAGResource(t *testing.T) {
+	resource := TemplateTypesDAGResource()
+
+	assert.Equal(t, "argo://docs/template-types/dag", resource.URI)
+	assert.Equal(t, "template-types-dag", resource.Name)
+	assert.Equal(t, "DAG Template Type", resource.Title)
+	assert.Equal(t, "text/markdown", resource.MIMEType)
+}
+
+func TestTemplateTypesDAGHandler(t *testing.T) {
+	handler := TemplateTypesDAGHandler()
+	ctx := context.Background()
+
+	req := &mcp.ReadResourceRequest{
+		Params: &mcp.ReadResourceParams{
+			URI: "argo://docs/template-types/dag",
+		},
+	}
+
+	result, err := handler(ctx, req)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.Len(t, result.Contents, 1)
+
+	content := result.Contents[0]
+	assert.Equal(t, "argo://docs/template-types/dag", content.URI)
+	assert.NotEmpty(t, content.Text)
+	assert.Contains(t, content.Text, "DAG Template Type")
+	assert.Contains(t, content.Text, "dependencies")
+	assert.Contains(t, content.Text, "tasks")
+}
+
+// Steps Template Tests
+
+func TestTemplateTypesStepsResource(t *testing.T) {
+	resource := TemplateTypesStepsResource()
+
+	assert.Equal(t, "argo://docs/template-types/steps", resource.URI)
+	assert.Equal(t, "template-types-steps", resource.Name)
+	assert.Equal(t, "Steps Template Type", resource.Title)
+	assert.Equal(t, "text/markdown", resource.MIMEType)
+}
+
+func TestTemplateTypesStepsHandler(t *testing.T) {
+	handler := TemplateTypesStepsHandler()
+	ctx := context.Background()
+
+	req := &mcp.ReadResourceRequest{
+		Params: &mcp.ReadResourceParams{
+			URI: "argo://docs/template-types/steps",
+		},
+	}
+
+	result, err := handler(ctx, req)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.Len(t, result.Contents, 1)
+
+	content := result.Contents[0]
+	assert.Equal(t, "argo://docs/template-types/steps", content.URI)
+	assert.NotEmpty(t, content.Text)
+	assert.Contains(t, content.Text, "Steps Template Type")
+	assert.Contains(t, content.Text, "sequential")
+	assert.Contains(t, content.Text, "parallel")
+}
+
+// Suspend Template Tests
+
+func TestTemplateTypesSuspendResource(t *testing.T) {
+	resource := TemplateTypesSuspendResource()
+
+	assert.Equal(t, "argo://docs/template-types/suspend", resource.URI)
+	assert.Equal(t, "template-types-suspend", resource.Name)
+	assert.Equal(t, "Suspend Template Type", resource.Title)
+	assert.Equal(t, "text/markdown", resource.MIMEType)
+}
+
+func TestTemplateTypesSuspendHandler(t *testing.T) {
+	handler := TemplateTypesSuspendHandler()
+	ctx := context.Background()
+
+	req := &mcp.ReadResourceRequest{
+		Params: &mcp.ReadResourceParams{
+			URI: "argo://docs/template-types/suspend",
+		},
+	}
+
+	result, err := handler(ctx, req)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.Len(t, result.Contents, 1)
+
+	content := result.Contents[0]
+	assert.Equal(t, "argo://docs/template-types/suspend", content.URI)
+	assert.NotEmpty(t, content.Text)
+	assert.Contains(t, content.Text, "Suspend Template Type")
+	assert.Contains(t, content.Text, "duration")
+	assert.Contains(t, content.Text, "approval")
+}
+
+// Resource Template Tests
+
+func TestTemplateTypesResourceResource(t *testing.T) {
+	resource := TemplateTypesResourceResource()
+
+	assert.Equal(t, "argo://docs/template-types/resource", resource.URI)
+	assert.Equal(t, "template-types-resource", resource.Name)
+	assert.Equal(t, "Resource Template Type", resource.Title)
+	assert.Equal(t, "text/markdown", resource.MIMEType)
+}
+
+func TestTemplateTypesResourceHandler(t *testing.T) {
+	handler := TemplateTypesResourceHandler()
+	ctx := context.Background()
+
+	req := &mcp.ReadResourceRequest{
+		Params: &mcp.ReadResourceParams{
+			URI: "argo://docs/template-types/resource",
+		},
+	}
+
+	result, err := handler(ctx, req)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.Len(t, result.Contents, 1)
+
+	content := result.Contents[0]
+	assert.Equal(t, "argo://docs/template-types/resource", content.URI)
+	assert.NotEmpty(t, content.Text)
+	assert.Contains(t, content.Text, "Resource Template Type")
+	assert.Contains(t, content.Text, "manifest")
+	assert.Contains(t, content.Text, "action")
+	assert.Contains(t, content.Text, "Kubernetes")
+}
+
+// HTTP Template Tests
+
+func TestTemplateTypesHTTPResource(t *testing.T) {
+	resource := TemplateTypesHTTPResource()
+
+	assert.Equal(t, "argo://docs/template-types/http", resource.URI)
+	assert.Equal(t, "template-types-http", resource.Name)
+	assert.Equal(t, "HTTP Template Type", resource.Title)
+	assert.Equal(t, "text/markdown", resource.MIMEType)
+}
+
+func TestTemplateTypesHTTPHandler(t *testing.T) {
+	handler := TemplateTypesHTTPHandler()
+	ctx := context.Background()
+
+	req := &mcp.ReadResourceRequest{
+		Params: &mcp.ReadResourceParams{
+			URI: "argo://docs/template-types/http",
+		},
+	}
+
+	result, err := handler(ctx, req)
+	require.NoError(t, err)
+	require.NotNil(t, result)
+	require.Len(t, result.Contents, 1)
+
+	content := result.Contents[0]
+	assert.Equal(t, "argo://docs/template-types/http", content.URI)
+	assert.NotEmpty(t, content.Text)
+	assert.Contains(t, content.Text, "HTTP Template Type")
+	assert.Contains(t, content.Text, "url")
+	assert.Contains(t, content.Text, "method")
+	assert.Contains(t, content.Text, "HTTP requests")
 }
