@@ -153,6 +153,13 @@ func SetupE2ECluster(ctx context.Context, t *testing.T) *E2ECluster {
 func installArgoWorkflows(t *testing.T, kubeconfigPath string) {
 	t.Helper()
 
+	// Create the argo namespace first (quick-start manifest expects it to exist)
+	//nolint:gosec // Using kubectl in tests is expected
+	nsCmd := exec.Command("kubectl", "create", "namespace", ArgoNamespace)
+	nsCmd.Env = append(os.Environ(), "KUBECONFIG="+kubeconfigPath)
+	output, err := nsCmd.CombinedOutput()
+	require.NoError(t, err, "Failed to create argo namespace: %s", string(output))
+
 	// Download the quick-start manifest to a temp file
 	manifestFile, err := os.CreateTemp("", "argo-install-*.yaml")
 	require.NoError(t, err, "Failed to create temp manifest file")
@@ -169,7 +176,7 @@ func installArgoWorkflows(t *testing.T, kubeconfigPath string) {
 	// Download manifest
 	//nolint:gosec // Using curl to download manifests in tests is expected
 	downloadCmd := exec.Command("curl", "-sSL", "-o", manifestPath, ArgoQuickStartURL)
-	output, err := downloadCmd.CombinedOutput()
+	output, err = downloadCmd.CombinedOutput()
 	require.NoError(t, err, "Failed to download Argo quick-start manifest: %s", string(output))
 
 	// Apply the manifest
