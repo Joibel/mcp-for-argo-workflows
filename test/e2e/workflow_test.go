@@ -614,6 +614,9 @@ func TestWorkflow_Logs_WithGrep(t *testing.T) {
 	require.NotNil(t, result)
 	require.NotNil(t, logsOutput)
 
+	// Verify grep returned at least some results
+	assert.NotEmpty(t, logsOutput.Logs, "Grep filter should have matched at least one log entry")
+
 	// Verify filtered logs contain the grep pattern
 	for _, entry := range logsOutput.Logs {
 		assert.Contains(t, entry.Content, "Hello",
