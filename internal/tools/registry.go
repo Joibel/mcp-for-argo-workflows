@@ -43,6 +43,7 @@ func AllTools() []ToolRegistrar {
 		RegisterDeleteCronWorkflow,
 		RegisterSuspendCronWorkflow,
 		RegisterListCronWorkflows,
+		RegisterGetCronWorkflow,
 	}
 }
 
