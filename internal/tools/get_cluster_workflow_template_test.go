@@ -58,55 +58,6 @@ func TestGetClusterWorkflowTemplateOutput(t *testing.T) {
 	assert.Equal(t, "container", output.Templates[0].Type)
 }
 
-func TestDetermineClusterTemplateType(t *testing.T) {
-	tests := []struct {
-		name     string
-		template *wfv1.Template
-		expected string
-	}{
-		{
-			name: "container template",
-			template: &wfv1.Template{
-				Container: &corev1.Container{Name: "main"},
-			},
-			expected: "container",
-		},
-		{
-			name: "script template",
-			template: &wfv1.Template{
-				Script: &wfv1.ScriptTemplate{},
-			},
-			expected: "script",
-		},
-		{
-			name: "dag template",
-			template: &wfv1.Template{
-				DAG: &wfv1.DAGTemplate{},
-			},
-			expected: "dag",
-		},
-		{
-			name: "steps template",
-			template: &wfv1.Template{
-				Steps: []wfv1.ParallelSteps{},
-			},
-			expected: "steps",
-		},
-		{
-			name:     "unknown template",
-			template: &wfv1.Template{},
-			expected: "unknown",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := determineClusterTemplateType(tt.template)
-			assert.Equal(t, tt.expected, result)
-		})
-	}
-}
-
 func TestGetClusterWorkflowTemplateHandler(t *testing.T) {
 	testTime := time.Date(2025, 1, 15, 10, 30, 0, 0, time.UTC)
 

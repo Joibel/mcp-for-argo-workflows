@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/argoproj/argo-workflows/v3/pkg/apiclient/clusterworkflowtemplate"
-	wfv1 "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/Joibel/mcp-for-argo-workflows/internal/argo"
@@ -103,7 +102,7 @@ func GetClusterWorkflowTemplateHandler(client argo.ClientInterface) func(context
 			for _, tmpl := range cwft.Spec.Templates {
 				info := TemplateInfo{
 					Name: tmpl.Name,
-					Type: determineClusterTemplateType(&tmpl),
+					Type: determineTemplateType(&tmpl),
 				}
 				output.Templates = append(output.Templates, info)
 			}
@@ -135,33 +134,5 @@ func GetClusterWorkflowTemplateHandler(client argo.ClientInterface) func(context
 		}
 
 		return result, output, nil
-	}
-}
-
-// determineClusterTemplateType determines the type of a template based on its definition.
-func determineClusterTemplateType(tmpl *wfv1.Template) string {
-	switch {
-	case tmpl.Container != nil:
-		return "container"
-	case tmpl.Script != nil:
-		return "script"
-	case tmpl.DAG != nil:
-		return "dag"
-	case tmpl.Steps != nil:
-		return "steps"
-	case tmpl.Resource != nil:
-		return "resource"
-	case tmpl.Suspend != nil:
-		return "suspend"
-	case tmpl.HTTP != nil:
-		return "http"
-	case tmpl.Plugin != nil:
-		return "plugin"
-	case tmpl.ContainerSet != nil:
-		return "containerSet"
-	case tmpl.Data != nil:
-		return "data"
-	default:
-		return "unknown"
 	}
 }
