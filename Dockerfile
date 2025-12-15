@@ -32,7 +32,8 @@ RUN CGO_ENABLED=1 go build \
     ./cmd/mcp-for-argo-workflows
 
 # Runtime stage - use distroless for minimal attack surface
-FROM gcr.io/distroless/base-debian12:nonroot
+# Pinned by digest for reproducible builds and supply-chain stability
+FROM gcr.io/distroless/base-debian12:nonroot@sha256:cd961bbef4ecc70d2b2ff41074dd1c932af3f141f2fc00e4d91a03a832e3a658
 
 # Labels for container metadata
 LABEL org.opencontainers.image.title="MCP for Argo Workflows"
