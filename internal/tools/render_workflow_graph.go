@@ -385,6 +385,10 @@ func makeSafeID(id string) string {
 	safe = strings.ReplaceAll(safe, "-", "_")
 	safe = strings.ReplaceAll(safe, "(", "_")
 	safe = strings.ReplaceAll(safe, ")", "_")
+	safe = strings.ReplaceAll(safe, " ", "_")
+	safe = strings.ReplaceAll(safe, ":", "_")
+	safe = strings.ReplaceAll(safe, "[", "_")
+	safe = strings.ReplaceAll(safe, "]", "_")
 	return safe
 }
 

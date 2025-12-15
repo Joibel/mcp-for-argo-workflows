@@ -133,10 +133,8 @@ func TestRenderWorkflowGraphHandler(t *testing.T) {
 				})).Return(tt.workflow, nil)
 			}
 
-			// Verify mock expectations even on error paths
-			if tt.expectedError == "" {
-				defer mockWfService.AssertExpectations(t)
-			}
+			// Always verify mock expectations
+			defer mockWfService.AssertExpectations(t)
 
 			// Create handler and execute
 			handler := RenderWorkflowGraphHandler(mockClient)
@@ -344,6 +342,41 @@ func TestIsRenderableNode(t *testing.T) {
 			},
 			expected: false,
 		},
+		{
+			name: "container node",
+			node: &wfv1.NodeStatus{
+				Type: wfv1.NodeTypeContainer,
+			},
+			expected: true,
+		},
+		{
+			name: "steps node",
+			node: &wfv1.NodeStatus{
+				Type: wfv1.NodeTypeSteps,
+			},
+			expected: true,
+		},
+		{
+			name: "suspend node",
+			node: &wfv1.NodeStatus{
+				Type: wfv1.NodeTypeSuspend,
+			},
+			expected: true,
+		},
+		{
+			name: "HTTP node",
+			node: &wfv1.NodeStatus{
+				Type: wfv1.NodeTypeHTTP,
+			},
+			expected: true,
+		},
+		{
+			name: "plugin node",
+			node: &wfv1.NodeStatus{
+				Type: wfv1.NodeTypePlugin,
+			},
+			expected: true,
+		},
 	}
 
 	for _, tt := range tests {
@@ -436,7 +469,11 @@ func TestMakeSafeID(t *testing.T) {
 		{"with dots", "node.1.test", "node_1_test"},
 		{"with dashes", "node-1-test", "node_1_test"},
 		{"with parentheses", "node(1)", "node_1_"},
+		{"with spaces", "node 1 test", "node_1_test"},
+		{"with colons", "node:1:test", "node_1_test"},
+		{"with brackets", "node[1]", "node_1_"},
 		{"complex", "node.1(test)-2", "node_1_test__2"},
+		{"all special chars", "node.1-2(3) 4:5[6]", "node_1_2_3__4_5_6_"},
 	}
 
 	for _, tt := range tests {
