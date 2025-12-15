@@ -38,6 +38,7 @@ func AllTools() []ToolRegistrar {
 		RegisterCreateClusterWorkflowTemplate,
 		RegisterDeleteClusterWorkflowTemplate,
 		RegisterListCronWorkflows,
+		RegisterGetCronWorkflow,
 	}
 }
 
@@ -168,4 +169,9 @@ func RegisterDeleteClusterWorkflowTemplate(s *mcp.Server, client argo.ClientInte
 // RegisterListCronWorkflows registers the list_cron_workflows tool.
 func RegisterListCronWorkflows(s *mcp.Server, client argo.ClientInterface) {
 	mcp.AddTool(s, ListCronWorkflowsTool(), ListCronWorkflowsHandler(client))
+}
+
+// RegisterGetCronWorkflow registers the get_cron_workflow tool.
+func RegisterGetCronWorkflow(s *mcp.Server, client argo.ClientInterface) {
+	mcp.AddTool(s, GetCronWorkflowTool(), GetCronWorkflowHandler(client))
 }
