@@ -21,8 +21,8 @@ type GetWorkflowNodeInput struct {
 	// WorkflowName is the workflow name.
 	WorkflowName string `json:"workflowName" jsonschema:"Workflow name,required"`
 
-	// NodeName is the node name or ID within the workflow.
-	NodeName string `json:"nodeName" jsonschema:"Node name or ID,required"`
+	// NodeName is the node name, display name, or ID within the workflow.
+	NodeName string `json:"nodeName" jsonschema:"Node name, display name, or ID,required"`
 }
 
 // GetWorkflowNodeOutput defines the output for the get_workflow_node tool.
@@ -174,7 +174,8 @@ func GetWorkflowNodeHandler(client argo.ClientInterface) func(context.Context, *
 func findNode(nodes wfv1.Nodes, nameOrID string) (*wfv1.NodeStatus, error) {
 	// First try to find by ID (exact match)
 	if node, exists := nodes[nameOrID]; exists {
-		return &node, nil
+		nodeCopy := node
+		return &nodeCopy, nil
 	}
 
 	// Then try to find by name (exact match)

@@ -827,6 +827,16 @@ func TestBuildNodeOutputsOutput(t *testing.T) {
 			require.NotNil(t, result)
 			assert.Equal(t, tt.expected.ExitCode, result.ExitCode)
 			assert.Equal(t, tt.expected.Result, result.Result)
+			assert.Len(t, result.Parameters, len(tt.expected.Parameters))
+			assert.Len(t, result.Artifacts, len(tt.expected.Artifacts))
+			if len(tt.expected.Parameters) > 0 {
+				assert.Equal(t, tt.expected.Parameters[0].Name, result.Parameters[0].Name)
+				assert.Equal(t, tt.expected.Parameters[0].Value, result.Parameters[0].Value)
+			}
+			if len(tt.expected.Artifacts) > 0 {
+				assert.Equal(t, tt.expected.Artifacts[0].Name, result.Artifacts[0].Name)
+				assert.Equal(t, tt.expected.Artifacts[0].Path, result.Artifacts[0].Path)
+			}
 		})
 	}
 }
