@@ -1,0 +1,27 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: failing-workflow-
+spec:
+  entrypoint: main
+  arguments:
+    parameters:
+      - name: should-fail
+        value: "true"
+  templates:
+    - name: main
+      inputs:
+        parameters:
+          - name: should-fail
+      container:
+        image: busybox:1.35
+        command: [sh, -c]
+        args:
+          - |
+            if [ "{{inputs.parameters.should-fail}}" = "true" ]; then
+              echo "Simulating failure..."
+              exit 1
+            else
+              echo "Success!"
+              exit 0
+            fi

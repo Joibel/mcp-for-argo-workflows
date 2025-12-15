@@ -18,10 +18,10 @@ import (
 // CreateWorkflowTemplateInput defines the input parameters for the create_workflow_template tool.
 type CreateWorkflowTemplateInput struct {
 	// Namespace is the Kubernetes namespace (uses default if not specified).
-	Namespace string `json:"namespace,omitempty" jsonschema:"description=Kubernetes namespace (uses default if not specified)"`
+	Namespace string `json:"namespace,omitempty" jsonschema:"Kubernetes namespace (uses default if not specified)"`
 
 	// Manifest is the WorkflowTemplate YAML manifest.
-	Manifest string `json:"manifest" jsonschema:"required,description=WorkflowTemplate YAML manifest"`
+	Manifest string `json:"manifest" jsonschema:"WorkflowTemplate YAML manifest,required"`
 }
 
 // CreateWorkflowTemplateOutput defines the output for the create_workflow_template tool.

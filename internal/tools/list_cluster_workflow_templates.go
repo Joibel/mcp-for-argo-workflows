@@ -16,7 +16,7 @@ import (
 // ListClusterWorkflowTemplatesInput defines the input parameters for the list_cluster_workflow_templates tool.
 type ListClusterWorkflowTemplatesInput struct {
 	// Labels is an optional label selector to filter templates.
-	Labels string `json:"labels,omitempty" jsonschema:"description=Label selector to filter templates"`
+	Labels string `json:"labels,omitempty" jsonschema:"Label selector to filter templates"`
 }
 
 // ClusterWorkflowTemplateSummary provides a summary of a ClusterWorkflowTemplate.

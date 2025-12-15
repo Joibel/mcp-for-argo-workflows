@@ -1,0 +1,28 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: long-running-workflow-
+spec:
+  entrypoint: main
+  templates:
+    - name: main
+      steps:
+        - - name: step-1
+            template: sleeper
+        - - name: step-2
+            template: sleeper
+        - - name: step-3
+            template: sleeper
+        - - name: step-4
+            template: sleeper
+        - - name: step-5
+            template: sleeper
+    - name: sleeper
+      container:
+        image: busybox:1.35
+        command: [sh, -c]
+        args:
+          - |
+            echo "Running step..."
+            sleep 3
+            echo "Step completed!"

@@ -49,7 +49,7 @@ test:
 ## test-e2e: Run end-to-end tests (requires Docker)
 test-e2e:
 	@echo "Running E2E tests..."
-	$(GO) test -tags=e2e -v ./test/e2e/...
+	$(GO) test -tags=e2e -v -timeout=20m ./test/e2e/...
 
 ## lint: Run golangci-lint
 lint:

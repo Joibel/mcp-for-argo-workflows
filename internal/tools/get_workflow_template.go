@@ -16,10 +16,10 @@ import (
 // GetWorkflowTemplateInput defines the input parameters for the get_workflow_template tool.
 type GetWorkflowTemplateInput struct {
 	// Name is the workflow template name (required).
-	Name string `json:"name" jsonschema:"required,description=Workflow template name"`
+	Name string `json:"name" jsonschema:"Workflow template name,required"`
 
 	// Namespace is the Kubernetes namespace (uses default if not specified).
-	Namespace string `json:"namespace,omitempty" jsonschema:"description=Kubernetes namespace (uses default if not specified)"`
+	Namespace string `json:"namespace,omitempty" jsonschema:"Kubernetes namespace (uses default if not specified)"`
 }
 
 // TemplateRef represents a reference to a template.
