@@ -21,6 +21,7 @@ type MockClient struct {
 	workflowService                workflow.WorkflowServiceClient
 	workflowTemplateService        workflowtemplate.WorkflowTemplateServiceClient
 	clusterWorkflowTemplateService clusterworkflowtemplate.ClusterWorkflowTemplateServiceClient
+	cronWorkflowService            cronworkflow.CronWorkflowServiceClient
 	// ctx mirrors the real Client's context field for testing.
 	ctx            context.Context //nolint:containedctx // Mirrors real Client's Argo SDK pattern
 	namespace      string
@@ -53,6 +54,11 @@ func (m *MockClient) SetClusterWorkflowTemplateService(service clusterworkflowte
 	m.clusterWorkflowTemplateService = service
 }
 
+// SetCronWorkflowService sets the cron workflow service client for this mock.
+func (m *MockClient) SetCronWorkflowService(service cronworkflow.CronWorkflowServiceClient) {
+	m.cronWorkflowService = service
+}
+
 // SetContext sets the context for this mock client.
 func (m *MockClient) SetContext(ctx context.Context) {
 	m.ctx = ctx
@@ -63,8 +69,11 @@ func (m *MockClient) WorkflowService() workflow.WorkflowServiceClient {
 	return m.workflowService
 }
 
-// CronWorkflowService returns the cron workflow service client (stub).
+// CronWorkflowService returns the cron workflow service client.
 func (m *MockClient) CronWorkflowService() (cronworkflow.CronWorkflowServiceClient, error) {
+	if m.cronWorkflowService != nil {
+		return m.cronWorkflowService, nil
+	}
 	args := m.Called()
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
