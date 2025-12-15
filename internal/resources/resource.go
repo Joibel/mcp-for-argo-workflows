@@ -85,6 +85,43 @@ func AllDefinitions() []Definition {
 			DocFile:     "cron_workflow_schema.md",
 		},
 
+		// Variables, Expressions, and Data Flow Resources
+		{
+			URI:         "argo://docs/variables",
+			Name:        "docs-variables",
+			Title:       "Argo Workflows Variables Reference",
+			Description: "Complete reference of template variables for inputs, outputs, workflow, pod, and loop variables",
+			DocFile:     "variables.md",
+		},
+		{
+			URI:         "argo://docs/expressions",
+			Name:        "docs-expressions",
+			Title:       "Argo Workflows Expressions Reference",
+			Description: "Expression syntax, operators, and functions for data manipulation in workflows",
+			DocFile:     "expressions.md",
+		},
+		{
+			URI:         "argo://docs/parameters",
+			Name:        "docs-parameters",
+			Title:       "Argo Workflows Parameters Reference",
+			Description: "Parameter definition, passing patterns, and validation in workflows",
+			DocFile:     "parameters.md",
+		},
+		{
+			URI:         "argo://docs/artifacts",
+			Name:        "docs-artifacts",
+			Title:       "Argo Workflows Artifacts Reference",
+			Description: "Artifact system for file passing, storage backends, and artifact repositories",
+			DocFile:     "artifacts.md",
+		},
+		{
+			URI:         "argo://docs/outputs",
+			Name:        "docs-outputs",
+			Title:       "Argo Workflows Outputs Reference",
+			Description: "Capturing and using outputs from workflow templates including parameters and artifacts",
+			DocFile:     "outputs.md",
+		},
+
 		// Template Type Resources
 		{
 			URI:         "argo://docs/template-types",

@@ -10,8 +10,8 @@ import (
 )
 
 func TestAllDefinitions(t *testing.T) {
-	// Should have exactly 24 resource definitions (4 schema + 8 template types + 12 examples)
-	assert.Len(t, AllDefinitions(), 24, "Expected 24 resource definitions")
+	// Should have exactly 29 resource definitions (4 schema + 5 data flow + 8 template types + 12 examples)
+	assert.Len(t, AllDefinitions(), 29, "Expected 29 resource definitions")
 
 	// Verify all definitions have required fields
 	for _, def := range AllDefinitions() {
@@ -335,6 +335,75 @@ func TestExamplesExitHandlersContent(t *testing.T) {
 	assert.Contains(t, content, "onExit")
 	assert.Contains(t, content, "exit")
 	assert.Contains(t, content, "workflow.status")
+}
+
+// Data Flow Resources Tests
+
+func TestDocsVariablesContent(t *testing.T) {
+	def := findDefinition("docs-variables")
+	require.NotNil(t, def)
+
+	content := getContent(t, def)
+	assert.Contains(t, content, "Variables Reference")
+	assert.Contains(t, content, "inputs.parameters")
+	assert.Contains(t, content, "outputs.parameters")
+	assert.Contains(t, content, "workflow.name")
+	assert.Contains(t, content, "steps.")
+	assert.Contains(t, content, "tasks.")
+	assert.Contains(t, content, "{{item}}")
+}
+
+func TestDocsExpressionsContent(t *testing.T) {
+	def := findDefinition("docs-expressions")
+	require.NotNil(t, def)
+
+	content := getContent(t, def)
+	assert.Contains(t, content, "Expressions Reference")
+	assert.Contains(t, content, "{{=")
+	assert.Contains(t, content, "sprig")
+	assert.Contains(t, content, "jsonpath")
+	assert.Contains(t, content, "fromJson")
+	assert.Contains(t, content, "asInt")
+}
+
+func TestDocsParametersContent(t *testing.T) {
+	def := findDefinition("docs-parameters")
+	require.NotNil(t, def)
+
+	content := getContent(t, def)
+	assert.Contains(t, content, "Parameters Reference")
+	assert.Contains(t, content, "arguments")
+	assert.Contains(t, content, "inputs")
+	assert.Contains(t, content, "valueFrom")
+	assert.Contains(t, content, "globalName")
+	assert.Contains(t, content, "enum")
+}
+
+func TestDocsArtifactsContent(t *testing.T) {
+	def := findDefinition("docs-artifacts")
+	require.NotNil(t, def)
+
+	content := getContent(t, def)
+	assert.Contains(t, content, "Artifacts Reference")
+	assert.Contains(t, content, "inputs")
+	assert.Contains(t, content, "outputs")
+	assert.Contains(t, content, "path")
+	assert.Contains(t, content, "s3:")
+	assert.Contains(t, content, "gcs:")
+	assert.Contains(t, content, "git:")
+}
+
+func TestDocsOutputsContent(t *testing.T) {
+	def := findDefinition("docs-outputs")
+	require.NotNil(t, def)
+
+	content := getContent(t, def)
+	assert.Contains(t, content, "Outputs Reference")
+	assert.Contains(t, content, "valueFrom")
+	assert.Contains(t, content, "path")
+	assert.Contains(t, content, "outputs.result")
+	assert.Contains(t, content, "globalName")
+	assert.Contains(t, content, "exitCode")
 }
 
 // Helper functions
