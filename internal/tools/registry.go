@@ -42,9 +42,6 @@ func AllTools() []ToolRegistrar {
 		RegisterCreateCronWorkflow,
 		RegisterDeleteCronWorkflow,
 		RegisterSuspendCronWorkflow,
-		RegisterListCronWorkflows,
-		RegisterGetCronWorkflow,
-		RegisterCreateCronWorkflow,
 		RegisterResumeCronWorkflow,
 	}
 }
