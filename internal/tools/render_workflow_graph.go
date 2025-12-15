@@ -113,7 +113,16 @@ func RenderWorkflowGraphHandler(client argo.ClientInterface) func(context.Contex
 			NodeCount: len(wf.Status.Nodes),
 		}
 
-		return nil, output, nil
+		// Build human-readable result
+		resultText := fmt.Sprintf("Rendered workflow %q as %s graph with %d nodes", input.Name, format, output.NodeCount)
+
+		result := &mcp.CallToolResult{
+			Content: []mcp.Content{
+				&mcp.TextContent{Text: resultText},
+			},
+		}
+
+		return result, output, nil
 	}
 }
 

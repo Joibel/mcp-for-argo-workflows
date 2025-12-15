@@ -7,6 +7,7 @@ import (
 
 	"github.com/argoproj/argo-workflows/v3/pkg/apiclient/workflow"
 	wfv1 "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
@@ -148,7 +149,11 @@ func TestRenderWorkflowGraphHandler(t *testing.T) {
 				assert.Nil(t, output)
 			} else {
 				require.NoError(t, err)
-				assert.Nil(t, result)
+				require.NotNil(t, result)
+				require.Len(t, result.Content, 1)
+				textContent, ok := result.Content[0].(*mcp.TextContent)
+				require.True(t, ok, "expected TextContent")
+				assert.Contains(t, textContent.Text, "Rendered workflow")
 				require.NotNil(t, output)
 				tt.validate(t, output)
 			}
