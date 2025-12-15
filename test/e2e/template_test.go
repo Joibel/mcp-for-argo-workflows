@@ -49,8 +49,11 @@ func TestWorkflowTemplate_CRUD(t *testing.T) {
 	assert.True(t, cluster.WorkflowTemplateExists(t, cluster.ArgoNamespace, templateName),
 		"WorkflowTemplate should exist after creation")
 
-	// Cleanup at the end
+	// Cleanup at the end (skipped if explicit delete in Step 4 succeeded)
 	defer func() {
+		if templateName == "" {
+			return
+		}
 		deleteHandler := tools.DeleteWorkflowTemplateHandler(cluster.ArgoClient)
 		deleteInput := tools.DeleteWorkflowTemplateInput{
 			Namespace: cluster.ArgoNamespace,
@@ -114,9 +117,13 @@ func TestWorkflowTemplate_CRUD(t *testing.T) {
 
 	assert.Equal(t, templateName, deleteOutput.Name)
 
+	// Mark as deleted so deferred cleanup is skipped
+	deletedName := templateName
+	templateName = ""
+
 	// Verify template was deleted (give it a moment to propagate)
 	time.Sleep(2 * time.Second)
-	assert.False(t, cluster.WorkflowTemplateExists(t, cluster.ArgoNamespace, templateName),
+	assert.False(t, cluster.WorkflowTemplateExists(t, cluster.ArgoNamespace, deletedName),
 		"WorkflowTemplate should be deleted")
 }
 

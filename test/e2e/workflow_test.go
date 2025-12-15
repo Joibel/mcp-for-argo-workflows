@@ -190,7 +190,7 @@ func TestWorkflow_SuspendResume(t *testing.T) {
 
 	// Get workflow to verify it's suspended
 	wfService := cluster.ArgoClient.WorkflowService()
-	wf, err := wfService.GetWorkflow(cluster.ArgoClient.Context(), &workflow.WorkflowGetRequest{
+	wf, err := wfService.GetWorkflow(clientCtx, &workflow.WorkflowGetRequest{
 		Namespace: cluster.ArgoNamespace,
 		Name:      workflowName,
 	})
@@ -1288,7 +1288,7 @@ func TestWorkflow_SuspendWorkflow(t *testing.T) {
 
 	// Verify workflow is actually suspended by checking the spec
 	wfService := cluster.ArgoClient.WorkflowService()
-	wf, err := wfService.GetWorkflow(cluster.ArgoClient.Context(), &workflow.WorkflowGetRequest{
+	wf, err := wfService.GetWorkflow(clientCtx, &workflow.WorkflowGetRequest{
 		Namespace: cluster.ArgoNamespace,
 		Name:      workflowName,
 	})
@@ -1362,7 +1362,7 @@ func TestWorkflow_ResumeWorkflow(t *testing.T) {
 
 	// Verify it's suspended
 	wfService := cluster.ArgoClient.WorkflowService()
-	wf, err := wfService.GetWorkflow(cluster.ArgoClient.Context(), &workflow.WorkflowGetRequest{
+	wf, err := wfService.GetWorkflow(clientCtx, &workflow.WorkflowGetRequest{
 		Namespace: cluster.ArgoNamespace,
 		Name:      workflowName,
 	})
@@ -1391,7 +1391,7 @@ func TestWorkflow_ResumeWorkflow(t *testing.T) {
 	t.Logf("Resumed workflow phase: %s", resumeOutput.Phase)
 
 	// Verify workflow is no longer suspended
-	wf, err = wfService.GetWorkflow(cluster.ArgoClient.Context(), &workflow.WorkflowGetRequest{
+	wf, err = wfService.GetWorkflow(clientCtx, &workflow.WorkflowGetRequest{
 		Namespace: cluster.ArgoNamespace,
 		Name:      workflowName,
 	})
