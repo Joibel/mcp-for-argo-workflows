@@ -59,7 +59,9 @@ func TestCronWorkflow_CRUD(t *testing.T) {
 			Namespace: cluster.ArgoNamespace,
 			Name:      cronName,
 		}
-		_, _, _ = deleteHandler(clientCtx, nil, deleteInput)
+		if _, _, err := deleteHandler(clientCtx, nil, deleteInput); err != nil {
+			t.Logf("Cleanup: failed to delete cron workflow %s: %v", cronName, err)
+		}
 	}()
 
 	// Step 2: Get cron workflow
@@ -170,7 +172,9 @@ func TestCronWorkflow_SuspendResume(t *testing.T) {
 			Namespace: cluster.ArgoNamespace,
 			Name:      cronName,
 		}
-		_, _, _ = deleteHandler(clientCtx, nil, deleteInput)
+		if _, _, err := deleteHandler(clientCtx, nil, deleteInput); err != nil {
+			t.Logf("Cleanup: failed to delete cron workflow %s: %v", cronName, err)
+		}
 	}()
 
 	// Step 2: Suspend the cron workflow
@@ -255,7 +259,9 @@ func TestCronWorkflow_GetConsistency(t *testing.T) {
 			Namespace: cluster.ArgoNamespace,
 			Name:      cronName,
 		}
-		_, _, _ = deleteHandler(clientCtx, nil, deleteInput)
+		if _, _, err := deleteHandler(clientCtx, nil, deleteInput); err != nil {
+			t.Logf("Cleanup: failed to delete cron workflow %s: %v", cronName, err)
+		}
 	}()
 
 	// Get the cron workflow
