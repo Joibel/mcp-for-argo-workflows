@@ -378,6 +378,17 @@ func (c *E2ECluster) CronWorkflowExists(t *testing.T, namespace, name string) bo
 	return err == nil
 }
 
+// ClusterWorkflowTemplateExists checks if a cluster workflow template exists.
+func (c *E2ECluster) ClusterWorkflowTemplateExists(t *testing.T, name string) bool {
+	t.Helper()
+
+	cmd := exec.Command("kubectl", "get", "clusterworkflowtemplate", name)
+	cmd.Env = append(os.Environ(), "KUBECONFIG="+c.KubeconfigPath)
+	err := cmd.Run()
+
+	return err == nil
+}
+
 // GetWorkflowPhase returns the current phase of a workflow.
 func (c *E2ECluster) GetWorkflowPhase(t *testing.T, namespace, name string) (string, error) {
 	t.Helper()
