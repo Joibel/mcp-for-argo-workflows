@@ -1091,7 +1091,7 @@ func TestWorkflow_RetryWorkflow(t *testing.T) {
 	retryInput := tools.RetryWorkflowInput{
 		Namespace:         cluster.ArgoNamespace,
 		Name:              workflowName,
-		RestartSuccessful: true,                         // Restart all nodes
+		RestartSuccessful: true,                          // Restart all nodes
 		Parameters:        []string{"should-fail=false"}, // Override to succeed this time
 	}
 

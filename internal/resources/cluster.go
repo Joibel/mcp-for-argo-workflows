@@ -12,6 +12,7 @@ import (
 	"github.com/argoproj/argo-workflows/v3/pkg/apiclient/clusterworkflowtemplate"
 	"github.com/argoproj/argo-workflows/v3/pkg/apiclient/cronworkflow"
 	"github.com/argoproj/argo-workflows/v3/pkg/apiclient/workflowtemplate"
+	wfv1 "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/Joibel/mcp-for-argo-workflows/internal/argo"
@@ -66,6 +67,32 @@ type CronWorkflowSummary struct {
 	ActiveCount  int    `json:"activeCount"`
 	SuccessCount int    `json:"successCount"`
 	FailedCount  int    `json:"failedCount"`
+}
+
+// buildArgumentsMap extracts arguments from workflow parameters into a map for JSON serialization.
+func buildArgumentsMap(params []wfv1.Parameter) map[string]interface{} {
+	if params == nil {
+		return nil
+	}
+	arguments := map[string]interface{}{}
+	paramsList := make([]map[string]interface{}, 0, len(params))
+	for _, p := range params {
+		param := map[string]interface{}{
+			"name": p.Name,
+		}
+		if p.Value != nil {
+			param["default"] = string(*p.Value)
+		}
+		if p.Description != nil {
+			param["description"] = string(*p.Description)
+		}
+		if p.Enum != nil {
+			param["enum"] = p.Enum
+		}
+		paramsList = append(paramsList, param)
+	}
+	arguments["parameters"] = paramsList
+	return arguments
 }
 
 // AllClusterResources returns all static cluster resource definitions.
@@ -448,28 +475,8 @@ func getWorkflowTemplateContent(ctx context.Context, client argo.ClientInterface
 	}
 
 	// Arguments (parameters and artifacts)
-	if wft.Spec.Arguments.Parameters != nil || wft.Spec.Arguments.Artifacts != nil {
-		arguments := map[string]interface{}{}
-		if wft.Spec.Arguments.Parameters != nil {
-			params := make([]map[string]interface{}, 0, len(wft.Spec.Arguments.Parameters))
-			for _, p := range wft.Spec.Arguments.Parameters {
-				param := map[string]interface{}{
-					"name": p.Name,
-				}
-				if p.Value != nil {
-					param["default"] = string(*p.Value)
-				}
-				if p.Description != nil {
-					param["description"] = string(*p.Description)
-				}
-				if p.Enum != nil {
-					param["enum"] = p.Enum
-				}
-				params = append(params, param)
-			}
-			arguments["parameters"] = params
-		}
-		spec["arguments"] = arguments
+	if args := buildArgumentsMap(wft.Spec.Arguments.Parameters); args != nil {
+		spec["arguments"] = args
 	}
 
 	// Template names
@@ -527,28 +534,8 @@ func getClusterWorkflowTemplateContent(ctx context.Context, client argo.ClientIn
 	}
 
 	// Arguments (parameters and artifacts)
-	if cwft.Spec.Arguments.Parameters != nil || cwft.Spec.Arguments.Artifacts != nil {
-		arguments := map[string]interface{}{}
-		if cwft.Spec.Arguments.Parameters != nil {
-			params := make([]map[string]interface{}, 0, len(cwft.Spec.Arguments.Parameters))
-			for _, p := range cwft.Spec.Arguments.Parameters {
-				param := map[string]interface{}{
-					"name": p.Name,
-				}
-				if p.Value != nil {
-					param["default"] = string(*p.Value)
-				}
-				if p.Description != nil {
-					param["description"] = string(*p.Description)
-				}
-				if p.Enum != nil {
-					param["enum"] = p.Enum
-				}
-				params = append(params, param)
-			}
-			arguments["parameters"] = params
-		}
-		spec["arguments"] = arguments
+	if args := buildArgumentsMap(cwft.Spec.Arguments.Parameters); args != nil {
+		spec["arguments"] = args
 	}
 
 	// Template names
