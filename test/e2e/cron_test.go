@@ -126,10 +126,10 @@ func TestCronWorkflow_CRUD(t *testing.T) {
 	deletedName := cronName
 	cronName = ""
 
-	// Verify cron workflow was deleted (give it a moment to propagate)
-	time.Sleep(2 * time.Second)
-	assert.False(t, cluster.CronWorkflowExists(t, cluster.ArgoNamespace, deletedName),
-		"CronWorkflow should be deleted")
+	// Verify cron workflow was deleted
+	require.Eventually(t, func() bool {
+		return !cluster.CronWorkflowExists(t, cluster.ArgoNamespace, deletedName)
+	}, 10*time.Second, 500*time.Millisecond, "CronWorkflow should be deleted")
 }
 
 // TestCronWorkflow_SuspendResume tests suspending and resuming a cron workflow.
