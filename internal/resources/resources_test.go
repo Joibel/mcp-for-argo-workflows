@@ -158,8 +158,8 @@ func TestCronWorkflowSchemaHandler(t *testing.T) {
 func TestAllResources(t *testing.T) {
 	registrars := AllResources()
 
-	// Should have exactly 12 resource registrars (4 schema + 8 template types)
-	assert.Len(t, registrars, 12, "Expected 12 resource registrars")
+	// Should have exactly 24 resource registrars (4 schema + 8 template types + 12 examples)
+	assert.Len(t, registrars, 24, "Expected 24 resource registrars")
 
 	// Verify all are not nil
 	for i, registrar := range registrars {

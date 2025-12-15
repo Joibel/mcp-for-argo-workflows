@@ -23,6 +23,18 @@ func AllResources() []ResourceRegistrar {
 		RegisterTemplateTypesSuspend,
 		RegisterTemplateTypesResource,
 		RegisterTemplateTypesHTTP,
+		RegisterExamplesHelloWorld,
+		RegisterExamplesMultiStep,
+		RegisterExamplesDAGDiamond,
+		RegisterExamplesParameters,
+		RegisterExamplesArtifacts,
+		RegisterExamplesLoops,
+		RegisterExamplesConditionals,
+		RegisterExamplesRetries,
+		RegisterExamplesTimeoutLimits,
+		RegisterExamplesResourceManagement,
+		RegisterExamplesVolumes,
+		RegisterExamplesExitHandlers,
 	}
 }
 
@@ -91,4 +103,64 @@ func RegisterTemplateTypesResource(s *mcp.Server) {
 // RegisterTemplateTypesHTTP registers the HTTP template type resource.
 func RegisterTemplateTypesHTTP(s *mcp.Server) {
 	s.AddResource(TemplateTypesHTTPResource(), TemplateTypesHTTPHandler())
+}
+
+// RegisterExamplesHelloWorld registers the hello-world example resource.
+func RegisterExamplesHelloWorld(s *mcp.Server) {
+	s.AddResource(ExamplesHelloWorldResource(), ExamplesHelloWorldHandler())
+}
+
+// RegisterExamplesMultiStep registers the multi-step example resource.
+func RegisterExamplesMultiStep(s *mcp.Server) {
+	s.AddResource(ExamplesMultiStepResource(), ExamplesMultiStepHandler())
+}
+
+// RegisterExamplesDAGDiamond registers the dag-diamond example resource.
+func RegisterExamplesDAGDiamond(s *mcp.Server) {
+	s.AddResource(ExamplesDAGDiamondResource(), ExamplesDAGDiamondHandler())
+}
+
+// RegisterExamplesParameters registers the parameters example resource.
+func RegisterExamplesParameters(s *mcp.Server) {
+	s.AddResource(ExamplesParametersResource(), ExamplesParametersHandler())
+}
+
+// RegisterExamplesArtifacts registers the artifacts example resource.
+func RegisterExamplesArtifacts(s *mcp.Server) {
+	s.AddResource(ExamplesArtifactsResource(), ExamplesArtifactsHandler())
+}
+
+// RegisterExamplesLoops registers the loops example resource.
+func RegisterExamplesLoops(s *mcp.Server) {
+	s.AddResource(ExamplesLoopsResource(), ExamplesLoopsHandler())
+}
+
+// RegisterExamplesConditionals registers the conditionals example resource.
+func RegisterExamplesConditionals(s *mcp.Server) {
+	s.AddResource(ExamplesConditionalsResource(), ExamplesConditionalsHandler())
+}
+
+// RegisterExamplesRetries registers the retries example resource.
+func RegisterExamplesRetries(s *mcp.Server) {
+	s.AddResource(ExamplesRetriesResource(), ExamplesRetriesHandler())
+}
+
+// RegisterExamplesTimeoutLimits registers the timeout-limits example resource.
+func RegisterExamplesTimeoutLimits(s *mcp.Server) {
+	s.AddResource(ExamplesTimeoutLimitsResource(), ExamplesTimeoutLimitsHandler())
+}
+
+// RegisterExamplesResourceManagement registers the resource-management example resource.
+func RegisterExamplesResourceManagement(s *mcp.Server) {
+	s.AddResource(ExamplesResourceManagementResource(), ExamplesResourceManagementHandler())
+}
+
+// RegisterExamplesVolumes registers the volumes example resource.
+func RegisterExamplesVolumes(s *mcp.Server) {
+	s.AddResource(ExamplesVolumesResource(), ExamplesVolumesHandler())
+}
+
+// RegisterExamplesExitHandlers registers the exit-handlers example resource.
+func RegisterExamplesExitHandlers(s *mcp.Server) {
+	s.AddResource(ExamplesExitHandlersResource(), ExamplesExitHandlersHandler())
 }
