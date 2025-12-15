@@ -55,11 +55,15 @@ jobs:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   test-e2e:
-    name: E2E Tests
+    name: E2E Tests (${{ matrix.mode }})
     runs-on: ubuntu-latest
     # Run after lint and test pass, but don't block build
     needs: [lint, test]
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        mode: [kubernetes, argo-server]
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -70,8 +74,10 @@ jobs:
           go-version: "1.25.5"
           cache: true
 
-      - name: Run E2E tests
+      - name: Run E2E tests (${{ matrix.mode }} mode)
         run: make test-e2e
+        env:
+          E2E_MODE: ${{ matrix.mode }}
 
   build:
     name: Build

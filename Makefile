@@ -34,7 +34,7 @@ DIST_CHECKSUMS := $(DIST_DIR)/checksums.txt
 # All distribution binaries
 DIST_BINARIES := $(DIST_DARWIN_AMD64) $(DIST_DARWIN_ARM64) $(DIST_LINUX_AMD64) $(DIST_LINUX_ARM64) $(DIST_WINDOWS_AMD64)
 
-.PHONY: all test test-e2e lint lint-fix fmt vet clean tools help build-all dist-clean \
+.PHONY: all test test-e2e test-e2e-kubernetes test-e2e-argo-server lint lint-fix fmt vet clean tools help build-all dist-clean \
 	docker-build docker-build-multiarch docker-push
 
 # Default target
@@ -47,9 +47,20 @@ test:
 	@echo "Coverage report: coverage.out"
 
 ## test-e2e: Run end-to-end tests (requires Docker)
+## Use E2E_MODE=kubernetes (default) or E2E_MODE=argo-server to select connection mode
 test-e2e:
-	@echo "Running E2E tests..."
-	$(GO) test -tags=e2e -v -timeout=20m ./test/e2e/...
+	@echo "Running E2E tests (mode: $${E2E_MODE:-kubernetes})..."
+	E2E_MODE=$${E2E_MODE:-kubernetes} $(GO) test -tags=e2e -v -timeout=20m ./test/e2e/...
+
+## test-e2e-kubernetes: Run E2E tests using direct Kubernetes API mode
+test-e2e-kubernetes:
+	@echo "Running E2E tests (Kubernetes API mode)..."
+	E2E_MODE=kubernetes $(GO) test -tags=e2e -v -timeout=20m ./test/e2e/...
+
+## test-e2e-argo-server: Run E2E tests using Argo Server mode
+test-e2e-argo-server:
+	@echo "Running E2E tests (Argo Server mode)..."
+	E2E_MODE=argo-server $(GO) test -tags=e2e -v -timeout=20m ./test/e2e/...
 
 ## lint: Run golangci-lint
 lint:

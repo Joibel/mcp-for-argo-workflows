@@ -22,6 +22,17 @@ import (
 	"github.com/Joibel/mcp-for-argo-workflows/internal/argo"
 )
 
+// ConnectionMode specifies how the E2E tests connect to Argo Workflows.
+type ConnectionMode string
+
+const (
+	// ModeKubernetesAPI uses direct Kubernetes API access (default).
+	ModeKubernetesAPI ConnectionMode = "kubernetes"
+
+	// ModeArgoServer connects via Argo Server API.
+	ModeArgoServer ConnectionMode = "argo-server"
+)
+
 const (
 	// ArgoVersion is the Argo Workflows version to install for E2E tests.
 	ArgoVersion = "v3.6.2"
@@ -31,14 +42,32 @@ const (
 
 	// ArgoQuickStartURL is the URL to the Argo quick-start manifest.
 	ArgoQuickStartURL = "https://github.com/argoproj/argo-workflows/releases/download/" + ArgoVersion + "/quick-start-minimal.yaml"
+
+	// ArgoServerPort is the port where Argo Server listens.
+	ArgoServerPort = 2746
 )
 
-// Shared cluster state for all E2E tests
+// Shared cluster state for all E2E tests.
+// We maintain separate state for each connection mode to allow parallel testing.
 var (
 	sharedCluster     *E2ECluster
 	sharedClusterOnce sync.Once
 	sharedClusterErr  error
 )
+
+// GetConnectionMode returns the connection mode from the E2E_MODE environment variable.
+// Defaults to ModeKubernetesAPI if not set or invalid.
+func GetConnectionMode() ConnectionMode {
+	mode := os.Getenv("E2E_MODE")
+	switch ConnectionMode(mode) {
+	case ModeArgoServer:
+		return ModeArgoServer
+	case ModeKubernetesAPI:
+		return ModeKubernetesAPI
+	default:
+		return ModeKubernetesAPI
+	}
+}
 
 // getProjectRoot returns the project root directory.
 func getProjectRoot() string {
@@ -90,6 +119,15 @@ type E2ECluster struct {
 
 	// ArgoNamespace is the namespace where Argo Workflows is installed.
 	ArgoNamespace string
+
+	// ConnectionMode indicates how the client connects to Argo Workflows.
+	ConnectionMode ConnectionMode
+
+	// ArgoServerURL is the URL to the Argo Server (only set in ModeArgoServer).
+	ArgoServerURL string
+
+	// portForwardCmd is the kubectl port-forward process (only set in ModeArgoServer).
+	portForwardCmd *exec.Cmd
 }
 
 // SetupE2ECluster returns the shared E2E cluster, creating it on first call.
@@ -110,7 +148,8 @@ func SetupE2ECluster(ctx context.Context, t *testing.T) *E2ECluster {
 
 // createSharedCluster creates the shared k3s cluster with Argo Workflows.
 func createSharedCluster(ctx context.Context, t *testing.T) (*E2ECluster, error) {
-	t.Log("Starting shared k3s container for all E2E tests...")
+	mode := GetConnectionMode()
+	t.Logf("Starting shared k3s container for all E2E tests (mode: %s)...", mode)
 
 	// Start k3s container
 	k3sContainer, err := k3s.Run(ctx, "rancher/k3s:v1.31.2-k3s1")
@@ -165,26 +204,69 @@ func createSharedCluster(ctx context.Context, t *testing.T) (*E2ECluster, error)
 		return nil, fmt.Errorf("argo controller not ready: %w", err)
 	}
 
-	// Create Argo client
-	argoClient, err := argo.NewClient(ctx, &argo.Config{
-		Kubeconfig: kubeconfigPath,
-		Namespace:  ArgoNamespace,
-	})
-	if err != nil {
-		_ = os.Remove(kubeconfigPath)
-		_ = k3sContainer.Terminate(context.Background())
-		return nil, fmt.Errorf("failed to create Argo client: %w", err)
-	}
-
-	t.Log("Shared E2E cluster setup complete")
-
-	return &E2ECluster{
+	cluster := &E2ECluster{
 		Kubeconfig:     string(kubeconfig),
 		KubeconfigPath: kubeconfigPath,
 		ArgoNamespace:  ArgoNamespace,
-		ArgoClient:     argoClient,
 		container:      k3sContainer,
-	}, nil
+		ConnectionMode: mode,
+	}
+
+	// Set up connection based on mode
+	if mode == ModeArgoServer {
+		// Wait for Argo Server to be ready
+		t.Log("Waiting for Argo Server to be ready...")
+		if err := waitForArgoServerShared(t, kubeconfigPath); err != nil {
+			_ = os.Remove(kubeconfigPath)
+			_ = k3sContainer.Terminate(context.Background())
+			return nil, fmt.Errorf("argo server not ready: %w", err)
+		}
+
+		// Start port-forward to Argo Server
+		t.Log("Starting port-forward to Argo Server...")
+		portForwardCmd, localPort, err := startPortForward(t, kubeconfigPath)
+		if err != nil {
+			_ = os.Remove(kubeconfigPath)
+			_ = k3sContainer.Terminate(context.Background())
+			return nil, fmt.Errorf("failed to start port-forward: %w", err)
+		}
+
+		cluster.portForwardCmd = portForwardCmd
+		cluster.ArgoServerURL = fmt.Sprintf("localhost:%d", localPort)
+
+		t.Logf("Argo Server available at: %s", cluster.ArgoServerURL)
+
+		// Create Argo client with server mode
+		argoClient, err := argo.NewClient(ctx, &argo.Config{
+			ArgoServer:         cluster.ArgoServerURL,
+			Namespace:          ArgoNamespace,
+			Secure:             false, // Local port-forward uses HTTP
+			InsecureSkipVerify: true,
+		})
+		if err != nil {
+			stopPortForward(portForwardCmd)
+			_ = os.Remove(kubeconfigPath)
+			_ = k3sContainer.Terminate(context.Background())
+			return nil, fmt.Errorf("failed to create Argo client (server mode): %w", err)
+		}
+		cluster.ArgoClient = argoClient
+	} else {
+		// Direct Kubernetes API mode
+		argoClient, err := argo.NewClient(ctx, &argo.Config{
+			Kubeconfig: kubeconfigPath,
+			Namespace:  ArgoNamespace,
+		})
+		if err != nil {
+			_ = os.Remove(kubeconfigPath)
+			_ = k3sContainer.Terminate(context.Background())
+			return nil, fmt.Errorf("failed to create Argo client (kubernetes mode): %w", err)
+		}
+		cluster.ArgoClient = argoClient
+	}
+
+	t.Logf("Shared E2E cluster setup complete (mode: %s)", mode)
+
+	return cluster, nil
 }
 
 // installArgoWorkflowsShared installs Argo Workflows in the k3s cluster (non-fatal version).
@@ -270,6 +352,97 @@ func waitForArgoControllerShared(t *testing.T, kubeconfigPath string) error {
 			// Log the error but continue waiting
 			t.Logf("Waiting for Argo controller... %s", string(output))
 		}
+	}
+}
+
+// waitForArgoServerShared waits for the Argo Server deployment to be ready (non-fatal version).
+func waitForArgoServerShared(t *testing.T, kubeconfigPath string) error {
+	t.Helper()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	defer cancel()
+
+	ticker := time.NewTicker(2 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("timeout waiting for Argo Server to be ready")
+		case <-ticker.C:
+			// Check if the deployment is ready
+			//nolint:gosec // Using kubectl in tests is expected
+			cmd := exec.Command("kubectl", "wait", "--for=condition=available",
+				"--timeout=5s",
+				"-n", ArgoNamespace,
+				"deployment/argo-server")
+			cmd.Env = append(os.Environ(), "KUBECONFIG="+kubeconfigPath)
+			output, err := cmd.CombinedOutput()
+
+			if err == nil {
+				t.Log("Argo Server is ready")
+				return nil
+			}
+
+			// Log the error but continue waiting
+			t.Logf("Waiting for Argo Server... %s", string(output))
+		}
+	}
+}
+
+// startPortForward starts a kubectl port-forward to the Argo Server and returns the command and local port.
+func startPortForward(t *testing.T, kubeconfigPath string) (*exec.Cmd, int, error) {
+	t.Helper()
+
+	// Use a fixed local port to avoid conflicts - we'll use 0 and parse the output
+	// But kubectl port-forward doesn't easily give us the port, so we use a known port
+	localPort := ArgoServerPort
+
+	//nolint:gosec // Using kubectl in tests is expected
+	cmd := exec.Command("kubectl", "port-forward",
+		"-n", ArgoNamespace,
+		"svc/argo-server",
+		fmt.Sprintf("%d:%d", localPort, ArgoServerPort))
+	cmd.Env = append(os.Environ(), "KUBECONFIG="+kubeconfigPath)
+
+	// Start the port-forward in the background
+	if err := cmd.Start(); err != nil {
+		return nil, 0, fmt.Errorf("failed to start port-forward: %w", err)
+	}
+
+	// Wait for the port-forward to be ready by checking if we can connect
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	ticker := time.NewTicker(500 * time.Millisecond)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			stopPortForward(cmd)
+			return nil, 0, fmt.Errorf("timeout waiting for port-forward to be ready")
+		case <-ticker.C:
+			// Try to connect to the port to verify it's ready
+			//nolint:gosec // Using curl in tests is expected
+			checkCmd := exec.Command("curl", "-s", "-o", "/dev/null", "-w", "%{http_code}",
+				fmt.Sprintf("http://localhost:%d/api/v1/info", localPort))
+			output, err := checkCmd.CombinedOutput()
+			if err == nil && (string(output) == "200" || string(output) == "401") {
+				// 200 or 401 means the server is responding
+				t.Logf("Port-forward is ready (HTTP status: %s)", string(output))
+				return cmd, localPort, nil
+			}
+			t.Logf("Waiting for port-forward... (status: %s, err: %v)", string(output), err)
+		}
+	}
+}
+
+// stopPortForward stops the kubectl port-forward process.
+func stopPortForward(cmd *exec.Cmd) {
+	if cmd != nil && cmd.Process != nil {
+		_ = cmd.Process.Kill()
+		_ = cmd.Wait()
 	}
 }
 
