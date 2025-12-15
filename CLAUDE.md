@@ -108,3 +108,17 @@ The server exposes these tool categories:
 ## Project Tracking
 
 This project uses Linear for task management. Issues are prefixed with `PIP-` (e.g., PIP-5, PIP-10).
+
+## Pull Request Workflow
+
+When creating a PR:
+
+1. **Monitor the PR**: After creating a PR, watch for CodeRabbit's automated review
+2. **Address CodeRabbit comments**:
+   - Fix any issues CodeRabbit identifies
+   - For nitpicks/optional suggestions, reply explaining the reasoning if not implementing
+   - Use `@coderabbitai resolve` to mark threads as addressed when appropriate
+3. **Merge on approval**: Once CodeRabbit approves the PR, merge it using `gh pr merge --squash`
+4. **Update Linear**: After merging, update the corresponding Linear issue status to "Done"
+
+CodeRabbit is configured via `.coderabbit.yaml` and reviews are authoritative for this project.
