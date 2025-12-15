@@ -113,10 +113,10 @@ func TestClusterWorkflowTemplate_CRUD(t *testing.T) {
 	deletedName := templateName
 	templateName = ""
 
-	// Verify template was deleted (give it a moment to propagate)
-	time.Sleep(2 * time.Second)
-	assert.False(t, cluster.ClusterWorkflowTemplateExists(t, deletedName),
-		"ClusterWorkflowTemplate should be deleted")
+	// Verify template was deleted
+	require.Eventually(t, func() bool {
+		return !cluster.ClusterWorkflowTemplateExists(t, deletedName)
+	}, 10*time.Second, 500*time.Millisecond, "ClusterWorkflowTemplate should be deleted")
 }
 
 // TestClusterWorkflowTemplate_SubmitWithRef tests creating a cluster template and submitting a workflow that references it.
