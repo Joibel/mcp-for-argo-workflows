@@ -38,7 +38,6 @@ func AllTools() []ToolRegistrar {
 		RegisterCreateClusterWorkflowTemplate,
 		RegisterDeleteClusterWorkflowTemplate,
 		RegisterListCronWorkflows,
-		RegisterListCronWorkflows,
 		RegisterGetCronWorkflow,
 	}
 }
