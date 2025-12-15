@@ -66,6 +66,9 @@ func run(ctx context.Context) error {
 	// Register Argo CRD schema resources
 	srv.RegisterResources()
 
+	// Register dynamic cluster resources (requires Argo client)
+	srv.RegisterClusterResources(argoClient)
+
 	slog.Info("MCP server created",
 		"name", serverName,
 		"version", version.Version,

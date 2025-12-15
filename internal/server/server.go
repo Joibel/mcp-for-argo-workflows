@@ -41,6 +41,12 @@ func (s *Server) RegisterResources() {
 	resources.RegisterAll(s.mcp)
 }
 
+// RegisterClusterResources registers all dynamic cluster resources with the server.
+// These resources query the Argo cluster at runtime.
+func (s *Server) RegisterClusterResources(client argo.ClientInterface) {
+	resources.RegisterClusterResources(s.mcp, client)
+}
+
 // GetMCPServer returns the underlying MCP server instance.
 // This is useful for transport setup and starting the server.
 func (s *Server) GetMCPServer() *mcp.Server {
