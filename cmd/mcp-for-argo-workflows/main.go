@@ -52,6 +52,11 @@ func run(ctx context.Context) error {
 		return fmt.Errorf("failed to create Argo client: %w", err)
 	}
 
+	// Use the client's context which contains K8s auth metadata for all subsequent operations.
+	// The Argo SDK embeds the K8s client in this context, which is required for authorization checks.
+	//nolint:contextcheck // Intentionally replacing context with Argo SDK's context containing K8s client
+	ctx = argoClient.Context()
+
 	// Create the MCP server with name and version
 	srv := server.NewServer(serverName, version.Version)
 
@@ -68,12 +73,13 @@ func run(ctx context.Context) error {
 		"namespace", cfg.Namespace,
 	)
 
-	// Start the server with the configured transport
+	// Start the server with the configured transport.
+	// The ctx here is the Argo SDK context (see nolint:contextcheck above).
 	if cfg.IsHTTPTransport() {
 		slog.Info("starting HTTP transport", "addr", cfg.HTTPAddr)
-		return srv.RunHTTP(ctx, cfg.HTTPAddr)
+		return srv.RunHTTP(ctx, cfg.HTTPAddr) //nolint:contextcheck // ctx is Argo SDK context with K8s client
 	}
 
 	// Default to stdio transport
-	return srv.RunStdio(ctx)
+	return srv.RunStdio(ctx) //nolint:contextcheck // ctx is Argo SDK context with K8s client
 }
