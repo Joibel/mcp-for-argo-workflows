@@ -78,7 +78,8 @@
       "Bash(df:*)",
       "Bash(env:*)",
       "Bash(printenv:*)",
-      "mcp__linear-server__*"
+      "mcp__linear-server__*",
+      "SlashCommand(/implement-issue:*)"
     ]
   }
 }
