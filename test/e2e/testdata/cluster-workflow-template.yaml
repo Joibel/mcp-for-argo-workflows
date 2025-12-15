@@ -1,0 +1,19 @@
+apiVersion: argoproj.io/v1alpha1
+kind: ClusterWorkflowTemplate
+metadata:
+  name: test-cluster-template
+spec:
+  entrypoint: main
+  arguments:
+    parameters:
+      - name: message
+        value: "Hello from cluster template"
+  templates:
+    - name: main
+      inputs:
+        parameters:
+          - name: message
+      container:
+        image: busybox:1.35
+        command: [echo]
+        args: ["{{inputs.parameters.message}}"]
