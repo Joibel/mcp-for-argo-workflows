@@ -6,12 +6,15 @@
 package e2e
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"net"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -236,11 +239,22 @@ func createSharedCluster(ctx context.Context, t *testing.T) (*E2ECluster, error)
 
 		t.Logf("Argo Server available at: %s", cluster.ArgoServerURL)
 
+		// Get a service account token for authentication
+		argoToken, err := getArgoServerToken(t, kubeconfigPath)
+		if err != nil {
+			stopPortForward(portForwardCmd)
+			_ = os.Remove(kubeconfigPath)
+			_ = k3sContainer.Terminate(context.Background())
+			return nil, fmt.Errorf("failed to get argo server token: %w", err)
+		}
+
 		// Create Argo client with server mode
+		// We patched argo-server to use HTTP (--secure=false) to avoid gRPC ALPN issues
 		argoClient, err := argo.NewClient(ctx, &argo.Config{
 			ArgoServer:         cluster.ArgoServerURL,
+			ArgoToken:          argoToken,
 			Namespace:          ArgoNamespace,
-			Secure:             false, // Local port-forward uses HTTP
+			Secure:             false, // We patched argo-server to use HTTP
 			InsecureSkipVerify: true,
 		})
 		if err != nil {
@@ -359,6 +373,78 @@ func waitForArgoControllerShared(t *testing.T, kubeconfigPath string) error {
 func waitForArgoServerShared(t *testing.T, kubeconfigPath string) error {
 	t.Helper()
 
+	// First wait for the initial deployment to be available
+	if err := waitForDeploymentAvailable(t, kubeconfigPath, "argo-server"); err != nil {
+		return fmt.Errorf("timeout waiting for Argo Server initial deployment: %w", err)
+	}
+	t.Log("Argo Server initial deployment is ready")
+
+	// Patch the argo-server deployment to disable TLS (use HTTP instead of HTTPS)
+	// This avoids gRPC ALPN issues with newer grpc-go versions
+	// We need to patch both:
+	// 1. Add --secure=false to the container args
+	// 2. Change the readinessProbe scheme from HTTPS to HTTP
+	t.Log("Patching Argo Server to use HTTP (disable TLS)...")
+	//nolint:gosec // Using kubectl in tests is expected
+	patchCmd := exec.Command("kubectl", "patch", "deployment", "argo-server",
+		"-n", ArgoNamespace,
+		"--type=json",
+		"-p", `[
+			{"op": "add", "path": "/spec/template/spec/containers/0/args/-", "value": "--secure=false"},
+			{"op": "replace", "path": "/spec/template/spec/containers/0/readinessProbe/httpGet/scheme", "value": "HTTP"}
+		]`)
+	patchCmd.Env = append(os.Environ(), "KUBECONFIG="+kubeconfigPath)
+	patchOutput, patchErr := patchCmd.CombinedOutput()
+	if patchErr != nil {
+		t.Logf("Warning: Failed to patch argo-server (may already be patched): %s", string(patchOutput))
+	} else {
+		t.Log("Argo Server patched to use HTTP")
+	}
+
+	// Force delete old pods to speed up rollout (k3s can be slow to terminate pods)
+	t.Log("Force deleting old argo-server pods to speed up rollout...")
+	//nolint:gosec // Using kubectl in tests is expected
+	deletePodsCmd := exec.Command("kubectl", "delete", "pods",
+		"-n", ArgoNamespace,
+		"-l", "app=argo-server",
+		"--grace-period=0",
+		"--force")
+	deletePodsCmd.Env = append(os.Environ(), "KUBECONFIG="+kubeconfigPath)
+	deleteOutput, _ := deletePodsCmd.CombinedOutput()
+	t.Logf("Deleted old pods: %s", string(deleteOutput))
+
+	// Wait for the new deployment to be ready
+	t.Log("Waiting for new Argo Server pods to be ready...")
+	if err := waitForDeploymentAvailable(t, kubeconfigPath, "argo-server"); err != nil {
+		return fmt.Errorf("failed to wait for argo-server after patch: %w", err)
+	}
+
+	// Verify the patch was applied by checking the container args
+	//nolint:gosec // Using kubectl in tests is expected
+	verifyCmd := exec.Command("kubectl", "get", "deployment", "argo-server",
+		"-n", ArgoNamespace,
+		"-o", "jsonpath={.spec.template.spec.containers[0].args}")
+	verifyCmd.Env = append(os.Environ(), "KUBECONFIG="+kubeconfigPath)
+	verifyOutput, _ := verifyCmd.CombinedOutput()
+	t.Logf("Argo Server container args after patch: %s", string(verifyOutput))
+
+	// Also check the readinessProbe scheme
+	//nolint:gosec // Using kubectl in tests is expected
+	probeCmd := exec.Command("kubectl", "get", "deployment", "argo-server",
+		"-n", ArgoNamespace,
+		"-o", "jsonpath={.spec.template.spec.containers[0].readinessProbe.httpGet.scheme}")
+	probeCmd.Env = append(os.Environ(), "KUBECONFIG="+kubeconfigPath)
+	probeOutput, _ := probeCmd.CombinedOutput()
+	t.Logf("Argo Server readinessProbe scheme after patch: %s", string(probeOutput))
+
+	t.Log("Argo Server is ready (HTTP mode)")
+	return nil
+}
+
+// waitForDeploymentAvailable waits for a deployment to be available.
+func waitForDeploymentAvailable(t *testing.T, kubeconfigPath, deploymentName string) error {
+	t.Helper()
+
 	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
 	defer cancel()
 
@@ -368,24 +454,19 @@ func waitForArgoServerShared(t *testing.T, kubeconfigPath string) error {
 	for {
 		select {
 		case <-ctx.Done():
-			return fmt.Errorf("timeout waiting for Argo Server to be ready")
+			return fmt.Errorf("timeout waiting for deployment %s", deploymentName)
 		case <-ticker.C:
-			// Check if the deployment is ready
 			//nolint:gosec // Using kubectl in tests is expected
 			cmd := exec.Command("kubectl", "wait", "--for=condition=available",
 				"--timeout=5s",
 				"-n", ArgoNamespace,
-				"deployment/argo-server")
+				"deployment/"+deploymentName)
 			cmd.Env = append(os.Environ(), "KUBECONFIG="+kubeconfigPath)
-			output, err := cmd.CombinedOutput()
+			_, err := cmd.CombinedOutput()
 
 			if err == nil {
-				t.Log("Argo Server is ready")
 				return nil
 			}
-
-			// Log the error but continue waiting
-			t.Logf("Waiting for Argo Server... %s", string(output))
 		}
 	}
 }
@@ -394,9 +475,34 @@ func waitForArgoServerShared(t *testing.T, kubeconfigPath string) error {
 func startPortForward(t *testing.T, kubeconfigPath string) (*exec.Cmd, int, error) {
 	t.Helper()
 
-	// Use a fixed local port to avoid conflicts - we'll use 0 and parse the output
-	// But kubectl port-forward doesn't easily give us the port, so we use a known port
-	localPort := ArgoServerPort
+	// First, check that the argo-server pod is ready
+	//nolint:gosec // Using kubectl in tests is expected
+	checkPodCmd := exec.Command("kubectl", "get", "pods", "-n", ArgoNamespace,
+		"-l", "app=argo-server", "-o", "jsonpath={.items[0].status.phase}")
+	checkPodCmd.Env = append(os.Environ(), "KUBECONFIG="+kubeconfigPath)
+	podStatus, _ := checkPodCmd.CombinedOutput()
+	t.Logf("Argo Server pod status: %s", string(podStatus))
+
+	// Check what port the service is using
+	//nolint:gosec // Using kubectl in tests is expected
+	checkSvcCmd := exec.Command("kubectl", "get", "svc", "argo-server", "-n", ArgoNamespace,
+		"-o", "jsonpath={.spec.ports[0].port}")
+	checkSvcCmd.Env = append(os.Environ(), "KUBECONFIG="+kubeconfigPath)
+	svcPort, _ := checkSvcCmd.CombinedOutput()
+	t.Logf("Argo Server service port: %s", string(svcPort))
+
+	// Find an available port by binding to :0
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to find available port: %w", err)
+	}
+	localPort := listener.Addr().(*net.TCPAddr).Port
+	// Close the listener so kubectl can use the port
+	if err := listener.Close(); err != nil {
+		return nil, 0, fmt.Errorf("failed to close listener: %w", err)
+	}
+
+	t.Logf("Using local port %d for port-forward", localPort)
 
 	//nolint:gosec // Using kubectl in tests is expected
 	cmd := exec.Command("kubectl", "port-forward",
@@ -405,35 +511,52 @@ func startPortForward(t *testing.T, kubeconfigPath string) (*exec.Cmd, int, erro
 		fmt.Sprintf("%d:%d", localPort, ArgoServerPort))
 	cmd.Env = append(os.Environ(), "KUBECONFIG="+kubeconfigPath)
 
+	// Capture stdout and stderr for debugging
+	var stdout, stderr bytes.Buffer
+	cmd.Stdout = &stdout
+	cmd.Stderr = &stderr
+
 	// Start the port-forward in the background
 	if err := cmd.Start(); err != nil {
 		return nil, 0, fmt.Errorf("failed to start port-forward: %w", err)
 	}
 
 	// Wait for the port-forward to be ready by checking if we can connect
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	defer cancel()
 
-	ticker := time.NewTicker(500 * time.Millisecond)
+	ticker := time.NewTicker(1 * time.Second)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ctx.Done():
+			stderrOutput := stderr.String()
+			stdoutOutput := stdout.String()
 			stopPortForward(cmd)
-			return nil, 0, fmt.Errorf("timeout waiting for port-forward to be ready")
+			return nil, 0, fmt.Errorf("timeout waiting for port-forward to be ready (stdout: %s, stderr: %s)", stdoutOutput, stderrOutput)
 		case <-ticker.C:
+			// Check if the process has exited unexpectedly
+			if cmd.ProcessState != nil && cmd.ProcessState.Exited() {
+				stderrOutput := stderr.String()
+				stdoutOutput := stdout.String()
+				return nil, 0, fmt.Errorf("port-forward process exited unexpectedly (stdout: %s, stderr: %s)", stdoutOutput, stderrOutput)
+			}
+
 			// Try to connect to the port to verify it's ready
+			// We patched argo-server to use HTTP (--secure=false)
 			//nolint:gosec // Using curl in tests is expected
 			checkCmd := exec.Command("curl", "-s", "-o", "/dev/null", "-w", "%{http_code}",
+				"--max-time", "2",
 				fmt.Sprintf("http://localhost:%d/api/v1/info", localPort))
 			output, err := checkCmd.CombinedOutput()
-			if err == nil && (string(output) == "200" || string(output) == "401") {
-				// 200 or 401 means the server is responding
-				t.Logf("Port-forward is ready (HTTP status: %s)", string(output))
+			httpStatus := string(output)
+			if err == nil && (httpStatus == "200" || httpStatus == "401" || httpStatus == "403") {
+				// 200, 401, or 403 means the server is responding
+				t.Logf("Port-forward is ready (HTTP status: %s)", httpStatus)
 				return cmd, localPort, nil
 			}
-			t.Logf("Waiting for port-forward... (status: %s, err: %v)", string(output), err)
+			t.Logf("Waiting for port-forward... (status: %s, err: %v, stdout: %s, stderr: %s)", httpStatus, err, stdout.String(), stderr.String())
 		}
 	}
 }
@@ -444,6 +567,26 @@ func stopPortForward(cmd *exec.Cmd) {
 		_ = cmd.Process.Kill()
 		_ = cmd.Wait()
 	}
+}
+
+// getArgoServerToken creates a service account token for Argo Server authentication.
+func getArgoServerToken(t *testing.T, kubeconfigPath string) (string, error) {
+	t.Helper()
+
+	// Create a token for the argo-server service account using kubectl
+	//nolint:gosec // Using kubectl in tests is expected
+	cmd := exec.Command("kubectl", "create", "token", "argo-server",
+		"-n", ArgoNamespace,
+		"--duration=1h")
+	cmd.Env = append(os.Environ(), "KUBECONFIG="+kubeconfigPath)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		return "", fmt.Errorf("failed to create token: %w: %s", err, string(output))
+	}
+
+	token := strings.TrimSpace(string(output))
+	t.Logf("Created Argo Server token (length: %d)", len(token))
+	return "Bearer " + token, nil
 }
 
 // installArgoWorkflows installs Argo Workflows in the k3s cluster.
