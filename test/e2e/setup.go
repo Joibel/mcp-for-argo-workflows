@@ -51,7 +51,8 @@ const (
 )
 
 // Shared cluster state for all E2E tests.
-// We maintain separate state for each connection mode to allow parallel testing.
+// Connection mode is determined by E2E_MODE env var at process startup.
+// To test both modes in parallel, run separate test processes with different E2E_MODE values.
 var (
 	sharedCluster     *E2ECluster
 	sharedClusterOnce sync.Once
