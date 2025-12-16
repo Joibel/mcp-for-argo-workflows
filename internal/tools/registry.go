@@ -29,6 +29,7 @@ func AllTools() []ToolRegistrar {
 		RegisterStopWorkflow,
 		RegisterTerminateWorkflow,
 		RegisterRenderWorkflowGraph,
+		RegisterRenderManifestGraph,
 		RegisterListWorkflowTemplates,
 		RegisterGetWorkflowTemplate,
 		RegisterCreateWorkflowTemplate,
@@ -157,6 +158,11 @@ func RegisterListClusterWorkflowTemplates(s *mcp.Server, client argo.ClientInter
 // RegisterRenderWorkflowGraph registers the render_workflow_graph tool.
 func RegisterRenderWorkflowGraph(s *mcp.Server, client argo.ClientInterface) {
 	mcp.AddTool(s, RenderWorkflowGraphTool(), RenderWorkflowGraphHandler(client))
+}
+
+// RegisterRenderManifestGraph registers the render_manifest_graph tool.
+func RegisterRenderManifestGraph(s *mcp.Server, _ argo.ClientInterface) {
+	mcp.AddTool(s, RenderManifestGraphTool(), RenderManifestGraphHandler())
 }
 
 // RegisterGetClusterWorkflowTemplate registers the get_cluster_workflow_template tool.
