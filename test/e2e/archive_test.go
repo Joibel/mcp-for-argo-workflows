@@ -420,7 +420,8 @@ func TestArchive_DeleteArchivedWorkflow_EmptyUID(t *testing.T) {
 	ctx := context.Background()
 	cluster := SetupE2ECluster(ctx, t)
 
-	// This test works in any mode since it tests input validation
+	// Input validation happens before the archive service is called,
+	// but we still require Argo Server mode to initialize the service
 	if cluster.ConnectionMode != ModeArgoServer {
 		t.Skip("Skipping test: requires Argo Server mode")
 	}
@@ -448,7 +449,8 @@ func TestArchive_ResubmitArchivedWorkflow_EmptyUID(t *testing.T) {
 	ctx := context.Background()
 	cluster := SetupE2ECluster(ctx, t)
 
-	// This test works in any mode since it tests input validation
+	// Input validation happens before the archive service is called,
+	// but we still require Argo Server mode to initialize the service
 	if cluster.ConnectionMode != ModeArgoServer {
 		t.Skip("Skipping test: requires Argo Server mode")
 	}
@@ -476,7 +478,8 @@ func TestArchive_RetryArchivedWorkflow_EmptyUID(t *testing.T) {
 	ctx := context.Background()
 	cluster := SetupE2ECluster(ctx, t)
 
-	// This test works in any mode since it tests input validation
+	// Input validation happens before the archive service is called,
+	// but we still require Argo Server mode to initialize the service
 	if cluster.ConnectionMode != ModeArgoServer {
 		t.Skip("Skipping test: requires Argo Server mode")
 	}
