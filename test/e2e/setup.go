@@ -344,11 +344,12 @@ func installArgoWorkflowsShared(t *testing.T, kubeconfigPath string) error {
 }
 
 // waitForArgoControllerShared waits for the Argo controller deployment to be ready (non-fatal version).
+// Uses 5 minute timeout to allow for PostgreSQL initialization with quick-start-postgres.yaml.
 func waitForArgoControllerShared(t *testing.T, kubeconfigPath string) error {
 	t.Helper()
 
 	// Wait for the argo namespace to exist
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
 	ticker := time.NewTicker(2 * time.Second)
@@ -451,10 +452,11 @@ func waitForArgoServerShared(t *testing.T, kubeconfigPath string) error {
 }
 
 // waitForDeploymentAvailable waits for a deployment to be available.
+// Uses 5 minute timeout to allow for PostgreSQL initialization with quick-start-postgres.yaml.
 func waitForDeploymentAvailable(t *testing.T, kubeconfigPath, deploymentName string) error {
 	t.Helper()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
 	ticker := time.NewTicker(2 * time.Second)
