@@ -383,7 +383,17 @@ func waitForArgoControllerShared(t *testing.T, kubeconfigPath string) error {
 func waitForArgoServerShared(t *testing.T, kubeconfigPath string) error {
 	t.Helper()
 
-	// First wait for the initial deployment to be available
+	// Wait for PostgreSQL to be ready first (required by quick-start-postgres.yaml)
+	// PostgreSQL must be running before argo-server can connect to it
+	t.Log("Waiting for PostgreSQL to be ready...")
+	if err := waitForDeploymentAvailable(t, kubeconfigPath, "postgres"); err != nil {
+		t.Log("PostgreSQL deployment not found or not ready (may be using quick-start-minimal.yaml)")
+		// Continue anyway - postgres might not exist if using minimal install
+	} else {
+		t.Log("PostgreSQL is ready")
+	}
+
+	// Now wait for the argo-server deployment to be available
 	if err := waitForDeploymentAvailable(t, kubeconfigPath, "argo-server"); err != nil {
 		return fmt.Errorf("timeout waiting for Argo Server initial deployment: %w", err)
 	}
