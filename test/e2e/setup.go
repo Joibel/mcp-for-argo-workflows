@@ -38,13 +38,14 @@ const (
 
 const (
 	// ArgoVersion is the Argo Workflows version to install for E2E tests.
-	ArgoVersion = "v3.6.2"
+	ArgoVersion = "v3.7.6"
 
 	// ArgoNamespace is the namespace where Argo Workflows is installed.
 	ArgoNamespace = "argo"
 
 	// ArgoQuickStartURL is the URL to the Argo quick-start manifest.
-	ArgoQuickStartURL = "https://github.com/argoproj/argo-workflows/releases/download/" + ArgoVersion + "/quick-start-minimal.yaml"
+	// Using quick-start-postgres.yaml to enable workflow archiving for archive E2E tests.
+	ArgoQuickStartURL = "https://github.com/argoproj/argo-workflows/releases/download/" + ArgoVersion + "/quick-start-postgres.yaml"
 
 	// ArgoServerPort is the port where Argo Server listens.
 	ArgoServerPort = 2746

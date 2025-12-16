@@ -17,49 +17,13 @@ import (
 // =============================================================================
 // Phase 8: Archived Workflow Tools E2E Tests
 //
-// These tests require:
-// 1. Argo Server mode (not direct Kubernetes API mode)
-// 2. Archive persistence configured (PostgreSQL/MySQL)
-//
-// The quick-start-minimal.yaml installation does NOT include archive persistence,
-// so these tests will skip in the default E2E environment. They will run in
-// environments where archive is properly configured.
+// These tests require Argo Server mode (not direct Kubernetes API mode).
+// Archive persistence is provided by quick-start-postgres.yaml which includes
+// PostgreSQL for workflow archiving.
 // =============================================================================
 
-// isArchiveAvailable checks if the archive is available and working.
-// Returns true if archive is configured and accessible.
-func isArchiveAvailable(t *testing.T, cluster *E2ECluster) bool {
-	t.Helper()
-
-	// Archive requires Argo Server mode
-	if cluster.ConnectionMode != ModeArgoServer {
-		t.Log("Archive not available: not in Argo Server mode")
-		return false
-	}
-
-	// Try to get the archived workflow service
-	archiveService, err := cluster.ArgoClient.ArchivedWorkflowService()
-	if err != nil {
-		t.Logf("Archive not available: failed to get archive service: %v", err)
-		return false
-	}
-
-	// Try to list archived workflows (empty list is fine, error means archive isn't configured)
-	ctx := cluster.ArgoClient.Context()
-	_, err = archiveService.ListArchivedWorkflows(ctx, &workflowarchive.ListArchivedWorkflowsRequest{
-		ListOptions: nil,
-	})
-	if err != nil {
-		t.Logf("Archive not available: list request failed: %v", err)
-		return false
-	}
-
-	t.Log("Archive is available")
-	return true
-}
-
 // submitAndArchiveWorkflow submits a workflow, waits for completion, and waits for archival.
-// Returns the workflow UID if successful, or skips the test if archival doesn't happen.
+// Returns the workflow name and UID.
 func submitAndArchiveWorkflow(t *testing.T, cluster *E2ECluster, manifestFile string) (workflowName, workflowUID string) {
 	t.Helper()
 
@@ -98,9 +62,7 @@ func submitAndArchiveWorkflow(t *testing.T, cluster *E2ECluster, manifestFile st
 	_, err = archiveService.GetArchivedWorkflow(clientCtx, &workflowarchive.GetArchivedWorkflowRequest{
 		Uid: workflowUID,
 	})
-	if err != nil {
-		t.Skipf("Workflow not in archive (archive persistence may not be configured): %v", err)
-	}
+	require.NoError(t, err, "Workflow should be in archive")
 
 	t.Log("Workflow is in archive")
 	return workflowName, workflowUID
@@ -123,6 +85,11 @@ func TestArchive_RequiresArgoServerMode(t *testing.T) {
 		archiveService, err := cluster.ArgoClient.ArchivedWorkflowService()
 		require.NoError(t, err, "Should be able to get archive service in Argo Server mode")
 		require.NotNil(t, archiveService, "Archive service should not be nil")
+
+		// Verify we can list archived workflows (archive is configured)
+		clientCtx := cluster.ArgoClient.Context()
+		_, err = archiveService.ListArchivedWorkflows(clientCtx, &workflowarchive.ListArchivedWorkflowsRequest{})
+		require.NoError(t, err, "Should be able to list archived workflows")
 	} else {
 		t.Log("In Kubernetes API mode - archive tools are not available")
 
@@ -141,9 +108,9 @@ func TestArchive_DeleteArchivedWorkflow(t *testing.T) {
 	ctx := context.Background()
 	cluster := SetupE2ECluster(ctx, t)
 
-	// Check if archive is available
-	if !isArchiveAvailable(t, cluster) {
-		t.Skip("Skipping test: archive is not available (requires Argo Server mode with persistence)")
+	// Archive requires Argo Server mode
+	if cluster.ConnectionMode != ModeArgoServer {
+		t.Skip("Skipping test: archive requires Argo Server mode")
 	}
 
 	clientCtx := cluster.ArgoClient.Context()
@@ -197,9 +164,9 @@ func TestArchive_ResubmitArchivedWorkflow(t *testing.T) {
 	ctx := context.Background()
 	cluster := SetupE2ECluster(ctx, t)
 
-	// Check if archive is available
-	if !isArchiveAvailable(t, cluster) {
-		t.Skip("Skipping test: archive is not available (requires Argo Server mode with persistence)")
+	// Archive requires Argo Server mode
+	if cluster.ConnectionMode != ModeArgoServer {
+		t.Skip("Skipping test: archive requires Argo Server mode")
 	}
 
 	clientCtx := cluster.ArgoClient.Context()
@@ -271,9 +238,9 @@ func TestArchive_RetryArchivedWorkflow(t *testing.T) {
 	ctx := context.Background()
 	cluster := SetupE2ECluster(ctx, t)
 
-	// Check if archive is available
-	if !isArchiveAvailable(t, cluster) {
-		t.Skip("Skipping test: archive is not available (requires Argo Server mode with persistence)")
+	// Archive requires Argo Server mode
+	if cluster.ConnectionMode != ModeArgoServer {
+		t.Skip("Skipping test: archive requires Argo Server mode")
 	}
 
 	clientCtx := cluster.ArgoClient.Context()
@@ -336,9 +303,9 @@ func TestArchive_DeleteArchivedWorkflow_NotFound(t *testing.T) {
 	ctx := context.Background()
 	cluster := SetupE2ECluster(ctx, t)
 
-	// Check if archive is available
-	if !isArchiveAvailable(t, cluster) {
-		t.Skip("Skipping test: archive is not available (requires Argo Server mode with persistence)")
+	// Archive requires Argo Server mode
+	if cluster.ConnectionMode != ModeArgoServer {
+		t.Skip("Skipping test: archive requires Argo Server mode")
 	}
 
 	clientCtx := cluster.ArgoClient.Context()
@@ -364,9 +331,9 @@ func TestArchive_ResubmitArchivedWorkflow_NotFound(t *testing.T) {
 	ctx := context.Background()
 	cluster := SetupE2ECluster(ctx, t)
 
-	// Check if archive is available
-	if !isArchiveAvailable(t, cluster) {
-		t.Skip("Skipping test: archive is not available (requires Argo Server mode with persistence)")
+	// Archive requires Argo Server mode
+	if cluster.ConnectionMode != ModeArgoServer {
+		t.Skip("Skipping test: archive requires Argo Server mode")
 	}
 
 	clientCtx := cluster.ArgoClient.Context()
@@ -392,9 +359,9 @@ func TestArchive_RetryArchivedWorkflow_NotFound(t *testing.T) {
 	ctx := context.Background()
 	cluster := SetupE2ECluster(ctx, t)
 
-	// Check if archive is available
-	if !isArchiveAvailable(t, cluster) {
-		t.Skip("Skipping test: archive is not available (requires Argo Server mode with persistence)")
+	// Archive requires Argo Server mode
+	if cluster.ConnectionMode != ModeArgoServer {
+		t.Skip("Skipping test: archive requires Argo Server mode")
 	}
 
 	clientCtx := cluster.ArgoClient.Context()
@@ -420,10 +387,9 @@ func TestArchive_DeleteArchivedWorkflow_EmptyUID(t *testing.T) {
 	ctx := context.Background()
 	cluster := SetupE2ECluster(ctx, t)
 
-	// Input validation happens before the archive service is called,
-	// but we still require Argo Server mode to initialize the service
+	// Archive requires Argo Server mode
 	if cluster.ConnectionMode != ModeArgoServer {
-		t.Skip("Skipping test: requires Argo Server mode")
+		t.Skip("Skipping test: archive requires Argo Server mode")
 	}
 
 	clientCtx := cluster.ArgoClient.Context()
@@ -449,10 +415,9 @@ func TestArchive_ResubmitArchivedWorkflow_EmptyUID(t *testing.T) {
 	ctx := context.Background()
 	cluster := SetupE2ECluster(ctx, t)
 
-	// Input validation happens before the archive service is called,
-	// but we still require Argo Server mode to initialize the service
+	// Archive requires Argo Server mode
 	if cluster.ConnectionMode != ModeArgoServer {
-		t.Skip("Skipping test: requires Argo Server mode")
+		t.Skip("Skipping test: archive requires Argo Server mode")
 	}
 
 	clientCtx := cluster.ArgoClient.Context()
@@ -478,10 +443,9 @@ func TestArchive_RetryArchivedWorkflow_EmptyUID(t *testing.T) {
 	ctx := context.Background()
 	cluster := SetupE2ECluster(ctx, t)
 
-	// Input validation happens before the archive service is called,
-	// but we still require Argo Server mode to initialize the service
+	// Archive requires Argo Server mode
 	if cluster.ConnectionMode != ModeArgoServer {
-		t.Skip("Skipping test: requires Argo Server mode")
+		t.Skip("Skipping test: archive requires Argo Server mode")
 	}
 
 	clientCtx := cluster.ArgoClient.Context()
