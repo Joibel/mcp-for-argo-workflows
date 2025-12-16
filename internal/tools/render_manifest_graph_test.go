@@ -169,6 +169,14 @@ func TestRenderManifestGraphHandler(t *testing.T) {
 			expectedError: "unsupported manifest kind",
 		},
 		{
+			name: "missing entrypoint template",
+			input: RenderManifestGraphInput{
+				Manifest: missingEntrypointManifest,
+				Format:   "mermaid",
+			},
+			expectedError: "entrypoint template",
+		},
+		{
 			name: "workflow with conditional steps",
 			input: RenderManifestGraphInput{
 				Manifest: conditionalWorkflowManifest,
@@ -301,7 +309,8 @@ func TestBuildGraphFromSpec(t *testing.T) {
 	spec, _, _, err := extractWorkflowSpec(dagWorkflowManifest)
 	require.NoError(t, err)
 
-	nodes := buildGraphFromSpec(spec)
+	nodes, err := buildGraphFromSpec(spec)
+	require.NoError(t, err)
 	assert.Len(t, nodes, 3)
 	assert.Contains(t, nodes, "build")
 	assert.Contains(t, nodes, "test")
@@ -491,6 +500,19 @@ metadata:
   name: test
 data:
   key: value
+`
+
+const missingEntrypointManifest = `
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  name: missing-entrypoint
+spec:
+  entrypoint: nonexistent-template
+  templates:
+    - name: actual-template
+      container:
+        image: alpine
 `
 
 const conditionalWorkflowManifest = `

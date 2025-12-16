@@ -16,6 +16,12 @@ import (
 const (
 	// KindWorkflow is the Workflow manifest kind.
 	KindWorkflow = "Workflow"
+	// KindWorkflowTemplate is the WorkflowTemplate manifest kind.
+	KindWorkflowTemplate = "WorkflowTemplate"
+	// KindClusterWorkflowTemplate is the ClusterWorkflowTemplate manifest kind.
+	KindClusterWorkflowTemplate = "ClusterWorkflowTemplate"
+	// KindCronWorkflow is the CronWorkflow manifest kind.
+	KindCronWorkflow = "CronWorkflow"
 )
 
 // RenderManifestGraphInput defines the input parameters for the render_manifest_graph tool.
@@ -86,7 +92,10 @@ func RenderManifestGraphHandler() func(context.Context, *mcp.CallToolRequest, Re
 		}
 
 		// Build the graph structure from the spec
-		nodes := buildGraphFromSpec(spec)
+		nodes, err := buildGraphFromSpec(spec)
+		if err != nil {
+			return nil, nil, err
+		}
 
 		// Render the graph
 		var graph string
@@ -170,30 +179,30 @@ func extractWorkflowSpec(manifest string) (*wfv1.WorkflowSpec, string, string, e
 		}
 		return &wf.Spec, kind, name, nil
 
-	case "WorkflowTemplate":
+	case KindWorkflowTemplate:
 		var wft wfv1.WorkflowTemplate
 		if err := yaml.Unmarshal([]byte(manifest), &wft); err != nil {
-			return nil, "", "", fmt.Errorf("failed to parse WorkflowTemplate manifest: %w", err)
+			return nil, "", "", fmt.Errorf("failed to parse %s manifest: %w", KindWorkflowTemplate, err)
 		}
 		if name == "" {
 			name = wft.Name
 		}
 		return &wft.Spec, kind, name, nil
 
-	case "ClusterWorkflowTemplate":
+	case KindClusterWorkflowTemplate:
 		var cwft wfv1.ClusterWorkflowTemplate
 		if err := yaml.Unmarshal([]byte(manifest), &cwft); err != nil {
-			return nil, "", "", fmt.Errorf("failed to parse ClusterWorkflowTemplate manifest: %w", err)
+			return nil, "", "", fmt.Errorf("failed to parse %s manifest: %w", KindClusterWorkflowTemplate, err)
 		}
 		if name == "" {
 			name = cwft.Name
 		}
 		return &cwft.Spec, kind, name, nil
 
-	case "CronWorkflow":
+	case KindCronWorkflow:
 		var cronWf wfv1.CronWorkflow
 		if err := yaml.Unmarshal([]byte(manifest), &cronWf); err != nil {
-			return nil, "", "", fmt.Errorf("failed to parse CronWorkflow manifest: %w", err)
+			return nil, "", "", fmt.Errorf("failed to parse %s manifest: %w", KindCronWorkflow, err)
 		}
 		if name == "" {
 			name = cronWf.Name
@@ -201,12 +210,13 @@ func extractWorkflowSpec(manifest string) (*wfv1.WorkflowSpec, string, string, e
 		return &cronWf.Spec.WorkflowSpec, kind, name, nil
 
 	default:
-		return nil, "", "", fmt.Errorf("unsupported manifest kind: %s (must be %s, WorkflowTemplate, ClusterWorkflowTemplate, or CronWorkflow)", kind, KindWorkflow)
+		return nil, "", "", fmt.Errorf("unsupported manifest kind: %s (must be %s, %s, %s, or %s)", kind, KindWorkflow, KindWorkflowTemplate, KindClusterWorkflowTemplate, KindCronWorkflow)
 	}
 }
 
 // buildGraphFromSpec builds the graph structure from a WorkflowSpec.
-func buildGraphFromSpec(spec *wfv1.WorkflowSpec) map[string]*manifestNode {
+// Returns an error if the entrypoint template is not found.
+func buildGraphFromSpec(spec *wfv1.WorkflowSpec) (map[string]*manifestNode, error) {
 	nodes := make(map[string]*manifestNode)
 
 	// Build a map of templates for lookup
@@ -221,9 +231,14 @@ func buildGraphFromSpec(spec *wfv1.WorkflowSpec) map[string]*manifestNode {
 		entrypoint = spec.Templates[0].Name
 	}
 
+	// Handle case where no templates exist
+	if entrypoint == "" {
+		return nodes, nil
+	}
+
 	entryTemplate := templateMap[entrypoint]
 	if entryTemplate == nil {
-		return nodes
+		return nil, fmt.Errorf("entrypoint template %q not found in manifest", entrypoint)
 	}
 
 	// Process based on template type
@@ -273,7 +288,7 @@ func buildGraphFromSpec(spec *wfv1.WorkflowSpec) map[string]*manifestNode {
 		nodes[entrypoint] = node
 	}
 
-	return nodes
+	return nodes, nil
 }
 
 // getTemplateType returns the type of a template.
