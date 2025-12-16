@@ -330,14 +330,17 @@ func installArgoWorkflowsShared(t *testing.T, kubeconfigPath string) error {
 		return fmt.Errorf("failed to download Argo quick-start manifest: %s: %w", string(output), err)
 	}
 
-	// Apply the manifest
+	// Apply the manifest with -n argo to set default namespace for resources without explicit namespace.
+	// Some resources in quick-start-postgres.yaml (like postgres Deployment/Service) don't have namespace
+	// fields, so they need the -n flag to be created in the argo namespace.
 	//nolint:gosec // Using kubectl in tests is expected
-	applyCmd := exec.Command("kubectl", "apply", "-f", manifestPath)
+	applyCmd := exec.Command("kubectl", "apply", "-n", ArgoNamespace, "-f", manifestPath)
 	applyCmd.Env = append(os.Environ(), "KUBECONFIG="+kubeconfigPath)
 	output, err = applyCmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("failed to apply Argo manifest: %s: %w", string(output), err)
 	}
+	t.Logf("kubectl apply output: %s", string(output))
 
 	t.Logf("Argo Workflows %s installed", ArgoVersion)
 	return nil
