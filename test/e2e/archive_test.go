@@ -198,7 +198,8 @@ func TestArchive_ResubmitArchivedWorkflow(t *testing.T) {
 	t.Log("Testing resubmit_archived_workflow tool...")
 	resubmitHandler := tools.ResubmitArchivedWorkflowHandler(cluster.ArgoClient)
 	resubmitInput := tools.ResubmitArchivedWorkflowInput{
-		UID: workflowUID,
+		UID:       workflowUID,
+		Namespace: cluster.ArgoNamespace,
 	}
 
 	_, resubmitOutput, err := resubmitHandler(clientCtx, nil, resubmitInput)
@@ -264,6 +265,7 @@ func TestArchive_RetryArchivedWorkflow(t *testing.T) {
 	retryHandler := tools.RetryArchivedWorkflowHandler(cluster.ArgoClient)
 	retryInput := tools.RetryArchivedWorkflowInput{
 		UID:               workflowUID,
+		Namespace:         cluster.ArgoNamespace,
 		RestartSuccessful: true, // Restart all nodes
 	}
 
