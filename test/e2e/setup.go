@@ -237,6 +237,11 @@ func createSharedCluster(ctx context.Context, t *testing.T) (*E2ECluster, error)
 		cluster.portForwardCmd = portForwardCmd
 		cluster.ArgoServerURL = fmt.Sprintf("localhost:%d", localPort)
 
+		// Register cleanup for port-forward process
+		t.Cleanup(func() {
+			stopPortForward(portForwardCmd)
+		})
+
 		t.Logf("Argo Server available at: %s", cluster.ArgoServerURL)
 
 		// Get a service account token for authentication
@@ -536,13 +541,6 @@ func startPortForward(t *testing.T, kubeconfigPath string) (*exec.Cmd, int, erro
 			stopPortForward(cmd)
 			return nil, 0, fmt.Errorf("timeout waiting for port-forward to be ready (stdout: %s, stderr: %s)", stdoutOutput, stderrOutput)
 		case <-ticker.C:
-			// Check if the process has exited unexpectedly
-			if cmd.ProcessState != nil && cmd.ProcessState.Exited() {
-				stderrOutput := stderr.String()
-				stdoutOutput := stdout.String()
-				return nil, 0, fmt.Errorf("port-forward process exited unexpectedly (stdout: %s, stderr: %s)", stdoutOutput, stderrOutput)
-			}
-
 			// Try to connect to the port to verify it's ready
 			// We patched argo-server to use HTTP (--secure=false)
 			//nolint:gosec // Using curl in tests is expected
