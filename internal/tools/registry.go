@@ -44,6 +44,9 @@ func AllTools() []ToolRegistrar {
 		RegisterSuspendCronWorkflow,
 		RegisterResumeCronWorkflow,
 		RegisterGetWorkflowNode,
+		RegisterDeleteArchivedWorkflow,
+		RegisterResubmitArchivedWorkflow,
+		RegisterRetryArchivedWorkflow,
 	}
 }
 
@@ -204,4 +207,19 @@ func RegisterResumeCronWorkflow(s *mcp.Server, client argo.ClientInterface) {
 // RegisterGetWorkflowNode registers the get_workflow_node tool.
 func RegisterGetWorkflowNode(s *mcp.Server, client argo.ClientInterface) {
 	mcp.AddTool(s, GetWorkflowNodeTool(), GetWorkflowNodeHandler(client))
+}
+
+// RegisterDeleteArchivedWorkflow registers the delete_archived_workflow tool.
+func RegisterDeleteArchivedWorkflow(s *mcp.Server, client argo.ClientInterface) {
+	mcp.AddTool(s, DeleteArchivedWorkflowTool(), DeleteArchivedWorkflowHandler(client))
+}
+
+// RegisterResubmitArchivedWorkflow registers the resubmit_archived_workflow tool.
+func RegisterResubmitArchivedWorkflow(s *mcp.Server, client argo.ClientInterface) {
+	mcp.AddTool(s, ResubmitArchivedWorkflowTool(), ResubmitArchivedWorkflowHandler(client))
+}
+
+// RegisterRetryArchivedWorkflow registers the retry_archived_workflow tool.
+func RegisterRetryArchivedWorkflow(s *mcp.Server, client argo.ClientInterface) {
+	mcp.AddTool(s, RetryArchivedWorkflowTool(), RetryArchivedWorkflowHandler(client))
 }
