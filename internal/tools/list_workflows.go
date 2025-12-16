@@ -66,7 +66,7 @@ type ListWorkflowsOutput struct {
 func ListWorkflowsTool() *mcp.Tool {
 	return &mcp.Tool{
 		Name:        "list_workflows",
-		Description: "List Argo Workflows in a namespace with optional filtering by status and labels",
+		Description: "List Argo Workflows in a namespace with optional filtering by status and labels. When connected via Argo Server, this includes both live and archived workflows.",
 	}
 }
 
