@@ -469,24 +469,47 @@ func waitForDeploymentAvailable(t *testing.T, kubeconfigPath, deploymentName str
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	ticker := time.NewTicker(2 * time.Second)
+	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
 
+	attempts := 0
 	for {
 		select {
 		case <-ctx.Done():
+			// Get final deployment status for debugging
+			//nolint:gosec // Using kubectl in tests is expected
+			statusCmd := exec.Command("kubectl", "get", "deployment", deploymentName,
+				"-n", ArgoNamespace, "-o", "wide")
+			statusCmd.Env = append(os.Environ(), "KUBECONFIG="+kubeconfigPath)
+			statusOutput, _ := statusCmd.CombinedOutput()
+			t.Logf("Final deployment status for %s:\n%s", deploymentName, string(statusOutput))
+
+			// Get pods status
+			//nolint:gosec // Using kubectl in tests is expected
+			podsCmd := exec.Command("kubectl", "get", "pods",
+				"-n", ArgoNamespace, "-l", "app="+deploymentName, "-o", "wide")
+			podsCmd.Env = append(os.Environ(), "KUBECONFIG="+kubeconfigPath)
+			podsOutput, _ := podsCmd.CombinedOutput()
+			t.Logf("Pods for %s:\n%s", deploymentName, string(podsOutput))
+
 			return fmt.Errorf("timeout waiting for deployment %s", deploymentName)
 		case <-ticker.C:
+			attempts++
 			//nolint:gosec // Using kubectl in tests is expected
 			cmd := exec.Command("kubectl", "wait", "--for=condition=available",
 				"--timeout=5s",
 				"-n", ArgoNamespace,
 				"deployment/"+deploymentName)
 			cmd.Env = append(os.Environ(), "KUBECONFIG="+kubeconfigPath)
-			_, err := cmd.CombinedOutput()
+			output, err := cmd.CombinedOutput()
 
 			if err == nil {
 				return nil
+			}
+
+			// Log progress every 6th attempt (30 seconds)
+			if attempts%6 == 0 {
+				t.Logf("Still waiting for deployment %s (attempt %d): %s", deploymentName, attempts, string(output))
 			}
 		}
 	}
