@@ -238,10 +238,12 @@ func createSharedCluster(ctx context.Context, t *testing.T) (*E2ECluster, error)
 		cluster.portForwardCmd = portForwardCmd
 		cluster.ArgoServerURL = fmt.Sprintf("localhost:%d", localPort)
 
-		// Register cleanup for port-forward process
-		t.Cleanup(func() {
-			stopPortForward(portForwardCmd)
-		})
+		// Note: The port-forward process is intentionally not cleaned up here.
+		// Since we use a shared cluster pattern, t.Cleanup() would be scoped to
+		// the first test and would kill the port-forward when that test finishes,
+		// breaking subsequent tests. The port-forward will be terminated when:
+		// 1. The test binary process exits (parent dies)
+		// 2. The k3s container is terminated (kills the pod)
 
 		t.Logf("Argo Server available at: %s", cluster.ArgoServerURL)
 
