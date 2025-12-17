@@ -3,6 +3,7 @@
   "extends": [
     "config:recommended",
     "docker:pinDigests",
+    ":pinGitHubActionDigests",
     ":semanticCommits"
   ],
   "labels": ["dependencies"],
@@ -10,7 +11,7 @@
   "timezone": "UTC",
   "packageRules": [
     {
-      "description": "Docker base images - update digests weekly",
+      "description": "Docker base images - update digests daily",
       "matchManagers": ["dockerfile"],
       "matchUpdateTypes": ["digest"],
       "automerge": false,
@@ -30,7 +31,7 @@
       "labels": ["dependencies", "go"]
     },
     {
-      "description": "GitHub Actions - update weekly",
+      "description": "GitHub Actions - update daily",
       "matchManagers": ["github-actions"],
       "automerge": false,
       "labels": ["dependencies", "ci"]
