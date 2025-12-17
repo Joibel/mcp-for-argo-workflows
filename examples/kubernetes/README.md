@@ -125,10 +125,48 @@ resources:
 
 ## Security Considerations
 
-1. **RBAC**: The service account has permissions to manage workflows. Review and restrict as needed.
-2. **Network Policy**: Consider adding NetworkPolicy to restrict access.
-3. **TLS**: Use TLS termination at the Ingress level for production.
-4. **Authentication**: Consider adding authentication middleware for production deployments.
+### RBAC Permissions
+
+The provided `rbac.yaml` uses a **ClusterRole** with full CRUD permissions on Argo Workflows resources. This is intentional as the MCP server needs to:
+
+- Create and submit workflows
+- List, get, and watch workflow status
+- Delete, retry, and resubmit workflows
+- Manage workflow templates and cron workflows
+
+**For read-only deployments**, modify the ClusterRole to only include `get`, `list`, `watch` verbs:
+
+```yaml
+rules:
+  - apiGroups: ["argoproj.io"]
+    resources: ["workflows", "workflowtemplates", "clusterworkflowtemplates", "cronworkflows"]
+    verbs: ["get", "list", "watch"]  # Remove create, update, patch, delete
+```
+
+**For namespace-scoped access**, replace the ClusterRoleBinding with a RoleBinding in each namespace:
+
+```yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: mcp-for-argo-workflows
+  namespace: argo  # Target namespace
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: mcp-for-argo-workflows
+subjects:
+  - kind: ServiceAccount
+    name: mcp-for-argo-workflows
+    namespace: mcp-argo
+```
+
+### Other Security Recommendations
+
+1. **Network Policy**: Consider adding NetworkPolicy to restrict access.
+2. **TLS**: Use TLS termination at the Ingress level for production.
+3. **Authentication**: Consider adding authentication middleware for production deployments.
+4. **Image Pinning**: Pin to a specific image version or digest for production (see comments in deployment.yaml).
 
 ## Troubleshooting
 
