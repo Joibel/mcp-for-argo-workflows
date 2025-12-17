@@ -48,6 +48,7 @@ func AllTools() []ToolRegistrar {
 		RegisterDeleteArchivedWorkflow,
 		RegisterResubmitArchivedWorkflow,
 		RegisterRetryArchivedWorkflow,
+		RegisterConvertWorkflow,
 	}
 }
 
@@ -228,4 +229,9 @@ func RegisterResubmitArchivedWorkflow(s *mcp.Server, client argo.ClientInterface
 // RegisterRetryArchivedWorkflow registers the retry_archived_workflow tool.
 func RegisterRetryArchivedWorkflow(s *mcp.Server, client argo.ClientInterface) {
 	mcp.AddTool(s, RetryArchivedWorkflowTool(), RetryArchivedWorkflowHandler(client))
+}
+
+// RegisterConvertWorkflow registers the convert_workflow tool.
+func RegisterConvertWorkflow(s *mcp.Server, _ argo.ClientInterface) {
+	mcp.AddTool(s, ConvertWorkflowTool(), ConvertWorkflowHandler())
 }
