@@ -1,0 +1,49 @@
+---
+# ClusterRole for MCP for Argo Workflows
+# This grants permissions to manage Argo Workflows resources
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: mcp-for-argo-workflows
+rules:
+  # Workflows
+  - apiGroups: ["argoproj.io"]
+    resources: ["workflows"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # WorkflowTemplates
+  - apiGroups: ["argoproj.io"]
+    resources: ["workflowtemplates"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # ClusterWorkflowTemplates
+  - apiGroups: ["argoproj.io"]
+    resources: ["clusterworkflowtemplates"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # CronWorkflows
+  - apiGroups: ["argoproj.io"]
+    resources: ["cronworkflows"]
+    verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+  # Pods (for logs)
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: [""]
+    resources: ["pods/log"]
+    verbs: ["get"]
+  # Events (for debugging)
+  - apiGroups: [""]
+    resources: ["events"]
+    verbs: ["get", "list", "watch"]
+---
+# ClusterRoleBinding to bind the role to the service account
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: mcp-for-argo-workflows
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: mcp-for-argo-workflows
+subjects:
+  - kind: ServiceAccount
+    name: mcp-for-argo-workflows
+    namespace: mcp-argo

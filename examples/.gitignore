@@ -1,0 +1,7 @@
+# Ignore local configuration files that may contain secrets
+docker-compose/kubeconfig
+docker-compose/.env
+
+# Ignore any temporary files
+*.tmp
+*.bak

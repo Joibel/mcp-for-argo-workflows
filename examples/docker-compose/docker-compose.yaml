@@ -1,0 +1,43 @@
+services:
+  mcp-for-argo-workflows:
+    image: ghcr.io/joibel/mcp-for-argo-workflows:latest
+    container_name: mcp-for-argo-workflows
+    ports:
+      - "8080:8080"
+    environment:
+      - MCP_TRANSPORT=http
+      - MCP_HTTP_ADDR=:8080
+      - ARGO_NAMESPACE=${ARGO_NAMESPACE:-argo}
+      # For Argo Server connection (optional)
+      - ARGO_SERVER=${ARGO_SERVER:-}
+      - ARGO_TOKEN=${ARGO_TOKEN:-}
+      - ARGO_SECURE=${ARGO_SECURE:-true}
+      - ARGO_INSECURE_SKIP_VERIFY=${ARGO_INSECURE_SKIP_VERIFY:-false}
+    volumes:
+      # Mount kubeconfig for direct Kubernetes API access
+      - ./kubeconfig:/root/.kube/config:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:8080/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 5s
+
+  # Alternative: Connect to host network (for accessing localhost services)
+  mcp-for-argo-workflows-host:
+    image: ghcr.io/joibel/mcp-for-argo-workflows:latest
+    container_name: mcp-for-argo-workflows-host
+    profiles:
+      - host-network
+    network_mode: host
+    environment:
+      - MCP_TRANSPORT=http
+      - MCP_HTTP_ADDR=:8080
+      - ARGO_NAMESPACE=${ARGO_NAMESPACE:-argo}
+      - ARGO_SERVER=${ARGO_SERVER:-localhost:2746}
+      - ARGO_TOKEN=${ARGO_TOKEN:-}
+      - ARGO_INSECURE_SKIP_VERIFY=true
+    volumes:
+      - ./kubeconfig:/root/.kube/config:ro
+    restart: unless-stopped
