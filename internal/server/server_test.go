@@ -208,7 +208,7 @@ func TestRunStdio_ContextCancellation(t *testing.T) {
 	stdinReader, stdinWriter, err := os.Pipe()
 	require.NoError(t, err)
 	defer stdinReader.Close()
-	defer stdinWriter.Close()
+	// Note: stdinWriter is closed explicitly below to trigger shutdown
 
 	stdoutReader, stdoutWriter, err := os.Pipe()
 	require.NoError(t, err)
@@ -267,7 +267,7 @@ func TestRunStdio_ImmediatelyCancelledContext(t *testing.T) {
 	stdinReader, stdinWriter, err := os.Pipe()
 	require.NoError(t, err)
 	defer stdinReader.Close()
-	defer stdinWriter.Close()
+	// Note: stdinWriter is closed explicitly below to trigger shutdown
 
 	stdoutReader, stdoutWriter, err := os.Pipe()
 	require.NoError(t, err)
