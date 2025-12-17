@@ -1,7 +1,6 @@
 package tools
 
 import (
-	"context"
 	"errors"
 	"testing"
 
@@ -194,7 +193,7 @@ func TestResumeWorkflowHandler(t *testing.T) {
 
 			// Create handler and call it
 			handler := ResumeWorkflowHandler(mockClient)
-			ctx := context.Background()
+			ctx := t.Context()
 			req := &mcp.CallToolRequest{}
 
 			result, output, err := handler(ctx, req, tt.input)

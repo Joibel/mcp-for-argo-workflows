@@ -1,7 +1,6 @@
 package tools
 
 import (
-	"context"
 	"errors"
 	"testing"
 
@@ -137,7 +136,7 @@ func TestDeleteArchivedWorkflowHandler(t *testing.T) {
 
 			// Create handler and call it
 			handler := DeleteArchivedWorkflowHandler(mockClient)
-			ctx := context.Background()
+			ctx := t.Context()
 			req := &mcp.CallToolRequest{}
 
 			result, output, err := handler(ctx, req, tt.input)
@@ -161,7 +160,7 @@ func TestDeleteArchivedWorkflowHandler_ServiceError(t *testing.T) {
 	mockClient.On("ArchivedWorkflowService").Return(nil, errors.New("not in argo server mode"))
 
 	handler := DeleteArchivedWorkflowHandler(mockClient)
-	ctx := context.Background()
+	ctx := t.Context()
 	req := &mcp.CallToolRequest{}
 	input := DeleteArchivedWorkflowInput{UID: "test-uid"}
 
@@ -335,7 +334,7 @@ func TestResubmitArchivedWorkflowHandler(t *testing.T) {
 
 			// Create handler and call it
 			handler := ResubmitArchivedWorkflowHandler(mockClient)
-			ctx := context.Background()
+			ctx := t.Context()
 			req := &mcp.CallToolRequest{}
 
 			result, output, err := handler(ctx, req, tt.input)
@@ -359,7 +358,7 @@ func TestResubmitArchivedWorkflowHandler_ServiceError(t *testing.T) {
 	mockClient.On("ArchivedWorkflowService").Return(nil, errors.New("not in argo server mode"))
 
 	handler := ResubmitArchivedWorkflowHandler(mockClient)
-	ctx := context.Background()
+	ctx := t.Context()
 	req := &mcp.CallToolRequest{}
 	input := ResubmitArchivedWorkflowInput{UID: "test-uid"}
 
@@ -571,7 +570,7 @@ func TestRetryArchivedWorkflowHandler(t *testing.T) {
 
 			// Create handler and call it
 			handler := RetryArchivedWorkflowHandler(mockClient)
-			ctx := context.Background()
+			ctx := t.Context()
 			req := &mcp.CallToolRequest{}
 
 			result, output, err := handler(ctx, req, tt.input)
@@ -595,7 +594,7 @@ func TestRetryArchivedWorkflowHandler_ServiceError(t *testing.T) {
 	mockClient.On("ArchivedWorkflowService").Return(nil, errors.New("not in argo server mode"))
 
 	handler := RetryArchivedWorkflowHandler(mockClient)
-	ctx := context.Background()
+	ctx := t.Context()
 	req := &mcp.CallToolRequest{}
 	input := RetryArchivedWorkflowInput{UID: "test-uid"}
 

@@ -1,7 +1,6 @@
 package argo
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -9,7 +8,7 @@ import (
 )
 
 func TestNewClient_NilConfig(t *testing.T) {
-	client, err := NewClient(context.Background(), nil)
+	client, err := NewClient(t.Context(), nil)
 	require.Error(t, err)
 	assert.Nil(t, client)
 	assert.Contains(t, err.Error(), "config cannot be nil")
@@ -22,7 +21,7 @@ func TestNewClient_InvalidKubeconfig(t *testing.T) {
 		Namespace:  "default",
 	}
 
-	client, err := NewClient(context.Background(), config)
+	client, err := NewClient(t.Context(), config)
 	require.Error(t, err)
 	assert.Nil(t, client)
 	assert.Contains(t, err.Error(), "failed to create Argo API client")

@@ -1,7 +1,6 @@
 package tools
 
 import (
-	"context"
 	"errors"
 	"testing"
 	"time"
@@ -424,7 +423,7 @@ func TestGetWorkflowTemplateHandler(t *testing.T) {
 
 			// Create handler and call it
 			handler := GetWorkflowTemplateHandler(mockClient)
-			ctx := context.Background()
+			ctx := t.Context()
 			req := &mcp.CallToolRequest{}
 
 			result, output, err := handler(ctx, req, tt.input)

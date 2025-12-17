@@ -1,7 +1,6 @@
 package tools
 
 import (
-	"context"
 	"errors"
 	"testing"
 	"time"
@@ -306,7 +305,7 @@ spec:
 
 			// Create handler and call it
 			handler := CreateWorkflowTemplateHandler(mockClient)
-			ctx := context.Background()
+			ctx := t.Context()
 			req := &mcp.CallToolRequest{}
 
 			result, output, err := handler(ctx, req, tt.input)

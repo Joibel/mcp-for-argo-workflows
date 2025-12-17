@@ -1,7 +1,6 @@
 package tools
 
 import (
-	"context"
 	"errors"
 	"testing"
 
@@ -263,7 +262,7 @@ func TestRetryWorkflowHandler(t *testing.T) {
 
 			// Create handler and call it
 			handler := RetryWorkflowHandler(mockClient)
-			ctx := context.Background()
+			ctx := t.Context()
 			req := &mcp.CallToolRequest{}
 
 			result, output, err := handler(ctx, req, tt.input)

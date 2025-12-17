@@ -1,7 +1,6 @@
 package tools
 
 import (
-	"context"
 	"errors"
 	"testing"
 
@@ -207,7 +206,7 @@ func TestDeleteCronWorkflowHandler(t *testing.T) {
 
 			// Create handler and call it
 			handler := DeleteCronWorkflowHandler(mockClient)
-			ctx := context.Background()
+			ctx := t.Context()
 			req := &mcp.CallToolRequest{}
 
 			result, output, err := handler(ctx, req, tt.input)

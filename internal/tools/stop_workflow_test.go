@@ -1,7 +1,6 @@
 package tools
 
 import (
-	"context"
 	"errors"
 	"testing"
 
@@ -210,7 +209,7 @@ func TestStopWorkflowHandler(t *testing.T) {
 
 			// Create handler and call it
 			handler := StopWorkflowHandler(mockClient)
-			ctx := context.Background()
+			ctx := t.Context()
 			req := &mcp.CallToolRequest{}
 
 			result, output, err := handler(ctx, req, tt.input)

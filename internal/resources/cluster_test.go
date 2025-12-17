@@ -1,7 +1,6 @@
 package resources
 
 import (
-	"context"
 	"errors"
 	"testing"
 	"time"
@@ -177,7 +176,7 @@ func TestListWorkflowTemplatesContent(t *testing.T) {
 
 			tt.setupMock(mockService)
 
-			content, err := listWorkflowTemplatesContent(context.Background(), mockClient, tt.namespace)
+			content, err := listWorkflowTemplatesContent(t.Context(), mockClient, tt.namespace)
 
 			if tt.wantErr {
 				require.Error(t, err)
@@ -252,7 +251,7 @@ func TestListClusterWorkflowTemplatesContent(t *testing.T) {
 
 			tt.setupMock(mockService)
 
-			content, err := listClusterWorkflowTemplatesContent(context.Background(), mockClient)
+			content, err := listClusterWorkflowTemplatesContent(t.Context(), mockClient)
 
 			if tt.wantErr {
 				require.Error(t, err)
@@ -348,7 +347,7 @@ func TestListCronWorkflowsContent(t *testing.T) {
 
 			tt.setupMock(mockService)
 
-			content, err := listCronWorkflowsContent(context.Background(), mockClient, tt.namespace)
+			content, err := listCronWorkflowsContent(t.Context(), mockClient, tt.namespace)
 
 			if tt.wantErr {
 				require.Error(t, err)
@@ -439,7 +438,7 @@ func TestGetWorkflowTemplateContent(t *testing.T) {
 
 			tt.setupMock(mockService)
 
-			content, err := getWorkflowTemplateContent(context.Background(), mockClient, tt.namespace, tt.tmplName)
+			content, err := getWorkflowTemplateContent(t.Context(), mockClient, tt.namespace, tt.tmplName)
 
 			if tt.wantErr {
 				require.Error(t, err)
@@ -513,7 +512,7 @@ func TestGetClusterWorkflowTemplateContent(t *testing.T) {
 
 			tt.setupMock(mockService)
 
-			content, err := getClusterWorkflowTemplateContent(context.Background(), mockClient, tt.tmplName)
+			content, err := getClusterWorkflowTemplateContent(t.Context(), mockClient, tt.tmplName)
 
 			if tt.wantErr {
 				require.Error(t, err)
@@ -619,7 +618,7 @@ func TestClusterResourceHandler(t *testing.T) {
 				},
 			}
 
-			result, err := handler(context.Background(), req)
+			result, err := handler(t.Context(), req)
 
 			if tt.wantErr {
 				require.Error(t, err)
@@ -736,7 +735,7 @@ func TestClusterResourceTemplateHandler(t *testing.T) {
 				},
 			}
 
-			result, err := handler(context.Background(), req)
+			result, err := handler(t.Context(), req)
 
 			if tt.wantErr {
 				require.Error(t, err)

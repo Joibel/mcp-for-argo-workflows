@@ -1,7 +1,6 @@
 package tools
 
 import (
-	"context"
 	"errors"
 	"testing"
 
@@ -165,7 +164,7 @@ func TestSuspendWorkflowHandler(t *testing.T) {
 
 			// Create handler and call it
 			handler := SuspendWorkflowHandler(mockClient)
-			ctx := context.Background()
+			ctx := t.Context()
 			req := &mcp.CallToolRequest{}
 
 			result, output, err := handler(ctx, req, tt.input)

@@ -1,7 +1,6 @@
 package tools
 
 import (
-	"context"
 	"strings"
 	"testing"
 
@@ -231,7 +230,7 @@ func TestRenderManifestGraphHandler(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			handler := RenderManifestGraphHandler()
-			result, output, err := handler(context.Background(), nil, tt.input)
+			result, output, err := handler(t.Context(), nil, tt.input)
 
 			if tt.expectedError != "" {
 				require.Error(t, err)
@@ -405,7 +404,7 @@ func TestManifestTooLarge(t *testing.T) {
 	largeManifest := strings.Repeat("x", 1<<20+1)
 
 	handler := RenderManifestGraphHandler()
-	_, _, err := handler(context.Background(), nil, RenderManifestGraphInput{
+	_, _, err := handler(t.Context(), nil, RenderManifestGraphInput{
 		Manifest: largeManifest,
 	})
 

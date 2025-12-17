@@ -1,7 +1,6 @@
 package tools
 
 import (
-	"context"
 	"errors"
 	"testing"
 	"time"
@@ -303,7 +302,7 @@ func TestGetCronWorkflowHandler(t *testing.T) {
 
 			// Create handler and call it
 			handler := GetCronWorkflowHandler(mockClient)
-			ctx := context.Background()
+			ctx := t.Context()
 			req := &mcp.CallToolRequest{}
 
 			result, output, err := handler(ctx, req, tt.input)

@@ -1,7 +1,6 @@
 package tools
 
 import (
-	"context"
 	"testing"
 
 	"github.com/argoproj/argo-workflows/v3/pkg/apiclient/workflow"
@@ -402,7 +401,7 @@ spec:
 
 			// Create handler and call it
 			handler := SubmitWorkflowHandler(mockClient)
-			ctx := context.Background()
+			ctx := t.Context()
 			req := &mcp.CallToolRequest{}
 
 			result, output, err := handler(ctx, req, tt.input)

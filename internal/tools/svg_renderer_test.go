@@ -1,7 +1,6 @@
 package tools
 
 import (
-	"context"
 	"strings"
 	"testing"
 
@@ -68,7 +67,7 @@ func TestDotToSVG(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			svg, err := dotToSVG(context.Background(), tt.dot)
+			svg, err := dotToSVG(t.Context(), tt.dot)
 
 			if tt.expectedError != "" {
 				require.Error(t, err)
