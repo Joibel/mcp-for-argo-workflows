@@ -91,12 +91,16 @@ func LogsWorkflowHandler(client argo.ClientInterface) func(context.Context, *mcp
 			tailLines = *input.TailLines
 		}
 
-		// Build log options
+		// Build log options with default container "main"
+		// Argo Workflows pods use emissary executor which creates multiple containers:
+		// init (setup), wait (wait for completion), main (actual workload)
+		container := input.Container
+		if container == "" {
+			container = "main"
+		}
 		logOptions := &corev1.PodLogOptions{
 			TailLines: &tailLines,
-		}
-		if input.Container != "" {
-			logOptions.Container = input.Container
+			Container: container,
 		}
 
 		// Build the request
