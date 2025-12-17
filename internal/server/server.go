@@ -5,6 +5,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/Joibel/mcp-for-argo-workflows/internal/argo"
+	"github.com/Joibel/mcp-for-argo-workflows/internal/prompts"
 	"github.com/Joibel/mcp-for-argo-workflows/internal/resources"
 	"github.com/Joibel/mcp-for-argo-workflows/internal/tools"
 )
@@ -45,6 +46,11 @@ func (s *Server) RegisterResources() {
 // These resources query the Argo cluster at runtime.
 func (s *Server) RegisterClusterResources(client argo.ClientInterface) {
 	resources.RegisterClusterResources(s.mcp, client)
+}
+
+// RegisterPrompts registers all Argo Workflows MCP prompts with the server.
+func (s *Server) RegisterPrompts(client argo.ClientInterface) {
+	prompts.RegisterAll(s.mcp, client)
 }
 
 // GetMCPServer returns the underlying MCP server instance.
