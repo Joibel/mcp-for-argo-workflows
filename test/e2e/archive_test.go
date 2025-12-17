@@ -250,15 +250,16 @@ func TestArchive_RetryArchivedWorkflow(t *testing.T) {
 	// Retry only makes sense for failed workflows
 	workflowName, workflowUID := submitAndArchiveWorkflow(t, cluster, "failing-workflow.yaml")
 
-	// Cleanup the workflow at the end
-	defer func() {
-		deleteHandler := tools.DeleteWorkflowHandler(cluster.ArgoClient)
-		deleteInput := tools.DeleteWorkflowInput{
-			Namespace: cluster.ArgoNamespace,
-			Name:      workflowName,
-		}
-		_, _, _ = deleteHandler(clientCtx, nil, deleteInput)
-	}()
+	// Delete the live workflow - retry_archived_workflow only works when the workflow
+	// is not present on the cluster (if it exists, Argo says to use regular retry instead)
+	t.Log("Deleting live workflow to test retry from archive...")
+	deleteHandler := tools.DeleteWorkflowHandler(cluster.ArgoClient)
+	deleteInput := tools.DeleteWorkflowInput{
+		Namespace: cluster.ArgoNamespace,
+		Name:      workflowName,
+	}
+	_, _, err := deleteHandler(clientCtx, nil, deleteInput)
+	require.NoError(t, err, "Failed to delete workflow before retry from archive")
 
 	// Test retry_archived_workflow tool
 	t.Log("Testing retry_archived_workflow tool...")
@@ -272,6 +273,17 @@ func TestArchive_RetryArchivedWorkflow(t *testing.T) {
 	_, retryOutput, err := retryHandler(clientCtx, nil, retryInput)
 	require.NoError(t, err, "retry_archived_workflow should not return error")
 	require.NotNil(t, retryOutput)
+
+	// Cleanup the retried workflow at the end
+	defer func() {
+		if retryOutput != nil && retryOutput.Name != "" {
+			cleanupInput := tools.DeleteWorkflowInput{
+				Namespace: cluster.ArgoNamespace,
+				Name:      retryOutput.Name,
+			}
+			_, _, _ = deleteHandler(clientCtx, nil, cleanupInput)
+		}
+	}()
 
 	// Verify output
 	assert.NotEmpty(t, retryOutput.Name, "Retried workflow name should be set")
