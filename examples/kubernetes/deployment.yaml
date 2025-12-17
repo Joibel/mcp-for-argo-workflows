@@ -30,14 +30,10 @@ spec:
       serviceAccountName: mcp-for-argo-workflows
       containers:
         - name: mcp-for-argo-workflows
+          # For production, pin to a specific version or digest:
+          # image: ghcr.io/joibel/mcp-for-argo-workflows:v1.0.0
+          # image: ghcr.io/joibel/mcp-for-argo-workflows@sha256:...
           image: ghcr.io/joibel/mcp-for-argo-workflows:latest
-          args:
-            - "--transport"
-            - "http"
-            - "--http-addr"
-            - ":8080"
-            - "--namespace"
-            - "argo"
           ports:
             - name: http
               containerPort: 8080
