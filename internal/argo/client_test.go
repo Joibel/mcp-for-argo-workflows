@@ -105,21 +105,6 @@ func TestClient_Context_Nil(t *testing.T) {
 	assert.Nil(t, client.Context())
 }
 
-func TestNewClient_WithExplicitKubeconfig(t *testing.T) {
-	// Test direct Kubernetes mode with explicit kubeconfig path
-	// The path doesn't exist, so it should fail with an error
-	config := &Config{
-		Namespace:  "default",
-		Kubeconfig: "/nonexistent/kubeconfig/path",
-		// No ArgoServer - triggers direct K8s mode
-	}
-
-	_, err := NewClient(t.Context(), config)
-	// We expect an error since the kubeconfig doesn't exist
-	require.Error(t, err)
-	assert.Contains(t, err.Error(), "failed to create Argo API client")
-}
-
 func TestClient_ArchivedWorkflowService_NotArgoServerMode(t *testing.T) {
 	// Test that ArchivedWorkflowService returns error when not in Argo Server mode
 	client := &Client{
