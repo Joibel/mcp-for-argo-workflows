@@ -3,7 +3,7 @@
   "extends": [
     "config:recommended",
     "docker:pinDigests",
-    ":pinGitHubActionDigests",
+    "helpers:pinGitHubActionDigests",
     ":semanticCommits"
   ],
   "labels": ["dependencies"],
