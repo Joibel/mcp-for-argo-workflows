@@ -1,6 +1,7 @@
 package argo
 
 import (
+	"context"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -67,4 +68,74 @@ func TestClient_IsArgoServerMode(t *testing.T) {
 			assert.Equal(t, tt.expected, client.IsArgoServerMode())
 		})
 	}
+}
+
+func TestClient_Context(t *testing.T) {
+	// Test the Context method by creating a client struct directly
+	// (bypassing NewClient which requires a real connection)
+	testCtx := context.WithValue(context.Background(), testCtxKey{}, "test-value")
+
+	client := &Client{
+		config: &Config{
+			Namespace: "test-namespace",
+		},
+		ctx: testCtx,
+	}
+
+	// Verify we get back the same context
+	assert.Equal(t, testCtx, client.Context())
+
+	// Verify we can retrieve the value from the context
+	val := client.Context().Value(testCtxKey{})
+	assert.Equal(t, "test-value", val)
+}
+
+// testCtxKey is a custom type for context keys to avoid collisions.
+type testCtxKey struct{}
+
+func TestClient_Context_Nil(t *testing.T) {
+	// Test that Context returns nil if ctx field is nil
+	client := &Client{
+		config: &Config{
+			Namespace: "test-namespace",
+		},
+		ctx: nil,
+	}
+
+	assert.Nil(t, client.Context())
+}
+
+func TestNewClient_WithExplicitKubeconfig(t *testing.T) {
+	// Test direct Kubernetes mode with explicit kubeconfig path
+	// The path doesn't exist, so it should fail with an error
+	config := &Config{
+		Namespace:  "default",
+		Kubeconfig: "/nonexistent/kubeconfig/path",
+		// No ArgoServer - triggers direct K8s mode
+	}
+
+	_, err := NewClient(t.Context(), config)
+	// We expect an error since the kubeconfig doesn't exist
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "failed to create Argo API client")
+}
+
+func TestClient_ArchivedWorkflowService_NotArgoServerMode(t *testing.T) {
+	// Test that ArchivedWorkflowService returns error when not in Argo Server mode
+	client := &Client{
+		config: &Config{
+			ArgoServer: "", // Not in Argo Server mode
+			Namespace:  "default",
+		},
+	}
+
+	svc, err := client.ArchivedWorkflowService()
+	require.Error(t, err)
+	assert.Nil(t, svc)
+	assert.ErrorIs(t, err, ErrArchivedWorkflowsNotSupported)
+}
+
+func TestErrArchivedWorkflowsNotSupported(t *testing.T) {
+	// Test that the error message is as expected
+	assert.Contains(t, ErrArchivedWorkflowsNotSupported.Error(), "archived workflows are only supported")
 }
