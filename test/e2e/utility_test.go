@@ -551,14 +551,14 @@ func TestRenderManifestGraph_InvalidManifest(t *testing.T) {
 		assert.Contains(t, err.Error(), "empty", "Error should mention empty")
 	})
 
-	t.Run("non-workflow yaml", func(t *testing.T) {
+	t.Run("invalid yaml syntax", func(t *testing.T) {
 		input := tools.RenderManifestGraphInput{
-			Manifest: "not:\n  a:\n    workflow: true",
+			Manifest: "{invalid yaml: [unclosed",
 			Format:   "mermaid",
 		}
 
 		_, _, err := renderHandler(context.Background(), nil, input)
-		require.Error(t, err, "Should error on non-workflow manifest")
+		require.Error(t, err, "Should error on invalid YAML syntax")
 	})
 
 	t.Run("unsupported kind", func(t *testing.T) {
