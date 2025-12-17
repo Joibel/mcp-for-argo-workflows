@@ -43,9 +43,13 @@ const (
 	// ArgoNamespace is the namespace where Argo Workflows is installed.
 	ArgoNamespace = "argo"
 
-	// ArgoQuickStartURL is the URL to the Argo quick-start manifest.
-	// Using quick-start-postgres.yaml to enable workflow archiving for archive E2E tests.
-	ArgoQuickStartURL = "https://github.com/argoproj/argo-workflows/releases/download/" + ArgoVersion + "/quick-start-postgres.yaml"
+	// ArgoQuickStartMinimalURL is the minimal quick-start manifest (no archiving).
+	// Used for kubernetes mode where we don't need archive functionality.
+	ArgoQuickStartMinimalURL = "https://github.com/argoproj/argo-workflows/releases/download/" + ArgoVersion + "/quick-start-minimal.yaml"
+
+	// ArgoQuickStartPostgresURL enables workflow archiving with PostgreSQL.
+	// Used for argo-server mode to test archive tools.
+	ArgoQuickStartPostgresURL = "https://github.com/argoproj/argo-workflows/releases/download/" + ArgoVersion + "/quick-start-postgres.yaml"
 
 	// ArgoServerPort is the port where Argo Server listens.
 	ArgoServerPort = 2746
@@ -195,7 +199,7 @@ func createSharedCluster(ctx context.Context, t *testing.T) (*E2ECluster, error)
 
 	// Install Argo Workflows
 	t.Log("Installing Argo Workflows...")
-	if err := installArgoWorkflowsShared(t, kubeconfigPath); err != nil {
+	if err := installArgoWorkflowsShared(t, kubeconfigPath, mode); err != nil {
 		_ = os.Remove(kubeconfigPath)
 		_ = k3sContainer.Terminate(context.Background())
 		return nil, fmt.Errorf("failed to install Argo Workflows: %w", err)
@@ -293,8 +297,20 @@ func createSharedCluster(ctx context.Context, t *testing.T) (*E2ECluster, error)
 }
 
 // installArgoWorkflowsShared installs Argo Workflows in the k3s cluster (non-fatal version).
-func installArgoWorkflowsShared(t *testing.T, kubeconfigPath string) error {
+// Uses quick-start-postgres.yaml for argo-server mode (archive support) and quick-start-minimal.yaml
+// for kubernetes mode (no archive sidecar that breaks logs tests).
+func installArgoWorkflowsShared(t *testing.T, kubeconfigPath string, mode ConnectionMode) error {
 	t.Helper()
+
+	// Select manifest based on mode
+	var manifestURL string
+	if mode == ModeArgoServer {
+		manifestURL = ArgoQuickStartPostgresURL
+		t.Log("Using quick-start-postgres.yaml for archive support")
+	} else {
+		manifestURL = ArgoQuickStartMinimalURL
+		t.Log("Using quick-start-minimal.yaml")
+	}
 
 	// Create the argo namespace first (quick-start manifest expects it to exist)
 	//nolint:gosec // Using kubectl in tests is expected
@@ -324,7 +340,7 @@ func installArgoWorkflowsShared(t *testing.T, kubeconfigPath string) error {
 
 	// Download manifest
 	//nolint:gosec // Using curl to download manifests in tests is expected
-	downloadCmd := exec.Command("curl", "-sSL", "-o", manifestPath, ArgoQuickStartURL)
+	downloadCmd := exec.Command("curl", "-sSL", "-o", manifestPath, manifestURL)
 	output, err = downloadCmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("failed to download Argo quick-start manifest: %s: %w", string(output), err)
@@ -630,9 +646,9 @@ func getArgoServerToken(t *testing.T, kubeconfigPath string) (string, error) {
 }
 
 // installArgoWorkflows installs Argo Workflows in the k3s cluster.
-func installArgoWorkflows(t *testing.T, kubeconfigPath string) {
+func installArgoWorkflows(t *testing.T, kubeconfigPath string, mode ConnectionMode) {
 	t.Helper()
-	err := installArgoWorkflowsShared(t, kubeconfigPath)
+	err := installArgoWorkflowsShared(t, kubeconfigPath, mode)
 	require.NoError(t, err, "Failed to install Argo Workflows")
 }
 
