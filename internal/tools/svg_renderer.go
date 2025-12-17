@@ -16,28 +16,25 @@ func dotToSVG(ctx context.Context, dot string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to create graphviz instance: %w", err)
 	}
-	defer func() {
-		if closeErr := g.Close(); closeErr != nil {
-			// If we're returning an error, combine them; otherwise just log/ignore
-			// Since we're in a defer, we can't easily return this error
-			// so we combine it with any existing error via a sentinel approach
-			err = errors.Join(err, closeErr)
-		}
-	}()
 
 	graph, err := graphviz.ParseBytes([]byte(dot))
 	if err != nil {
-		return "", fmt.Errorf("failed to parse DOT graph: %w", err)
+		closeErr := g.Close()
+		return "", errors.Join(fmt.Errorf("failed to parse DOT graph: %w", err), closeErr)
 	}
-	defer func() {
-		if closeErr := graph.Close(); closeErr != nil {
-			err = errors.Join(err, closeErr)
-		}
-	}()
 
 	var buf bytes.Buffer
-	if err := g.Render(ctx, graph, graphviz.SVG, &buf); err != nil {
-		return "", fmt.Errorf("failed to render SVG: %w", err)
+	if renderErr := g.Render(ctx, graph, graphviz.SVG, &buf); renderErr != nil {
+		graphCloseErr := graph.Close()
+		gCloseErr := g.Close()
+		return "", errors.Join(fmt.Errorf("failed to render SVG: %w", renderErr), graphCloseErr, gCloseErr)
+	}
+
+	// Clean up resources
+	graphCloseErr := graph.Close()
+	gCloseErr := g.Close()
+	if graphCloseErr != nil || gCloseErr != nil {
+		return buf.String(), errors.Join(graphCloseErr, gCloseErr)
 	}
 
 	return buf.String(), nil
