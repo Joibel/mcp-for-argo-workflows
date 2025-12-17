@@ -92,12 +92,12 @@ func CreateCronWorkflowHandler(client argo.ClientInterface) func(context.Context
 
 		// Validate name
 		if cronWf.Name == "" {
-			return nil, nil, fmt.Errorf("CronWorkflow name is required in manifest")
+			return nil, nil, fmt.Errorf("cron workflow name is required in manifest")
 		}
 
 		// Validate schedule
 		if cronWf.Spec.Schedule == "" {
-			return nil, nil, fmt.Errorf("CronWorkflow schedule is required in manifest")
+			return nil, nil, fmt.Errorf("cron workflow schedule is required in manifest")
 		}
 
 		// Resolve namespace - prefer input namespace, then manifest namespace, then default
