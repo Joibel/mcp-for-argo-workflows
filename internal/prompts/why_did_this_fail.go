@@ -764,10 +764,11 @@ func formatDuration(d time.Duration) string {
 	return fmt.Sprintf("%dh%dm%ds", hours, minutes, seconds)
 }
 
-// truncateString truncates a string to a maximum length.
-func truncateString(s string, maxLen int) string {
-	if len(s) <= maxLen {
+// truncateString truncates a string to a maximum number of runes (unicode-safe).
+func truncateString(s string, maxRunes int) string {
+	runes := []rune(s)
+	if len(runes) <= maxRunes {
 		return s
 	}
-	return s[:maxLen] + "..."
+	return string(runes[:maxRunes]) + "..."
 }
