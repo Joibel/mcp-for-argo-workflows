@@ -38,7 +38,7 @@ const (
 
 const (
 	// ArgoVersion is the Argo Workflows version to install for E2E tests.
-	ArgoVersion = "v3.6.2"
+	ArgoVersion = "v3.7.6"
 
 	// ArgoNamespace is the namespace where Argo Workflows is installed.
 	ArgoNamespace = "argo"
