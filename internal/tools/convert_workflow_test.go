@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -506,6 +507,10 @@ spec:
 
 			// Check result content
 			require.Len(t, result.Content, 1)
+			textContent, ok := result.Content[0].(*mcp.TextContent)
+			require.True(t, ok, "expected TextContent")
+			assert.NotEmpty(t, textContent.Text)
+			assert.Contains(t, textContent.Text, tt.wantKind)
 		})
 	}
 }
