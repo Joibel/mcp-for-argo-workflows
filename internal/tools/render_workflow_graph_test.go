@@ -1,7 +1,6 @@
 package tools
 
 import (
-	"context"
 	"strings"
 	"testing"
 
@@ -154,7 +153,7 @@ func TestRenderWorkflowGraphHandler(t *testing.T) {
 
 			// Create handler and execute
 			handler := RenderWorkflowGraphHandler(mockClient)
-			result, output, err := handler(context.Background(), nil, tt.input)
+			result, output, err := handler(t.Context(), nil, tt.input)
 
 			// Validate
 			if tt.expectedError != "" {

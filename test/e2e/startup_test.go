@@ -22,7 +22,7 @@ func TestStartup_NoKubernetesConfigured(t *testing.T) {
 	binaryPath := buildBinary(t)
 
 	// Run the server with no kubeconfig
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 
 	//nolint:gosec // Running test binaries in tests is expected
@@ -54,7 +54,7 @@ func TestStartup_WithK3s(t *testing.T) {
 		t.Skip("Skipping k3s test in short mode")
 	}
 
-	ctx := context.Background()
+	ctx := t.Context()
 
 	// Start k3s container
 	k3sContainer, err := k3s.Run(ctx, "rancher/k3s:v1.31.2-k3s1")

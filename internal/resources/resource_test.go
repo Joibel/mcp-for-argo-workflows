@@ -1,7 +1,6 @@
 package resources
 
 import (
-	"context"
 	"testing"
 
 	"github.com/modelcontextprotocol/go-sdk/mcp"
@@ -40,10 +39,9 @@ func TestDefinitionResource(t *testing.T) {
 }
 
 func TestDefinitionHandler(t *testing.T) {
-	ctx := context.Background()
-
 	for _, def := range AllDefinitions() {
 		t.Run(def.Name+"_valid_uri", func(t *testing.T) {
+			ctx := t.Context()
 			handler := def.Handler()
 			req := &mcp.ReadResourceRequest{
 				Params: &mcp.ReadResourceParams{
@@ -63,6 +61,7 @@ func TestDefinitionHandler(t *testing.T) {
 		})
 
 		t.Run(def.Name+"_invalid_uri", func(t *testing.T) {
+			ctx := t.Context()
 			handler := def.Handler()
 			req := &mcp.ReadResourceRequest{
 				Params: &mcp.ReadResourceParams{
@@ -420,7 +419,7 @@ func findDefinition(name string) *Definition {
 
 func getContent(t *testing.T, def *Definition) string {
 	t.Helper()
-	ctx := context.Background()
+	ctx := t.Context()
 	handler := def.Handler()
 	req := &mcp.ReadResourceRequest{
 		Params: &mcp.ReadResourceParams{

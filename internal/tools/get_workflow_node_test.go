@@ -1,7 +1,6 @@
 package tools
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -541,7 +540,7 @@ func TestGetWorkflowNodeHandler(t *testing.T) {
 
 			// Create handler and call it
 			handler := GetWorkflowNodeHandler(mockClient)
-			ctx := context.Background()
+			ctx := t.Context()
 			req := &mcp.CallToolRequest{}
 
 			result, output, err := handler(ctx, req, tt.input)

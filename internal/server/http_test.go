@@ -44,7 +44,7 @@ func TestRunHTTP_BasicStartup(t *testing.T) {
 	// Pick an addr we can actually probe
 	addr := getAvailableAddr(t)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
 	defer cancel()
 
 	// Start server in goroutine
@@ -77,7 +77,7 @@ func TestRunHTTP_GracefulShutdown(t *testing.T) {
 	srv := NewServer("test-server", "1.0.0")
 	addr := getAvailableAddr(t)
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 
 	// Start server
 	errChan := make(chan error, 1)
@@ -142,7 +142,7 @@ func TestRunHTTP_InvalidAddress(t *testing.T) {
 			srv := NewServer("test-server", "1.0.0")
 
 			// Use a short timeout since we expect failure
-			ctx, cancel := context.WithTimeout(context.Background(), 500*time.Millisecond)
+			ctx, cancel := context.WithTimeout(t.Context(), 500*time.Millisecond)
 			defer cancel()
 
 			runErr := srv.RunHTTP(ctx, addr)
@@ -161,7 +161,7 @@ func TestRunHTTP_HTTPServerConfiguration(t *testing.T) {
 	srv := NewServer("test-server", "1.0.0")
 	addr := getAvailableAddr(t)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
 	defer cancel()
 
 	// Start server
@@ -192,7 +192,7 @@ func TestRunHTTP_MultipleShutdowns(t *testing.T) {
 	srv := NewServer("test-server", "1.0.0")
 	addr := getAvailableAddr(t)
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
 	errChan := make(chan error, 1)
@@ -223,7 +223,7 @@ func TestRunHTTP_ContextAlreadyCancelled(t *testing.T) {
 	addr := getAvailableAddr(t)
 
 	// Create an already-cancelled context
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	cancel()
 
 	// Server should start and then immediately shut down
@@ -240,7 +240,7 @@ func TestRunHTTP_ConcurrentRequests(t *testing.T) {
 	srv := NewServer("test-server", "1.0.0")
 	addr := getAvailableAddr(t)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 5*time.Second)
 	defer cancel()
 
 	errChan := make(chan error, 1)
@@ -291,7 +291,7 @@ func TestRunHTTP_ServerStartsNormally(t *testing.T) {
 	srv := NewServer("test-server", "1.0.0")
 	addr := getAvailableAddr(t)
 
-	ctx, cancel := context.WithCancel(context.Background())
+	ctx, cancel := context.WithCancel(t.Context())
 	defer cancel()
 
 	errChan := make(chan error, 1)
@@ -314,7 +314,7 @@ func TestRunHTTP_QuickSuccession(t *testing.T) {
 
 	// First server
 	srv1 := NewServer("test-server-1", "1.0.0")
-	ctx1, cancel1 := context.WithCancel(context.Background())
+	ctx1, cancel1 := context.WithCancel(t.Context())
 
 	errChan1 := make(chan error, 1)
 	go func() {
@@ -344,7 +344,7 @@ func TestRunHTTP_QuickSuccession(t *testing.T) {
 
 	// Second server on same port - now that port is available
 	srv2 := NewServer("test-server-2", "1.0.0")
-	ctx2, cancel2 := context.WithCancel(context.Background())
+	ctx2, cancel2 := context.WithCancel(t.Context())
 	defer cancel2()
 
 	errChan2 := make(chan error, 1)
