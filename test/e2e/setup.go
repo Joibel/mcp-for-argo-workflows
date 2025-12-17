@@ -43,8 +43,13 @@ const (
 	// ArgoNamespace is the namespace where Argo Workflows is installed.
 	ArgoNamespace = "argo"
 
-	// ArgoQuickStartURL is the URL to the Argo quick-start manifest.
-	ArgoQuickStartURL = "https://github.com/argoproj/argo-workflows/releases/download/" + ArgoVersion + "/quick-start-minimal.yaml"
+	// ArgoQuickStartMinimalURL is the minimal quick-start manifest (no archiving).
+	// Used for kubernetes mode where we don't need archive functionality.
+	ArgoQuickStartMinimalURL = "https://github.com/argoproj/argo-workflows/releases/download/" + ArgoVersion + "/quick-start-minimal.yaml"
+
+	// ArgoQuickStartPostgresURL enables workflow archiving with PostgreSQL.
+	// Used for argo-server mode to test archive tools.
+	ArgoQuickStartPostgresURL = "https://github.com/argoproj/argo-workflows/releases/download/" + ArgoVersion + "/quick-start-postgres.yaml"
 
 	// ArgoServerPort is the port where Argo Server listens.
 	ArgoServerPort = 2746
@@ -194,7 +199,7 @@ func createSharedCluster(ctx context.Context, t *testing.T) (*E2ECluster, error)
 
 	// Install Argo Workflows
 	t.Log("Installing Argo Workflows...")
-	if err := installArgoWorkflowsShared(t, kubeconfigPath); err != nil {
+	if err := installArgoWorkflowsShared(t, kubeconfigPath, mode); err != nil {
 		_ = os.Remove(kubeconfigPath)
 		_ = k3sContainer.Terminate(context.Background())
 		return nil, fmt.Errorf("failed to install Argo Workflows: %w", err)
@@ -292,8 +297,20 @@ func createSharedCluster(ctx context.Context, t *testing.T) (*E2ECluster, error)
 }
 
 // installArgoWorkflowsShared installs Argo Workflows in the k3s cluster (non-fatal version).
-func installArgoWorkflowsShared(t *testing.T, kubeconfigPath string) error {
+// Uses quick-start-postgres.yaml for argo-server mode (archive support) and quick-start-minimal.yaml
+// for kubernetes mode (no archive sidecar that breaks logs tests).
+func installArgoWorkflowsShared(t *testing.T, kubeconfigPath string, mode ConnectionMode) error {
 	t.Helper()
+
+	// Select manifest based on mode
+	var manifestURL string
+	if mode == ModeArgoServer {
+		manifestURL = ArgoQuickStartPostgresURL
+		t.Log("Using quick-start-postgres.yaml for archive support")
+	} else {
+		manifestURL = ArgoQuickStartMinimalURL
+		t.Log("Using quick-start-minimal.yaml")
+	}
 
 	// Create the argo namespace first (quick-start manifest expects it to exist)
 	//nolint:gosec // Using kubectl in tests is expected
@@ -323,31 +340,35 @@ func installArgoWorkflowsShared(t *testing.T, kubeconfigPath string) error {
 
 	// Download manifest
 	//nolint:gosec // Using curl to download manifests in tests is expected
-	downloadCmd := exec.Command("curl", "-sSL", "-o", manifestPath, ArgoQuickStartURL)
+	downloadCmd := exec.Command("curl", "-sSL", "-o", manifestPath, manifestURL)
 	output, err = downloadCmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("failed to download Argo quick-start manifest: %s: %w", string(output), err)
 	}
 
-	// Apply the manifest
+	// Apply the manifest with -n argo to set default namespace for resources without explicit namespace.
+	// Some resources in quick-start-postgres.yaml (like postgres Deployment/Service) don't have namespace
+	// fields, so they need the -n flag to be created in the argo namespace.
 	//nolint:gosec // Using kubectl in tests is expected
-	applyCmd := exec.Command("kubectl", "apply", "-f", manifestPath)
+	applyCmd := exec.Command("kubectl", "apply", "-n", ArgoNamespace, "-f", manifestPath)
 	applyCmd.Env = append(os.Environ(), "KUBECONFIG="+kubeconfigPath)
 	output, err = applyCmd.CombinedOutput()
 	if err != nil {
 		return fmt.Errorf("failed to apply Argo manifest: %s: %w", string(output), err)
 	}
+	t.Logf("kubectl apply output: %s", string(output))
 
 	t.Logf("Argo Workflows %s installed", ArgoVersion)
 	return nil
 }
 
 // waitForArgoControllerShared waits for the Argo controller deployment to be ready (non-fatal version).
+// Uses 5 minute timeout to allow for PostgreSQL initialization with quick-start-postgres.yaml.
 func waitForArgoControllerShared(t *testing.T, kubeconfigPath string) error {
 	t.Helper()
 
 	// Wait for the argo namespace to exist
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
 	ticker := time.NewTicker(2 * time.Second)
@@ -381,7 +402,17 @@ func waitForArgoControllerShared(t *testing.T, kubeconfigPath string) error {
 func waitForArgoServerShared(t *testing.T, kubeconfigPath string) error {
 	t.Helper()
 
-	// First wait for the initial deployment to be available
+	// Wait for PostgreSQL to be ready first (required by quick-start-postgres.yaml)
+	// PostgreSQL must be running before argo-server can connect to it
+	t.Log("Waiting for PostgreSQL to be ready...")
+	if err := waitForDeploymentAvailable(t, kubeconfigPath, "postgres"); err != nil {
+		t.Log("PostgreSQL deployment not found or not ready (unexpected with quick-start-postgres.yaml)")
+		// Continue anyway - postgres might not exist if using minimal install
+	} else {
+		t.Log("PostgreSQL is ready")
+	}
+
+	// Now wait for the argo-server deployment to be available
 	if err := waitForDeploymentAvailable(t, kubeconfigPath, "argo-server"); err != nil {
 		return fmt.Errorf("timeout waiting for Argo Server initial deployment: %w", err)
 	}
@@ -450,30 +481,54 @@ func waitForArgoServerShared(t *testing.T, kubeconfigPath string) error {
 }
 
 // waitForDeploymentAvailable waits for a deployment to be available.
+// Uses 5 minute timeout to allow for PostgreSQL initialization with quick-start-postgres.yaml.
 func waitForDeploymentAvailable(t *testing.T, kubeconfigPath, deploymentName string) error {
 	t.Helper()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Minute)
 	defer cancel()
 
-	ticker := time.NewTicker(2 * time.Second)
+	ticker := time.NewTicker(5 * time.Second)
 	defer ticker.Stop()
 
+	attempts := 0
 	for {
 		select {
 		case <-ctx.Done():
+			// Get final deployment status for debugging
+			//nolint:gosec // Using kubectl in tests is expected
+			statusCmd := exec.Command("kubectl", "get", "deployment", deploymentName,
+				"-n", ArgoNamespace, "-o", "wide")
+			statusCmd.Env = append(os.Environ(), "KUBECONFIG="+kubeconfigPath)
+			statusOutput, _ := statusCmd.CombinedOutput()
+			t.Logf("Final deployment status for %s:\n%s", deploymentName, string(statusOutput))
+
+			// Get pods status
+			//nolint:gosec // Using kubectl in tests is expected
+			podsCmd := exec.Command("kubectl", "get", "pods",
+				"-n", ArgoNamespace, "-l", "app="+deploymentName, "-o", "wide")
+			podsCmd.Env = append(os.Environ(), "KUBECONFIG="+kubeconfigPath)
+			podsOutput, _ := podsCmd.CombinedOutput()
+			t.Logf("Pods for %s:\n%s", deploymentName, string(podsOutput))
+
 			return fmt.Errorf("timeout waiting for deployment %s", deploymentName)
 		case <-ticker.C:
+			attempts++
 			//nolint:gosec // Using kubectl in tests is expected
 			cmd := exec.Command("kubectl", "wait", "--for=condition=available",
 				"--timeout=5s",
 				"-n", ArgoNamespace,
 				"deployment/"+deploymentName)
 			cmd.Env = append(os.Environ(), "KUBECONFIG="+kubeconfigPath)
-			_, err := cmd.CombinedOutput()
+			output, err := cmd.CombinedOutput()
 
 			if err == nil {
 				return nil
+			}
+
+			// Log progress every 6th attempt (30 seconds)
+			if attempts%6 == 0 {
+				t.Logf("Still waiting for deployment %s (attempt %d): %s", deploymentName, attempts, string(output))
 			}
 		}
 	}
@@ -591,9 +646,9 @@ func getArgoServerToken(t *testing.T, kubeconfigPath string) (string, error) {
 }
 
 // installArgoWorkflows installs Argo Workflows in the k3s cluster.
-func installArgoWorkflows(t *testing.T, kubeconfigPath string) {
+func installArgoWorkflows(t *testing.T, kubeconfigPath string, mode ConnectionMode) {
 	t.Helper()
-	err := installArgoWorkflowsShared(t, kubeconfigPath)
+	err := installArgoWorkflowsShared(t, kubeconfigPath, mode)
 	require.NoError(t, err, "Failed to install Argo Workflows")
 }
 
