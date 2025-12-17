@@ -62,39 +62,14 @@ func TestGetWorkflowNode(t *testing.T) {
 	assert.Contains(t, []string{"Succeeded", "Failed", "Error"}, finalPhase,
 		"Workflow should reach terminal state")
 
-	// Get workflow to find node names
-	t.Log("Getting workflow to identify nodes...")
-	getHandler := tools.GetWorkflowHandler(cluster.ArgoClient)
-	getInput := tools.GetWorkflowInput{
-		Namespace: cluster.ArgoNamespace,
-		Name:      workflowName,
-	}
-
-	_, getOutput, err := getHandler(clientCtx, nil, getInput)
-	require.NoError(t, err, "Failed to get workflow")
-	require.NotNil(t, getOutput)
-	require.NotEmpty(t, getOutput.Nodes, "Workflow should have nodes")
-
-	// Find a leaf node (task-a, task-b, task-c, or task-d)
-	var targetNode *tools.NodeSummary
-	for i := range getOutput.Nodes {
-		node := &getOutput.Nodes[i]
-		// Look for a Pod node (the actual execution nodes)
-		if node.Type == "Pod" {
-			targetNode = node
-			break
-		}
-	}
-	require.NotNil(t, targetNode, "Should find a Pod node in the workflow")
-	t.Logf("Target node: %s (type: %s, phase: %s)", targetNode.Name, targetNode.Type, targetNode.Phase)
-
-	// Get the node details
-	t.Log("Getting workflow node details...")
+	// Get the node details by display name (known from dag-workflow.yaml)
+	// DAG has: task-a, task-b, task-c, task-d
+	t.Log("Getting workflow node details for 'task-a'...")
 	nodeHandler := tools.GetWorkflowNodeHandler(cluster.ArgoClient)
 	nodeInput := tools.GetWorkflowNodeInput{
 		Namespace:    cluster.ArgoNamespace,
 		WorkflowName: workflowName,
-		NodeName:     targetNode.Name,
+		NodeName:     "task-a", // Display name from the DAG workflow
 	}
 
 	_, nodeOutput, err := nodeHandler(clientCtx, nil, nodeInput)
@@ -102,7 +77,7 @@ func TestGetWorkflowNode(t *testing.T) {
 	require.NotNil(t, nodeOutput)
 
 	// Verify expected fields
-	assert.Equal(t, targetNode.Name, nodeOutput.Name)
+	assert.Equal(t, "task-a", nodeOutput.DisplayName, "Should have correct display name")
 	assert.NotEmpty(t, nodeOutput.ID, "Node should have ID")
 	assert.NotEmpty(t, nodeOutput.Type, "Node should have type")
 	assert.NotEmpty(t, nodeOutput.Phase, "Node should have phase")
