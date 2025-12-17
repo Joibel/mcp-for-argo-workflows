@@ -7,34 +7,107 @@
     ":semanticCommits"
   ],
   "labels": ["dependencies"],
-  "schedule": ["before 9am every day"],
-  "timezone": "UTC",
+  "schedule": ["before 9am every weekday"],
+  "timezone": "Europe/London",
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 2,
   "packageRules": [
     {
-      "description": "Docker base images - update digests daily",
+      "description": "Go modules - group minor/patch updates and automerge",
+      "matchManagers": ["gomod"],
+      "matchUpdateTypes": ["minor", "patch"],
+      "groupName": "Go dependencies (minor/patch)",
+      "automerge": true,
+      "labels": ["dependencies", "go"]
+    },
+    {
+      "description": "Go modules - major updates require review",
+      "matchManagers": ["gomod"],
+      "matchUpdateTypes": ["major"],
+      "groupName": "Go dependencies (major)",
+      "automerge": false,
+      "labels": ["dependencies", "go"]
+    },
+    {
+      "description": "Docker base images - digest updates automerge",
       "matchManagers": ["dockerfile"],
       "matchUpdateTypes": ["digest"],
-      "automerge": false,
+      "automerge": true,
       "labels": ["dependencies", "docker"]
     },
     {
-      "description": "Docker base images - major/minor updates require review",
+      "description": "Docker base images - major/minor/patch updates require review",
       "matchManagers": ["dockerfile"],
       "matchUpdateTypes": ["major", "minor", "patch"],
       "automerge": false,
       "labels": ["dependencies", "docker"]
     },
     {
-      "description": "Go modules - group all updates together",
-      "matchManagers": ["gomod"],
-      "groupName": "go modules",
+      "description": "GitHub Actions - automerge digest and minor updates",
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["digest", "minor", "patch"],
+      "automerge": true,
+      "labels": ["dependencies", "ci"]
+    },
+    {
+      "description": "GitHub Actions - major updates require review",
+      "matchManagers": ["github-actions"],
+      "matchUpdateTypes": ["major"],
+      "automerge": false,
+      "labels": ["dependencies", "ci"]
+    },
+    {
+      "description": "Go version updates require review",
+      "matchPackageNames": ["golang", "go"],
+      "matchManagers": ["dockerfile", "gomod"],
+      "automerge": false,
       "labels": ["dependencies", "go"]
     },
     {
-      "description": "GitHub Actions - update daily",
-      "matchManagers": ["github-actions"],
+      "description": "Argo Workflows version in E2E tests",
+      "matchDepNames": ["argoproj/argo-workflows"],
       "automerge": false,
+      "labels": ["dependencies", "testing"]
+    },
+    {
+      "description": "golangci-lint updates automerge",
+      "matchPackageNames": ["golangci/golangci-lint-action"],
+      "matchDepNames": ["golangci-lint"],
+      "automerge": true,
       "labels": ["dependencies", "ci"]
+    }
+  ],
+  "customManagers": [
+    {
+      "customType": "regex",
+      "description": "Argo Workflows version in E2E test setup",
+      "fileMatch": ["^test/e2e/setup\\.go$"],
+      "matchStrings": [
+        "ArgoVersion\\s*=\\s*\"(?<currentValue>v[\\d.]+)\""
+      ],
+      "depNameTemplate": "argoproj/argo-workflows",
+      "datasourceTemplate": "github-releases"
+    },
+    {
+      "customType": "regex",
+      "description": "golangci-lint version in CI workflow",
+      "fileMatch": ["^\\.github/workflows/ci\\.yml$"],
+      "matchStrings": [
+        "version:\\s*(?<currentValue>v[\\d.]+)"
+      ],
+      "depNameTemplate": "golangci-lint",
+      "packageNameTemplate": "golangci/golangci-lint",
+      "datasourceTemplate": "github-releases"
+    },
+    {
+      "customType": "regex",
+      "description": "Go version in CI workflow",
+      "fileMatch": ["^\\.github/workflows/.*\\.yml$"],
+      "matchStrings": [
+        "go-version:\\s*[\"']?(?<currentValue>[\\d.]+)[\"']?"
+      ],
+      "depNameTemplate": "go",
+      "datasourceTemplate": "golang-version"
     }
   ],
   "vulnerabilityAlerts": {
