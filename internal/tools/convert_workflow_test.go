@@ -230,6 +230,91 @@ spec:
 			},
 		},
 		{
+			name: "workflowtemplate with deprecated mutex - migrates to mutexes",
+			input: ConvertWorkflowInput{
+				Manifest: `
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: mutex-template
+spec:
+  entrypoint: main
+  synchronization:
+    mutex:
+      name: template-mutex
+  templates:
+  - name: main
+    container:
+      image: alpine
+`,
+			},
+			wantErr:     false,
+			wantKind:    "WorkflowTemplate",
+			wantChanges: []string{"mutex to spec.synchronization.mutexes"},
+			checkManifest: func(t *testing.T, manifest string) {
+				assert.Contains(t, manifest, "mutexes:")
+				assert.Contains(t, manifest, "template-mutex")
+			},
+		},
+		{
+			name: "clusterworkflowtemplate with deprecated semaphore - migrates to semaphores",
+			input: ConvertWorkflowInput{
+				Manifest: `
+apiVersion: argoproj.io/v1alpha1
+kind: ClusterWorkflowTemplate
+metadata:
+  name: semaphore-cluster-template
+spec:
+  entrypoint: main
+  synchronization:
+    semaphore:
+      configMapKeyRef:
+        name: cluster-config
+        key: workflow
+  templates:
+  - name: main
+    container:
+      image: alpine
+`,
+			},
+			wantErr:     false,
+			wantKind:    "ClusterWorkflowTemplate",
+			wantChanges: []string{"semaphore to spec.synchronization.semaphores"},
+			checkManifest: func(t *testing.T, manifest string) {
+				assert.Contains(t, manifest, "semaphores:")
+				assert.Contains(t, manifest, "cluster-config")
+			},
+		},
+		{
+			name: "workflowtemplate with template-level synchronization",
+			input: ConvertWorkflowInput{
+				Manifest: `
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: template-level-sync
+spec:
+  entrypoint: main
+  templates:
+  - name: main
+    synchronization:
+      semaphore:
+        configMapKeyRef:
+          name: my-semaphore
+          key: count
+    container:
+      image: alpine
+`,
+			},
+			wantErr:     false,
+			wantKind:    "WorkflowTemplate",
+			wantChanges: []string{"semaphore to spec.synchronization.semaphores"},
+			checkManifest: func(t *testing.T, manifest string) {
+				assert.Contains(t, manifest, "semaphores:")
+				assert.Contains(t, manifest, "my-semaphore")
+			},
+		},
+		{
 			name: "json output format",
 			input: ConvertWorkflowInput{
 				Manifest: `
