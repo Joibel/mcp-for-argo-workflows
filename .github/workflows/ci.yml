@@ -97,7 +97,7 @@ jobs:
         run: make dist/mcp-for-argo-workflows-linux-amd64
 
       - name: Upload artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
           name: mcp-for-argo-workflows-linux-amd64
           path: dist/mcp-for-argo-workflows-linux-amd64
