@@ -15,9 +15,11 @@ services:
       - ARGO_TOKEN=${ARGO_TOKEN:-}
       - ARGO_SECURE=${ARGO_SECURE:-true}
       - ARGO_INSECURE_SKIP_VERIFY=${ARGO_INSECURE_SKIP_VERIFY:-false}
+      # Kubeconfig path for the nonroot user in the distroless image
+      - KUBECONFIG=/home/nonroot/.kube/config
     volumes:
-      # Mount kubeconfig for direct Kubernetes API access
-      - ./kubeconfig:/root/.kube/config:ro
+      # Mount kubeconfig for direct Kubernetes API access (nonroot user home)
+      - ./kubeconfig:/home/nonroot/.kube/config:ro
     restart: unless-stopped
     # Note: Healthcheck disabled because the distroless image does not include wget/curl.
     # The application exposes /health endpoint for external health checks.
@@ -40,6 +42,8 @@ services:
       - ARGO_TOKEN=${ARGO_TOKEN:-}
       # TLS verification disabled by default for local development with port-forwarding
       - ARGO_INSECURE_SKIP_VERIFY=${ARGO_INSECURE_SKIP_VERIFY:-true}
+      # Kubeconfig path for the nonroot user in the distroless image
+      - KUBECONFIG=/home/nonroot/.kube/config
     volumes:
-      - ./kubeconfig:/root/.kube/config:ro
+      - ./kubeconfig:/home/nonroot/.kube/config:ro
     restart: unless-stopped
