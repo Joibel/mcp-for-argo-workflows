@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "argo-workflows": {
+      "command": "/usr/local/bin/mcp-for-argo-workflows",
+      "args": [
+        "--argo-server", "argo-server.argo:2746",
+        "--namespace", "argo"
+      ],
+      "env": {
+        "ARGO_TOKEN": "Bearer <your-token-here>"
+      }
+    }
+  }
+}

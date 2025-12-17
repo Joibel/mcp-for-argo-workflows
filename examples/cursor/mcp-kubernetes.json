@@ -1,0 +1,8 @@
+{
+  "mcp.servers": {
+    "argo-workflows": {
+      "command": "/usr/local/bin/mcp-for-argo-workflows",
+      "args": ["--namespace", "argo"]
+    }
+  }
+}
