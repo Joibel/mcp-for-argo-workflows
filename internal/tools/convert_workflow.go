@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	wfv1 "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	"github.com/argoproj/argo-workflows/v3/workflow/convert"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"sigs.k8s.io/yaml"
 )
@@ -60,6 +60,7 @@ func ConvertWorkflowTool() *mcp.Tool {
 
 // ConvertWorkflowHandler returns a handler function for the convert_workflow tool.
 // Note: This tool doesn't require the Argo client since it works purely from YAML.
+// It uses the official argo-workflows/workflow/convert package to perform conversions.
 func ConvertWorkflowHandler() func(context.Context, *mcp.CallToolRequest, ConvertWorkflowInput) (*mcp.CallToolResult, *ConvertWorkflowOutput, error) {
 	return func(_ context.Context, _ *mcp.CallToolRequest, input ConvertWorkflowInput) (*mcp.CallToolResult, *ConvertWorkflowOutput, error) {
 		// Validate manifest is provided
@@ -104,99 +105,104 @@ func ConvertWorkflowHandler() func(context.Context, *mcp.CallToolRequest, Conver
 		var warnings []string
 		var convertedManifest string
 
-		// Convert based on kind
+		// Convert based on kind using the official argo-workflows convert package
 		switch kind {
 		case KindWorkflow, "":
-			var wf wfv1.Workflow
-			if err := yaml.Unmarshal([]byte(input.Manifest), &wf); err != nil {
+			var legacy convert.LegacyWorkflow
+			if err := yaml.Unmarshal([]byte(input.Manifest), &legacy); err != nil {
 				return nil, nil, fmt.Errorf("failed to parse %s manifest: %w", KindWorkflow, err)
 			}
 			if name == "" {
-				name = wf.Name
+				name = legacy.Name
 				if name == "" {
-					name = wf.GenerateName
+					name = legacy.GenerateName
 				}
 			}
 			if kind == "" {
 				kind = KindWorkflow
 			}
 
-			// Apply workflow-specific conversions
-			wfChanges, wfWarnings := convertWorkflowSpec(&wf.Spec)
-			changes = append(changes, wfChanges...)
-			warnings = append(warnings, wfWarnings...)
+			// Detect changes before conversion
+			changes = detectWorkflowSpecChanges(&legacy.Spec)
+
+			// Convert using official package
+			converted := legacy.ToCurrent()
 
 			// Serialize back
 			var err error
-			convertedManifest, err = serializeManifest(wf, outputFormat)
+			convertedManifest, err = serializeManifest(converted, outputFormat)
 			if err != nil {
 				return nil, nil, err
 			}
 
 		case KindWorkflowTemplate:
-			var wft wfv1.WorkflowTemplate
-			if err := yaml.Unmarshal([]byte(input.Manifest), &wft); err != nil {
+			var legacy convert.LegacyWorkflowTemplate
+			if err := yaml.Unmarshal([]byte(input.Manifest), &legacy); err != nil {
 				return nil, nil, fmt.Errorf("failed to parse %s manifest: %w", KindWorkflowTemplate, err)
 			}
 			if name == "" {
-				name = wft.Name
+				name = legacy.Name
 			}
 
-			// Apply workflow-specific conversions
-			wfChanges, wfWarnings := convertWorkflowSpec(&wft.Spec)
-			changes = append(changes, wfChanges...)
-			warnings = append(warnings, wfWarnings...)
+			// Detect changes before conversion
+			changes = detectWorkflowSpecChanges(&legacy.Spec)
+
+			// Convert using official package
+			converted := legacy.ToCurrent()
 
 			// Serialize back
 			var err error
-			convertedManifest, err = serializeManifest(wft, outputFormat)
+			convertedManifest, err = serializeManifest(converted, outputFormat)
 			if err != nil {
 				return nil, nil, err
 			}
 
 		case KindClusterWorkflowTemplate:
-			var cwft wfv1.ClusterWorkflowTemplate
-			if err := yaml.Unmarshal([]byte(input.Manifest), &cwft); err != nil {
+			var legacy convert.LegacyClusterWorkflowTemplate
+			if err := yaml.Unmarshal([]byte(input.Manifest), &legacy); err != nil {
 				return nil, nil, fmt.Errorf("failed to parse %s manifest: %w", KindClusterWorkflowTemplate, err)
 			}
 			if name == "" {
-				name = cwft.Name
+				name = legacy.Name
 			}
 
-			// Apply workflow-specific conversions
-			wfChanges, wfWarnings := convertWorkflowSpec(&cwft.Spec)
-			changes = append(changes, wfChanges...)
-			warnings = append(warnings, wfWarnings...)
+			// Detect changes before conversion
+			changes = detectWorkflowSpecChanges(&legacy.Spec)
+
+			// Convert using official package
+			converted := legacy.ToCurrent()
 
 			// Serialize back
 			var err error
-			convertedManifest, err = serializeManifest(cwft, outputFormat)
+			convertedManifest, err = serializeManifest(converted, outputFormat)
 			if err != nil {
 				return nil, nil, err
 			}
 
 		case KindCronWorkflow:
-			var cronWf wfv1.CronWorkflow
-			if err := yaml.Unmarshal([]byte(input.Manifest), &cronWf); err != nil {
+			var legacy convert.LegacyCronWorkflow
+			if err := yaml.Unmarshal([]byte(input.Manifest), &legacy); err != nil {
 				return nil, nil, fmt.Errorf("failed to parse %s manifest: %w", KindCronWorkflow, err)
 			}
 			if name == "" {
-				name = cronWf.Name
+				name = legacy.Name
 			}
 
-			// Apply CronWorkflow-specific conversions
-			cronChanges, cronWarnings := convertCronWorkflowSpec(&cronWf.Spec)
+			// Detect CronWorkflow-specific changes
+			cronChanges, cronWarnings := detectCronWorkflowSpecChanges(&legacy.Spec)
 			changes = append(changes, cronChanges...)
 			warnings = append(warnings, cronWarnings...)
 
-			// Apply workflow-specific conversions to the embedded WorkflowSpec
-			wfChanges, wfWarnings := convertWorkflowSpec(&cronWf.Spec.WorkflowSpec)
+			// Detect WorkflowSpec changes
+			wfChanges := detectWorkflowSpecChanges(&legacy.Spec.WorkflowSpec)
 			changes = append(changes, wfChanges...)
-			warnings = append(warnings, wfWarnings...)
+
+			// Convert using official package
+			converted := legacy.ToCurrent()
 
 			// Serialize back
 			var err error
-			convertedManifest, err = serializeManifest(cronWf, outputFormat)
+			convertedManifest, err = serializeManifest(converted, outputFormat)
 			if err != nil {
 				return nil, nil, err
 			}
@@ -245,88 +251,64 @@ func ConvertWorkflowHandler() func(context.Context, *mcp.CallToolRequest, Conver
 	}
 }
 
-// convertWorkflowSpec applies conversions to a WorkflowSpec and returns changes and warnings.
-func convertWorkflowSpec(spec *wfv1.WorkflowSpec) ([]string, []string) {
+// detectWorkflowSpecChanges detects deprecated fields in a LegacyWorkflowSpec before conversion.
+func detectWorkflowSpecChanges(spec *convert.LegacyWorkflowSpec) []string {
 	var changes []string
-	var warnings []string
+
+	// Check for deprecated synchronization at spec level
+	if spec.Synchronization != nil {
+		syncChanges := detectSynchronizationChanges(spec.Synchronization)
+		changes = append(changes, syncChanges...)
+	}
 
 	// Check for deprecated fields in templates
 	for i := range spec.Templates {
 		tmpl := &spec.Templates[i]
-		tmplChanges, tmplWarnings := convertTemplate(tmpl)
+		tmplChanges := detectTemplateChanges(tmpl)
 		changes = append(changes, tmplChanges...)
-		warnings = append(warnings, tmplWarnings...)
 	}
 
-	return changes, warnings
+	return changes
 }
 
-// convertTemplate applies conversions to a single template.
-// Currently a placeholder for future template-level conversions.
-//
-//nolint:unparam // Placeholder for future conversions - returns nil for now
-func convertTemplate(tmpl *wfv1.Template) ([]string, []string) {
+// detectTemplateChanges detects deprecated fields in a LegacyTemplate.
+func detectTemplateChanges(tmpl *convert.LegacyTemplate) []string {
+	var changes []string
+
+	// Check for deprecated synchronization in template
+	if tmpl.Synchronization != nil {
+		syncChanges := detectSynchronizationChanges(tmpl.Synchronization)
+		changes = append(changes, syncChanges...)
+	}
+
+	return changes
+}
+
+// detectSynchronizationChanges detects deprecated mutex/semaphore fields.
+func detectSynchronizationChanges(sync *convert.LegacySynchronization) []string {
+	var changes []string
+
+	if sync.Mutex != nil {
+		changes = append(changes, "Migrated spec.synchronization.mutex to spec.synchronization.mutexes array")
+	}
+	if sync.Semaphore != nil {
+		changes = append(changes, "Migrated spec.synchronization.semaphore to spec.synchronization.semaphores array")
+	}
+
+	return changes
+}
+
+// detectCronWorkflowSpecChanges detects deprecated fields in a LegacyCronWorkflowSpec.
+func detectCronWorkflowSpecChanges(spec *convert.LegacyCronWorkflowSpec) ([]string, []string) {
 	var changes []string
 	var warnings []string
 
-	// Check for deprecated container fields
-	if tmpl.Container != nil {
-		// Note: Most container deprecations are handled by Kubernetes itself
-		// We can add specific checks here as needed
-		_ = tmpl.Container
-	}
-
-	// Check for deprecated script fields
-	if tmpl.Script != nil {
-		// Note: Script-specific deprecations can be added here
-		_ = tmpl.Script
-	}
-
-	// Check for deprecated resource fields
-	if tmpl.Resource != nil {
-		// Note: Resource-specific deprecations can be added here
-		_ = tmpl.Resource
-	}
-
-	// Check DAG tasks
-	if tmpl.DAG != nil {
-		for j := range tmpl.DAG.Tasks {
-			task := &tmpl.DAG.Tasks[j]
-			// Check for deprecated task fields
-			// Note: Task-specific deprecations can be added here
-			_ = task
-		}
-	}
-
-	// Check Steps
-	for i := range tmpl.Steps {
-		for j := range tmpl.Steps[i].Steps {
-			step := &tmpl.Steps[i].Steps[j]
-			// Check for deprecated step fields
-			// Note: Step-specific deprecations can be added here
-			_ = step
-		}
-	}
-
-	return changes, warnings
-}
-
-// convertCronWorkflowSpec applies conversions specific to CronWorkflowSpec.
-func convertCronWorkflowSpec(spec *wfv1.CronWorkflowSpec) ([]string, []string) {
-	var changes []string
-	var warnings []string
-
-	// Convert deprecated `schedule` (string) to `schedules` ([]string)
-	// The Schedule field is still used but Schedules takes precedence if set
-	if spec.Schedule != "" && len(spec.Schedules) == 0 {
-		// Migrate schedule to schedules array
-		spec.Schedules = []string{spec.Schedule}
-		spec.Schedule = "" // Clear the deprecated field
+	// Check for deprecated schedule field
+	if spec.Schedule != "" {
 		changes = append(changes, "Migrated spec.schedule to spec.schedules array")
 	}
 
-	// Check for other CronWorkflow-specific deprecations
-	// ConcurrencyPolicy is still valid but we can warn about certain values
+	// Check for missing concurrencyPolicy
 	if spec.ConcurrencyPolicy == "" {
 		warnings = append(warnings, "No concurrencyPolicy set - defaults to 'Allow' which may cause overlapping runs")
 	}

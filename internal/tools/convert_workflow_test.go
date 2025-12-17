@@ -147,6 +147,89 @@ spec:
 			wantKind: "ClusterWorkflowTemplate",
 		},
 		{
+			name: "workflow with deprecated mutex - migrates to mutexes",
+			input: ConvertWorkflowInput{
+				Manifest: `
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  name: mutex-workflow
+spec:
+  entrypoint: main
+  synchronization:
+    mutex:
+      name: my-mutex
+  templates:
+  - name: main
+    container:
+      image: alpine
+`,
+			},
+			wantErr:     false,
+			wantKind:    "Workflow",
+			wantChanges: []string{"mutex to spec.synchronization.mutexes"},
+			checkManifest: func(t *testing.T, manifest string) {
+				assert.Contains(t, manifest, "mutexes:")
+				assert.Contains(t, manifest, "my-mutex")
+			},
+		},
+		{
+			name: "workflow with deprecated semaphore - migrates to semaphores",
+			input: ConvertWorkflowInput{
+				Manifest: `
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  name: semaphore-workflow
+spec:
+  entrypoint: main
+  synchronization:
+    semaphore:
+      configMapKeyRef:
+        name: my-config
+        key: workflow
+  templates:
+  - name: main
+    container:
+      image: alpine
+`,
+			},
+			wantErr:     false,
+			wantKind:    "Workflow",
+			wantChanges: []string{"semaphore to spec.synchronization.semaphores"},
+			checkManifest: func(t *testing.T, manifest string) {
+				assert.Contains(t, manifest, "semaphores:")
+				assert.Contains(t, manifest, "my-config")
+			},
+		},
+		{
+			name: "template-level synchronization conversion",
+			input: ConvertWorkflowInput{
+				Manifest: `
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  name: template-sync-workflow
+spec:
+  entrypoint: main
+  templates:
+  - name: main
+    synchronization:
+      mutex:
+        name: template-mutex
+    container:
+      image: alpine
+`,
+			},
+			wantErr:     false,
+			wantKind:    "Workflow",
+			wantChanges: []string{"mutex to spec.synchronization.mutexes"},
+			checkManifest: func(t *testing.T, manifest string) {
+				assert.Contains(t, manifest, "mutexes:")
+				assert.Contains(t, manifest, "template-mutex")
+			},
+		},
+		{
 			name: "json output format",
 			input: ConvertWorkflowInput{
 				Manifest: `
