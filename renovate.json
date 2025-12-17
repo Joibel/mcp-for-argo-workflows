@@ -75,6 +75,12 @@
       "matchDepNames": ["golangci-lint"],
       "automerge": true,
       "labels": ["dependencies", "ci"]
+    },
+    {
+      "description": "govulncheck updates automerge",
+      "matchDepNames": ["golang.org/x/vuln"],
+      "automerge": true,
+      "labels": ["dependencies", "ci", "security"]
     }
   ],
   "customManagers": [
@@ -108,6 +114,16 @@
       ],
       "depNameTemplate": "go",
       "datasourceTemplate": "golang-version"
+    },
+    {
+      "customType": "regex",
+      "description": "govulncheck version in CI workflow",
+      "fileMatch": ["^\\.github/workflows/ci\\.yml$"],
+      "matchStrings": [
+        "govulncheck@(?<currentValue>v[\\d.]+)"
+      ],
+      "depNameTemplate": "golang.org/x/vuln",
+      "datasourceTemplate": "go"
     }
   ],
   "vulnerabilityAlerts": {
