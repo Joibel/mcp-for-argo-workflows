@@ -206,10 +206,10 @@ func gatherDiagnostics(ctx context.Context, client argo.ClientInterface, namespa
 		}
 		logs, err := getNodeLogs(ctx, client, namespace, workflowName, d.RootCauses[i].Name)
 		if err == nil && logs != "" {
-			// Truncate if needed
+			// Truncate if needed (using rune-safe truncation)
 			remaining := maxLogBytes - totalLogBytes
 			if len(logs) > remaining {
-				logs = logs[:remaining] + "\n... (logs truncated)"
+				logs = truncateStringBytes(logs, remaining) + "\n... (logs truncated)"
 			}
 			d.RootCauses[i].Logs = logs
 			totalLogBytes += len(logs)
@@ -771,4 +771,20 @@ func truncateString(s string, maxRunes int) string {
 		return s
 	}
 	return string(runes[:maxRunes]) + "..."
+}
+
+// truncateStringBytes truncates a string to approximately maxBytes while respecting UTF-8 boundaries.
+// It finds the largest valid UTF-8 boundary at or before maxBytes.
+func truncateStringBytes(s string, maxBytes int) string {
+	if len(s) <= maxBytes {
+		return s
+	}
+	// Find a valid UTF-8 boundary at or before maxBytes
+	// UTF-8 continuation bytes have the pattern 10xxxxxx (0x80-0xBF)
+	// So we back up until we find a byte that's not a continuation byte
+	end := maxBytes
+	for end > 0 && (s[end]&0xC0) == 0x80 {
+		end--
+	}
+	return s[:end]
 }

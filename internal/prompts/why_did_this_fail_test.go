@@ -3,6 +3,7 @@ package prompts
 import (
 	"testing"
 	"time"
+	"unicode/utf8"
 
 	wfv1 "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/stretchr/testify/assert"
@@ -635,6 +636,73 @@ func TestTruncateString(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			result := truncateString(tt.input, tt.maxLen)
 			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestTruncateStringBytes(t *testing.T) {
+	tests := []struct { //nolint:govet // Field order optimized for readability
+		name     string
+		input    string
+		maxBytes int
+		expected string
+	}{
+		{
+			name:     "string shorter than max",
+			input:    "hello",
+			maxBytes: 10,
+			expected: "hello",
+		},
+		{
+			name:     "string equal to max",
+			input:    "hello",
+			maxBytes: 5,
+			expected: "hello",
+		},
+		{
+			name:     "string longer than max ASCII",
+			input:    "hello world",
+			maxBytes: 5,
+			expected: "hello",
+		},
+		{
+			name:     "empty string",
+			input:    "",
+			maxBytes: 10,
+			expected: "",
+		},
+		{
+			name:     "truncate at UTF-8 boundary - 2 byte char",
+			input:    "hello é world", // é is 2 bytes (0xC3 0xA9)
+			maxBytes: 6,               // "hello " is 6 bytes, next is start of é
+			expected: "hello ",
+		},
+		{
+			name:     "truncate mid UTF-8 char backs up - 2 byte",
+			input:    "helloé", // é is 2 bytes
+			maxBytes: 6,        // would cut é in half (5 + first byte of é)
+			expected: "hello",  // backs up to valid boundary
+		},
+		{
+			name:     "truncate mid UTF-8 char backs up - 3 byte",
+			input:    "hello世界", // 世 is 3 bytes (0xE4 0xB8 0x96)
+			maxBytes: 6,         // would cut 世 in half
+			expected: "hello",   // backs up to valid boundary
+		},
+		{
+			name:     "truncate preserves complete multi-byte chars",
+			input:    "日本語", // each is 3 bytes
+			maxBytes: 6,     // exactly 2 chars
+			expected: "日本",
+		},
+	}
+
+	for _, tt := range tests { //nolint:govet // Field order optimized for readability
+		t.Run(tt.name, func(t *testing.T) {
+			result := truncateStringBytes(tt.input, tt.maxBytes)
+			assert.Equal(t, tt.expected, result)
+			// Verify result is valid UTF-8
+			assert.True(t, utf8.ValidString(result), "result should be valid UTF-8")
 		})
 	}
 }
