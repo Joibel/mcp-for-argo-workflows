@@ -69,6 +69,20 @@ func TestRenderManifestGraphHandler(t *testing.T) {
 			},
 		},
 		{
+			name: "DAG workflow with SVG format",
+			input: RenderManifestGraphInput{
+				Manifest: dagWorkflowManifest,
+				Format:   "svg",
+			},
+			validate: func(t *testing.T, output *RenderManifestGraphOutput) {
+				assert.Equal(t, "svg", output.Format)
+				assert.True(t, strings.HasPrefix(output.Graph, "<?xml") || strings.Contains(output.Graph, "<svg"))
+				assert.Contains(t, output.Graph, "</svg>")
+				// Note: SVG may HTML-encode special chars, so we check for the basic word
+				assert.Contains(t, output.Graph, "build")
+			},
+		},
+		{
 			name: "steps workflow",
 			input: RenderManifestGraphInput{
 				Manifest: stepsWorkflowManifest,

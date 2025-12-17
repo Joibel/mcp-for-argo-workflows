@@ -29,8 +29,8 @@ type RenderManifestGraphInput struct {
 	// Manifest is the workflow YAML manifest to render.
 	Manifest string `json:"manifest" jsonschema:"Workflow, WorkflowTemplate, ClusterWorkflowTemplate, or CronWorkflow YAML manifest,required"`
 
-	// Format is the output format (mermaid, ascii, or dot).
-	Format string `json:"format,omitempty" jsonschema:"Output format: mermaid (default), ascii, or dot,enum=mermaid,enum=ascii,enum=dot"`
+	// Format is the output format (mermaid, ascii, dot, or svg).
+	Format string `json:"format,omitempty" jsonschema:"Output format: mermaid (default), ascii, dot, or svg,enum=mermaid,enum=ascii,enum=dot,enum=svg"`
 }
 
 // RenderManifestGraphOutput defines the output for the render_manifest_graph tool.
@@ -57,14 +57,14 @@ type RenderManifestGraphOutput struct {
 func RenderManifestGraphTool() *mcp.Tool {
 	return &mcp.Tool{
 		Name:        "render_manifest_graph",
-		Description: "Render an Argo Workflow manifest (YAML) as a graph showing the DAG structure and dependencies, without submitting it. Supports Workflow, WorkflowTemplate, ClusterWorkflowTemplate, and CronWorkflow manifests.",
+		Description: "Render an Argo Workflow manifest (YAML) as a graph showing the DAG structure and dependencies, without submitting it. Supports Workflow, WorkflowTemplate, ClusterWorkflowTemplate, and CronWorkflow manifests. Supports Mermaid, ASCII, DOT, and SVG formats.",
 	}
 }
 
 // RenderManifestGraphHandler returns a handler function for the render_manifest_graph tool.
 // Note: This tool doesn't require the Argo client since it works purely from YAML.
 func RenderManifestGraphHandler() func(context.Context, *mcp.CallToolRequest, RenderManifestGraphInput) (*mcp.CallToolResult, *RenderManifestGraphOutput, error) {
-	return func(_ context.Context, _ *mcp.CallToolRequest, input RenderManifestGraphInput) (*mcp.CallToolResult, *RenderManifestGraphOutput, error) {
+	return func(ctx context.Context, _ *mcp.CallToolRequest, input RenderManifestGraphInput) (*mcp.CallToolResult, *RenderManifestGraphOutput, error) {
 		// Validate manifest is provided
 		if strings.TrimSpace(input.Manifest) == "" {
 			return nil, nil, fmt.Errorf("manifest cannot be empty")
@@ -81,8 +81,8 @@ func RenderManifestGraphHandler() func(context.Context, *mcp.CallToolRequest, Re
 		if format == "" {
 			format = FormatMermaid
 		}
-		if format != FormatMermaid && format != FormatASCII && format != FormatDOT {
-			return nil, nil, fmt.Errorf("invalid format: %s (must be %s, %s, or %s)", format, FormatMermaid, FormatASCII, FormatDOT)
+		if format != FormatMermaid && format != FormatASCII && format != FormatDOT && format != FormatSVG {
+			return nil, nil, fmt.Errorf("invalid format: %s (must be %s, %s, %s, or %s)", format, FormatMermaid, FormatASCII, FormatDOT, FormatSVG)
 		}
 
 		// Try to determine the kind of manifest
@@ -99,6 +99,7 @@ func RenderManifestGraphHandler() func(context.Context, *mcp.CallToolRequest, Re
 
 		// Render the graph
 		var graph string
+		var renderErr error
 		switch format {
 		case FormatMermaid:
 			graph = renderManifestMermaid(nodes)
@@ -106,6 +107,12 @@ func RenderManifestGraphHandler() func(context.Context, *mcp.CallToolRequest, Re
 			graph = renderManifestASCII(nodes)
 		case FormatDOT:
 			graph = renderManifestDOT(nodes)
+		case FormatSVG:
+			dot := renderManifestDOT(nodes)
+			graph, renderErr = dotToSVG(ctx, dot)
+			if renderErr != nil {
+				return nil, nil, fmt.Errorf("failed to render SVG: %w", renderErr)
+			}
 		}
 
 		output := &RenderManifestGraphOutput{
