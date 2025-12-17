@@ -76,6 +76,21 @@ func TestRenderWorkflowGraphHandler(t *testing.T) {
 			},
 		},
 		{
+			name: "workflow with SVG format",
+			input: RenderWorkflowGraphInput{
+				Name:   "test-workflow",
+				Format: "svg",
+			},
+			workflow: createDAGWorkflow("test-workflow", "default"),
+			validate: func(t *testing.T, output *RenderWorkflowGraphOutput) {
+				assert.Equal(t, "svg", output.Format)
+				assert.True(t, strings.HasPrefix(output.Graph, "<?xml") || strings.Contains(output.Graph, "<svg"))
+				assert.Contains(t, output.Graph, "</svg>")
+				// Note: SVG may HTML-encode dashes as &#45; so we check for "build" instead
+				assert.Contains(t, output.Graph, "build")
+			},
+		},
+		{
 			name: "workflow without status colors",
 			input: RenderWorkflowGraphInput{
 				Name:          "test-workflow",

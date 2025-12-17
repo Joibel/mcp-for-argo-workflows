@@ -21,6 +21,8 @@ const (
 	FormatASCII = "ascii"
 	// FormatDOT is the DOT (Graphviz) output format.
 	FormatDOT = "dot"
+	// FormatSVG is the SVG output format (rendered via Graphviz).
+	FormatSVG = "svg"
 )
 
 // RenderWorkflowGraphInput defines the input parameters for the render_workflow_graph tool.
@@ -34,8 +36,8 @@ type RenderWorkflowGraphInput struct {
 	// Name is the workflow name.
 	Name string `json:"name" jsonschema:"Workflow name,required"`
 
-	// Format is the output format (mermaid, ascii, or dot).
-	Format string `json:"format,omitempty" jsonschema:"Output format: mermaid (default), ascii, or dot,enum=mermaid,enum=ascii,enum=dot"`
+	// Format is the output format (mermaid, ascii, dot, or svg).
+	Format string `json:"format,omitempty" jsonschema:"Output format: mermaid (default), ascii, dot, or svg,enum=mermaid,enum=ascii,enum=dot,enum=svg"`
 }
 
 // RenderWorkflowGraphOutput defines the output for the render_workflow_graph tool.
@@ -54,7 +56,7 @@ type RenderWorkflowGraphOutput struct {
 func RenderWorkflowGraphTool() *mcp.Tool {
 	return &mcp.Tool{
 		Name:        "render_workflow_graph",
-		Description: "Render an Argo Workflow as a graph showing the DAG structure, step dependencies, and node statuses. Supports Mermaid, ASCII, and DOT formats.",
+		Description: "Render an Argo Workflow as a graph showing the DAG structure, step dependencies, and node statuses. Supports Mermaid, ASCII, DOT, and SVG formats.",
 	}
 }
 
@@ -74,8 +76,8 @@ func RenderWorkflowGraphHandler(client argo.ClientInterface) func(context.Contex
 		if format == "" {
 			format = FormatMermaid
 		}
-		if format != FormatMermaid && format != FormatASCII && format != FormatDOT {
-			return nil, nil, fmt.Errorf("invalid format: %s (must be %s, %s, or %s)", format, FormatMermaid, FormatASCII, FormatDOT)
+		if format != FormatMermaid && format != FormatASCII && format != FormatDOT && format != FormatSVG {
+			return nil, nil, fmt.Errorf("invalid format: %s (must be %s, %s, %s, or %s)", format, FormatMermaid, FormatASCII, FormatDOT, FormatSVG)
 		}
 
 		// Determine includeStatus
@@ -98,6 +100,7 @@ func RenderWorkflowGraphHandler(client argo.ClientInterface) func(context.Contex
 
 		// Render the graph
 		var graph string
+		var renderErr error
 		switch format {
 		case FormatMermaid:
 			graph = renderMermaidGraph(wf, includeStatus)
@@ -105,6 +108,12 @@ func RenderWorkflowGraphHandler(client argo.ClientInterface) func(context.Contex
 			graph = renderASCIIGraph(wf, includeStatus)
 		case FormatDOT:
 			graph = renderDOTGraph(wf, includeStatus)
+		case FormatSVG:
+			dot := renderDOTGraph(wf, includeStatus)
+			graph, renderErr = dotToSVG(ctx, dot)
+			if renderErr != nil {
+				return nil, nil, fmt.Errorf("failed to render SVG: %w", renderErr)
+			}
 		}
 
 		output := &RenderWorkflowGraphOutput{
