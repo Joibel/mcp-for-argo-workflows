@@ -140,13 +140,14 @@ func TestGetWorkflowNode_ByDisplayName(t *testing.T) {
 	assert.Contains(t, []string{"Succeeded", "Failed", "Error"}, finalPhase,
 		"Workflow should reach terminal state")
 
-	// Get node by display name (task-a, task-b, task-c, task-d from DAG)
-	t.Log("Getting workflow node by display name 'task-a'...")
+	// Get node by display name - use task-d (the final node that depends on task-b and task-c)
+	// This tests a different node than TestGetWorkflowNode which uses task-a
+	t.Log("Getting workflow node by display name 'task-d'...")
 	nodeHandler := tools.GetWorkflowNodeHandler(cluster.ArgoClient)
 	nodeInput := tools.GetWorkflowNodeInput{
 		Namespace:    cluster.ArgoNamespace,
 		WorkflowName: workflowName,
-		NodeName:     "task-a", // Display name
+		NodeName:     "task-d", // Display name of final DAG node
 	}
 
 	_, nodeOutput, err := nodeHandler(clientCtx, nil, nodeInput)
@@ -154,7 +155,7 @@ func TestGetWorkflowNode_ByDisplayName(t *testing.T) {
 	require.NotNil(t, nodeOutput)
 
 	// Verify we got the right node
-	assert.Equal(t, "task-a", nodeOutput.DisplayName, "Should find node by display name")
+	assert.Equal(t, "task-d", nodeOutput.DisplayName, "Should find node by display name")
 	assert.NotEmpty(t, nodeOutput.ID, "Node should have ID")
 	t.Logf("Found node: ID=%s, DisplayName=%s, Phase=%s", nodeOutput.ID, nodeOutput.DisplayName, nodeOutput.Phase)
 }
@@ -550,14 +551,14 @@ func TestRenderManifestGraph_InvalidManifest(t *testing.T) {
 		assert.Contains(t, err.Error(), "empty", "Error should mention empty")
 	})
 
-	t.Run("invalid yaml", func(t *testing.T) {
+	t.Run("non-workflow yaml", func(t *testing.T) {
 		input := tools.RenderManifestGraphInput{
-			Manifest: "not: valid: yaml: here",
+			Manifest: "not:\n  a:\n    workflow: true",
 			Format:   "mermaid",
 		}
 
 		_, _, err := renderHandler(context.Background(), nil, input)
-		require.Error(t, err, "Should error on invalid YAML")
+		require.Error(t, err, "Should error on non-workflow manifest")
 	})
 
 	t.Run("unsupported kind", func(t *testing.T) {
