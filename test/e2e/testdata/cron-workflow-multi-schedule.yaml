@@ -1,14 +1,14 @@
 apiVersion: argoproj.io/v1alpha1
 kind: CronWorkflow
 metadata:
-  name: test-cron
+  name: test-cron-multi
 spec:
   schedules:
     - "0 0 * * *"
-  timezone: "America/Los_Angeles"
-  startingDeadlineSeconds: 60
-  concurrencyPolicy: "Replace"
-  successfulJobsHistoryLimit: 1
+    - "0 12 * * *"
+  timezone: "UTC"
+  concurrencyPolicy: "Forbid"
+  successfulJobsHistoryLimit: 2
   failedJobsHistoryLimit: 1
   suspend: false
   workflowSpec:
@@ -18,4 +18,4 @@ spec:
         container:
           image: busybox:1.35
           command: [echo]
-          args: ["Hello from cron workflow"]
+          args: ["Hello from cron workflow with multiple schedules"]

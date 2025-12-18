@@ -24,23 +24,12 @@ type ListCronWorkflowsInput struct {
 
 // CronWorkflowSummary represents a concise summary of a cron workflow.
 type CronWorkflowSummary struct {
-	// Name is the cron workflow name.
-	Name string `json:"name"`
-
-	// Namespace is the namespace where the cron workflow exists.
-	Namespace string `json:"namespace"`
-
-	// Schedule is the cron schedule expression.
-	Schedule string `json:"schedule"`
-
-	// LastScheduledTime is when the cron workflow was last scheduled.
-	LastScheduledTime string `json:"lastScheduledTime,omitempty"`
-
-	// CreatedAt is when the cron workflow was created.
-	CreatedAt string `json:"createdAt"`
-
-	// Suspended indicates whether the cron workflow is suspended.
-	Suspended bool `json:"suspended"`
+	Name              string   `json:"name"`
+	Namespace         string   `json:"namespace"`
+	LastScheduledTime string   `json:"lastScheduledTime,omitempty"`
+	CreatedAt         string   `json:"createdAt"`
+	Schedules         []string `json:"schedules"`
+	Suspended         bool     `json:"suspended"`
 }
 
 // ListCronWorkflowsOutput defines the output for the list_cron_workflows tool.
@@ -96,7 +85,7 @@ func ListCronWorkflowsHandler(client argo.ClientInterface) func(context.Context,
 			summary := CronWorkflowSummary{
 				Name:      cw.Name,
 				Namespace: cw.Namespace,
-				Schedule:  cw.Spec.Schedule,
+				Schedules: getSchedules(&cw.Spec),
 				Suspended: cw.Spec.Suspend,
 			}
 

@@ -4,6 +4,7 @@ package tools
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/argoproj/argo-workflows/v3/pkg/apiclient/cronworkflow"
@@ -43,7 +44,7 @@ type GetCronWorkflowOutput struct {
 	CreatedAt                  string              `json:"createdAt,omitempty"`
 	Timezone                   string              `json:"timezone,omitempty"`
 	ConcurrencyPolicy          string              `json:"concurrencyPolicy,omitempty"`
-	Schedule                   string              `json:"schedule"`
+	Schedules                  []string            `json:"schedules"`
 	LastScheduledTime          string              `json:"lastScheduledTime,omitempty"`
 	Entrypoint                 string              `json:"entrypoint,omitempty"`
 	Namespace                  string              `json:"namespace"`
@@ -91,11 +92,11 @@ func GetCronWorkflowHandler(client argo.ClientInterface) func(context.Context, *
 			return nil, nil, fmt.Errorf("failed to get cron workflow: %w", err)
 		}
 
-		// Build output
+		// Build output - normalize to schedules array for consistent output
 		output := &GetCronWorkflowOutput{
 			Name:                       cw.Name,
 			Namespace:                  cw.Namespace,
-			Schedule:                   cw.Spec.Schedule,
+			Schedules:                  getSchedules(&cw.Spec),
 			Timezone:                   cw.Spec.Timezone,
 			ConcurrencyPolicy:          string(cw.Spec.ConcurrencyPolicy),
 			Suspended:                  cw.Spec.Suspend,
@@ -133,7 +134,7 @@ func GetCronWorkflowHandler(client argo.ClientInterface) func(context.Context, *
 
 		// Build human-readable result
 		resultText := fmt.Sprintf("CronWorkflow %q in namespace %q", output.Name, output.Namespace)
-		resultText += fmt.Sprintf("\nSchedule: %s", output.Schedule)
+		resultText += fmt.Sprintf("\nSchedule(s): %s", strings.Join(output.Schedules, ", "))
 		if output.Timezone != "" {
 			resultText += fmt.Sprintf(" (%s)", output.Timezone)
 		}

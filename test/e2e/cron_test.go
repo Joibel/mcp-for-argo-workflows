@@ -46,7 +46,7 @@ func TestCronWorkflow_CRUD(t *testing.T) {
 	// Verify cron workflow was created
 	assert.True(t, cluster.CronWorkflowExists(t, cluster.ArgoNamespace, cronName),
 		"CronWorkflow should exist after creation")
-	assert.Equal(t, "0 0 * * *", createOutput.Schedule)
+	assert.Equal(t, []string{"0 0 * * *"}, createOutput.Schedules)
 	assert.False(t, createOutput.Suspended, "CronWorkflow should not be suspended on creation")
 
 	// Cleanup at the end (skipped if explicit delete in Step 4 succeeded)
@@ -78,7 +78,7 @@ func TestCronWorkflow_CRUD(t *testing.T) {
 
 	assert.Equal(t, cronName, getOutput.Name)
 	assert.Equal(t, cluster.ArgoNamespace, getOutput.Namespace)
-	assert.Equal(t, "0 0 * * *", getOutput.Schedule)
+	assert.Equal(t, []string{"0 0 * * *"}, getOutput.Schedules)
 	assert.Equal(t, "America/Los_Angeles", getOutput.Timezone)
 	assert.Equal(t, "Replace", getOutput.ConcurrencyPolicy)
 	assert.NotEmpty(t, getOutput.CreatedAt)
@@ -103,7 +103,7 @@ func TestCronWorkflow_CRUD(t *testing.T) {
 		if cw.Name == cronName {
 			found = true
 			assert.Equal(t, cluster.ArgoNamespace, cw.Namespace)
-			assert.Equal(t, "0 0 * * *", cw.Schedule)
+			assert.Equal(t, []string{"0 0 * * *"}, cw.Schedules)
 			assert.False(t, cw.Suspended)
 			break
 		}
@@ -292,6 +292,6 @@ func TestCronWorkflow_GetConsistency(t *testing.T) {
 	// Verify the cron workflow is consistent
 	assert.Equal(t, originalCreatedAt, getOutput2.CreatedAt, "CreatedAt should remain the same")
 	assert.Equal(t, cronName, getOutput2.Name)
-	assert.Equal(t, "0 0 * * *", getOutput2.Schedule)
+	assert.Equal(t, []string{"0 0 * * *"}, getOutput2.Schedules)
 	assert.Equal(t, "America/Los_Angeles", getOutput2.Timezone)
 }

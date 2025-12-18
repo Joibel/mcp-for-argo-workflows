@@ -43,7 +43,7 @@ func TestCronWorkflowSummary(t *testing.T) {
 	summary := CronWorkflowSummary{
 		Name:              "test-cron",
 		Namespace:         "default",
-		Schedule:          "0 * * * *",
+		Schedules:         []string{"0 * * * *"},
 		Suspended:         false,
 		LastScheduledTime: "2025-01-01T12:00:00Z",
 		CreatedAt:         "2025-01-01T00:00:00Z",
@@ -51,7 +51,7 @@ func TestCronWorkflowSummary(t *testing.T) {
 
 	assert.Equal(t, "test-cron", summary.Name)
 	assert.Equal(t, "default", summary.Namespace)
-	assert.Equal(t, "0 * * * *", summary.Schedule)
+	assert.Equal(t, []string{"0 * * * *"}, summary.Schedules)
 	assert.False(t, summary.Suspended)
 	assert.NotEmpty(t, summary.LastScheduledTime)
 	assert.NotEmpty(t, summary.CreatedAt)
@@ -60,8 +60,8 @@ func TestCronWorkflowSummary(t *testing.T) {
 func TestListCronWorkflowsOutput(t *testing.T) {
 	output := ListCronWorkflowsOutput{
 		CronWorkflows: []CronWorkflowSummary{
-			{Name: "cron-1", Namespace: "default", Schedule: "0 * * * *"},
-			{Name: "cron-2", Namespace: "default", Schedule: "*/5 * * * *"},
+			{Name: "cron-1", Namespace: "default", Schedules: []string{"0 * * * *"}},
+			{Name: "cron-2", Namespace: "default", Schedules: []string{"*/5 * * * *"}},
 		},
 		Total: 2,
 	}
@@ -138,11 +138,11 @@ func TestListCronWorkflowsHandler(t *testing.T) {
 				assert.Len(t, output.CronWorkflows, 2)
 				assert.Equal(t, "cron-1", output.CronWorkflows[0].Name)
 				assert.Equal(t, "default", output.CronWorkflows[0].Namespace)
-				assert.Equal(t, "0 * * * *", output.CronWorkflows[0].Schedule)
+				assert.Equal(t, []string{"0 * * * *"}, output.CronWorkflows[0].Schedules)
 				assert.False(t, output.CronWorkflows[0].Suspended)
 				assert.NotEmpty(t, output.CronWorkflows[0].LastScheduledTime)
 				assert.Equal(t, "cron-2", output.CronWorkflows[1].Name)
-				assert.Equal(t, "*/5 * * * *", output.CronWorkflows[1].Schedule)
+				assert.Equal(t, []string{"*/5 * * * *"}, output.CronWorkflows[1].Schedules)
 				assert.True(t, output.CronWorkflows[1].Suspended)
 				require.NotNil(t, result)
 				require.Len(t, result.Content, 1)
