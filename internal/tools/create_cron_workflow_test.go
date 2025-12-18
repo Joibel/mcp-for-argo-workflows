@@ -491,7 +491,7 @@ spec:
 				require.Len(t, result.Content, 1)
 				text, ok := result.Content[0].(*mcp.TextContent)
 				require.True(t, ok)
-				assert.Contains(t, text.Text, "Updated")
+				assert.Contains(t, text.Text, "updated")
 			},
 		},
 		{

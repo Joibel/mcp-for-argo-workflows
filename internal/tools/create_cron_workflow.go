@@ -154,9 +154,9 @@ func CreateCronWorkflowHandler(client argo.ClientInterface) func(context.Context
 		// Build human-readable result
 		var resultText string
 		if wasCreated {
-			resultText = fmt.Sprintf("Created CronWorkflow %q in namespace %q", output.Name, output.Namespace)
+			resultText = fmt.Sprintf("CronWorkflow %q created in namespace %q", output.Name, output.Namespace)
 		} else {
-			resultText = fmt.Sprintf("Updated CronWorkflow %q in namespace %q", output.Name, output.Namespace)
+			resultText = fmt.Sprintf("CronWorkflow %q updated in namespace %q", output.Name, output.Namespace)
 		}
 		resultText += fmt.Sprintf("\nSchedule(s): %s", strings.Join(output.Schedules, ", "))
 		if output.Timezone != "" {
