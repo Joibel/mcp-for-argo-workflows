@@ -80,6 +80,17 @@ func CreateClusterWorkflowTemplateHandler(client argo.ClientInterface) func(cont
 		if err != nil {
 			// Check if error is AlreadyExists - if so, try to update instead
 			if grpcStatus, ok := status.FromError(err); ok && grpcStatus.Code() == codes.AlreadyExists {
+				// Get the existing template to retrieve its resourceVersion
+				existingCwft, getErr := cwftService.GetClusterWorkflowTemplate(ctx, &clusterworkflowtemplate.ClusterWorkflowTemplateGetRequest{
+					Name: cwft.Name,
+				})
+				if getErr != nil {
+					return nil, nil, fmt.Errorf("failed to get existing cluster workflow template for update: %w", getErr)
+				}
+
+				// Copy the resourceVersion to enable update
+				cwft.ResourceVersion = existingCwft.ResourceVersion
+
 				// Update the existing template
 				resultCwft, err = cwftService.UpdateClusterWorkflowTemplate(ctx, &clusterworkflowtemplate.ClusterWorkflowTemplateUpdateRequest{
 					Name:     cwft.Name,

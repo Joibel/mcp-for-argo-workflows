@@ -89,6 +89,18 @@ func CreateWorkflowTemplateHandler(client argo.ClientInterface) func(context.Con
 		if err != nil {
 			// Check if error is AlreadyExists - if so, try to update instead
 			if grpcStatus, ok := status.FromError(err); ok && grpcStatus.Code() == codes.AlreadyExists {
+				// Get the existing template to retrieve its resourceVersion
+				existingWft, getErr := wftService.GetWorkflowTemplate(ctx, &workflowtemplate.WorkflowTemplateGetRequest{
+					Namespace: namespace,
+					Name:      wft.Name,
+				})
+				if getErr != nil {
+					return nil, nil, fmt.Errorf("failed to get existing workflow template for update: %w", getErr)
+				}
+
+				// Copy the resourceVersion to enable update
+				wft.ResourceVersion = existingWft.ResourceVersion
+
 				// Update the existing template
 				resultWft, err = wftService.UpdateWorkflowTemplate(ctx, &workflowtemplate.WorkflowTemplateUpdateRequest{
 					Namespace: namespace,

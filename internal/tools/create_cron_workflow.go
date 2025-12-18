@@ -110,6 +110,18 @@ func CreateCronWorkflowHandler(client argo.ClientInterface) func(context.Context
 		if err != nil {
 			// Check if error is AlreadyExists - if so, try to update instead
 			if grpcStatus, ok := status.FromError(err); ok && grpcStatus.Code() == codes.AlreadyExists {
+				// Get the existing cron workflow to retrieve its resourceVersion
+				existingCronWf, getErr := cronService.GetCronWorkflow(ctx, &cronworkflow.GetCronWorkflowRequest{
+					Namespace: namespace,
+					Name:      cronWf.Name,
+				})
+				if getErr != nil {
+					return nil, nil, fmt.Errorf("failed to get existing cron workflow for update: %w", getErr)
+				}
+
+				// Copy the resourceVersion to enable update
+				cronWf.ResourceVersion = existingCronWf.ResourceVersion
+
 				// Update the existing cron workflow
 				resultCronWf, err = cronService.UpdateCronWorkflow(ctx, &cronworkflow.UpdateCronWorkflowRequest{
 					Namespace:    namespace,
