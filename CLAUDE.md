@@ -79,7 +79,10 @@ The server exposes these tool categories:
 - `retry_workflow`, `resubmit_workflow`
 
 ### Validation
-- `lint_workflow` — Validate manifests before submission (should be called before create/submit operations)
+- `lint_workflow` — Validate Workflow manifests before submission
+- `lint_workflow_template` — Validate WorkflowTemplate manifests before creation
+- `lint_cluster_workflow_template` — Validate ClusterWorkflowTemplate manifests before creation
+- `lint_cron_workflow` — Validate CronWorkflow manifests before creation
 
 ### WorkflowTemplates
 - `list_workflow_templates`, `get_workflow_template`, `create_workflow_template`, `delete_workflow_template`
@@ -101,7 +104,11 @@ The server exposes these tool categories:
 ## Development Notes
 
 - Use `/usr/bin/env bash` for shell scripts (not `/bin/bash`)
-- Run `lint_workflow` before any create/submit tool to validate manifests
+- Run the appropriate lint tool before any create/submit operation to validate manifests:
+  - `lint_workflow` before `submit_workflow`
+  - `lint_workflow_template` before `create_workflow_template`
+  - `lint_cluster_workflow_template` before `create_cluster_workflow_template`
+  - `lint_cron_workflow` before `create_cron_workflow`
 - Archive operations require Argo Server connection (not available in direct K8s mode)
 - Use `github.com/stretchr/testify` for test assertions
 

@@ -22,6 +22,9 @@ func AllTools() []ToolRegistrar {
 		RegisterLogsWorkflow,
 		RegisterWaitWorkflow,
 		RegisterLintWorkflow,
+		RegisterLintWorkflowTemplate,
+		RegisterLintClusterWorkflowTemplate,
+		RegisterLintCronWorkflow,
 		RegisterRetryWorkflow,
 		RegisterResubmitWorkflow,
 		RegisterSuspendWorkflow,
@@ -99,6 +102,21 @@ func RegisterWaitWorkflow(s *mcp.Server, client argo.ClientInterface) {
 // RegisterLintWorkflow registers the lint_workflow tool.
 func RegisterLintWorkflow(s *mcp.Server, client argo.ClientInterface) {
 	mcp.AddTool(s, LintWorkflowTool(), LintWorkflowHandler(client))
+}
+
+// RegisterLintWorkflowTemplate registers the lint_workflow_template tool.
+func RegisterLintWorkflowTemplate(s *mcp.Server, client argo.ClientInterface) {
+	mcp.AddTool(s, LintWorkflowTemplateTool(), LintWorkflowTemplateHandler(client))
+}
+
+// RegisterLintClusterWorkflowTemplate registers the lint_cluster_workflow_template tool.
+func RegisterLintClusterWorkflowTemplate(s *mcp.Server, client argo.ClientInterface) {
+	mcp.AddTool(s, LintClusterWorkflowTemplateTool(), LintClusterWorkflowTemplateHandler(client))
+}
+
+// RegisterLintCronWorkflow registers the lint_cron_workflow tool.
+func RegisterLintCronWorkflow(s *mcp.Server, client argo.ClientInterface) {
+	mcp.AddTool(s, LintCronWorkflowTool(), LintCronWorkflowHandler(client))
 }
 
 // RegisterRetryWorkflow registers the retry_workflow tool.
