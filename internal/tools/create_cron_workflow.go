@@ -152,6 +152,9 @@ func CreateCronWorkflowHandler(client argo.ClientInterface) func(context.Context
 // getSchedules returns the schedules from a CronWorkflowSpec, normalizing
 // legacy single schedule to an array for consistent output.
 func getSchedules(spec *wfv1.CronWorkflowSpec) []string {
+	if spec == nil {
+		return []string{}
+	}
 	// Prefer schedules array (modern format)
 	if len(spec.Schedules) > 0 {
 		return spec.Schedules
