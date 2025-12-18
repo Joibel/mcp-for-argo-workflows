@@ -46,7 +46,7 @@ func TestCreateCronWorkflowOutput(t *testing.T) {
 	output := CreateCronWorkflowOutput{
 		Name:              "test-cron",
 		Namespace:         "default",
-		Schedule:          "0 * * * *",
+		Schedules:         []string{"0 * * * *"},
 		Timezone:          "UTC",
 		ConcurrencyPolicy: "Replace",
 		Entrypoint:        "main",
@@ -56,7 +56,7 @@ func TestCreateCronWorkflowOutput(t *testing.T) {
 
 	assert.Equal(t, "test-cron", output.Name)
 	assert.Equal(t, "default", output.Namespace)
-	assert.Equal(t, "0 * * * *", output.Schedule)
+	assert.Equal(t, []string{"0 * * * *"}, output.Schedules)
 	assert.Equal(t, "UTC", output.Timezone)
 	assert.Equal(t, "Replace", output.ConcurrencyPolicy)
 	assert.Equal(t, "main", output.Entrypoint)
@@ -111,7 +111,7 @@ func TestCreateCronWorkflowHandler(t *testing.T) {
 			validate: func(t *testing.T, output *CreateCronWorkflowOutput, result *mcp.CallToolResult) {
 				assert.Equal(t, "hello-world-cron", output.Name)
 				assert.Equal(t, "default", output.Namespace)
-				assert.Equal(t, "0 * * * *", output.Schedule)
+				assert.Equal(t, []string{"0 * * * *"}, output.Schedules)
 				assert.Equal(t, "Replace", output.ConcurrencyPolicy)
 				assert.Equal(t, "whalesay", output.Entrypoint)
 				assert.Equal(t, testTime.Format(time.RFC3339), output.CreatedAt)

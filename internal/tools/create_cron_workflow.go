@@ -26,35 +26,16 @@ type CreateCronWorkflowInput struct {
 
 // CreateCronWorkflowOutput defines the output for the create_cron_workflow tool.
 type CreateCronWorkflowOutput struct {
-	// Labels are the labels on the created CronWorkflow.
-	Labels map[string]string `json:"labels,omitempty"`
-
-	// Annotations are the annotations on the created CronWorkflow.
-	Annotations map[string]string `json:"annotations,omitempty"`
-
-	// CreatedAt is when the CronWorkflow was created.
-	CreatedAt string `json:"createdAt"`
-
-	// Name is the name of the created CronWorkflow.
-	Name string `json:"name"`
-
-	// Namespace is the namespace of the created CronWorkflow.
-	Namespace string `json:"namespace"`
-
-	// Schedule is the cron schedule expression.
-	Schedule string `json:"schedule"`
-
-	// Timezone is the timezone for the schedule.
-	Timezone string `json:"timezone,omitempty"`
-
-	// Entrypoint is the workflow entrypoint.
-	Entrypoint string `json:"entrypoint,omitempty"`
-
-	// ConcurrencyPolicy defines how to treat concurrent executions.
-	ConcurrencyPolicy string `json:"concurrencyPolicy,omitempty"`
-
-	// Suspended indicates whether the CronWorkflow is suspended.
-	Suspended bool `json:"suspended"`
+	Labels            map[string]string `json:"labels,omitempty"`
+	Annotations       map[string]string `json:"annotations,omitempty"`
+	CreatedAt         string            `json:"createdAt"`
+	Name              string            `json:"name"`
+	Namespace         string            `json:"namespace"`
+	Timezone          string            `json:"timezone,omitempty"`
+	Entrypoint        string            `json:"entrypoint,omitempty"`
+	ConcurrencyPolicy string            `json:"concurrencyPolicy,omitempty"`
+	Schedules         []string          `json:"schedules"`
+	Suspended         bool              `json:"suspended"`
 }
 
 // CreateCronWorkflowTool returns the MCP tool definition for create_cron_workflow.
@@ -95,9 +76,9 @@ func CreateCronWorkflowHandler(client argo.ClientInterface) func(context.Context
 			return nil, nil, fmt.Errorf("cron workflow name is required in manifest")
 		}
 
-		// Validate schedule
-		if cronWf.Spec.Schedule == "" {
-			return nil, nil, fmt.Errorf("cron workflow schedule is required in manifest")
+		// Validate schedule - accept either schedules (modern) or schedule (legacy)
+		if len(cronWf.Spec.Schedules) == 0 && cronWf.Spec.Schedule == "" {
+			return nil, nil, fmt.Errorf("cron workflow schedule is required in manifest (use 'schedules' array or 'schedule' string)")
 		}
 
 		// Resolve namespace - prefer input namespace, then manifest namespace, then default
@@ -123,11 +104,12 @@ func CreateCronWorkflowHandler(client argo.ClientInterface) func(context.Context
 			return nil, nil, fmt.Errorf("failed to create cron workflow: %w", err)
 		}
 
-		// Build output
+		// Build output - normalize to schedules array for consistent output
+		schedules := getSchedules(&created.Spec)
 		output := &CreateCronWorkflowOutput{
 			Name:              created.Name,
 			Namespace:         created.Namespace,
-			Schedule:          created.Spec.Schedule,
+			Schedules:         schedules,
 			Timezone:          created.Spec.Timezone,
 			ConcurrencyPolicy: string(created.Spec.ConcurrencyPolicy),
 			Suspended:         created.Spec.Suspend,
@@ -147,7 +129,7 @@ func CreateCronWorkflowHandler(client argo.ClientInterface) func(context.Context
 
 		// Build human-readable result
 		resultText := fmt.Sprintf("Created CronWorkflow %q in namespace %q", output.Name, output.Namespace)
-		resultText += fmt.Sprintf("\nSchedule: %s", output.Schedule)
+		resultText += fmt.Sprintf("\nSchedule(s): %s", strings.Join(output.Schedules, ", "))
 		if output.Timezone != "" {
 			resultText += fmt.Sprintf(" (%s)", output.Timezone)
 		}
@@ -165,4 +147,21 @@ func CreateCronWorkflowHandler(client argo.ClientInterface) func(context.Context
 
 		return result, output, nil
 	}
+}
+
+// getSchedules returns the schedules from a CronWorkflowSpec, normalizing
+// legacy single schedule to an array for consistent output.
+func getSchedules(spec *wfv1.CronWorkflowSpec) []string {
+	if spec == nil {
+		return []string{}
+	}
+	// Prefer schedules array (modern format)
+	if len(spec.Schedules) > 0 {
+		return spec.Schedules
+	}
+	// Fall back to single schedule (legacy format)
+	if spec.Schedule != "" {
+		return []string{spec.Schedule}
+	}
+	return []string{}
 }

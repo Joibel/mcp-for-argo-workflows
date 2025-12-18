@@ -47,15 +47,21 @@ Standard Kubernetes ObjectMeta fields:
 
 ### Schedule Configuration
 
-- **schedule** (string, required): Cron schedule expression
+- **schedules** ([]string, recommended): List of cron schedule expressions
+  - Modern format supporting multiple schedules (Argo Workflows v3.6+)
   - Format: Standard cron format with 5 or 6 fields
   - Examples:
-    - ` + "`" + `"0 9 * * *"` + "`" + ` - Daily at 9:00 AM
-    - ` + "`" + `"*/15 * * * *"` + "`" + ` - Every 15 minutes
-    - ` + "`" + `"0 0 1 * *"` + "`" + ` - First day of every month at midnight
-    - ` + "`" + `"0 0 * * MON"` + "`" + ` - Every Monday at midnight
+    - ` + "`" + `["0 9 * * *"]` + "`" + ` - Daily at 9:00 AM
+    - ` + "`" + `["0 9 * * *", "0 17 * * *"]` + "`" + ` - Twice daily at 9 AM and 5 PM
+    - ` + "`" + `["*/15 * * * *"]` + "`" + ` - Every 15 minutes
+    - ` + "`" + `["0 0 1 * *", "0 0 15 * *"]` + "`" + ` - 1st and 15th of month at midnight
   - With seconds (6 fields):
-    - ` + "`" + `"30 */2 * * * *"` + "`" + ` - Every 2 hours at 30 seconds past the hour
+    - ` + "`" + `["30 */2 * * * *"]` + "`" + ` - Every 2 hours at 30 seconds past the hour
+
+- **schedule** (string, deprecated): Single cron schedule expression
+  - Legacy format, replaced by ` + "`" + `schedules` + "`" + `
+  - Still supported for backward compatibility
+  - If both are specified, ` + "`" + `schedules` + "`" + ` takes precedence
 
 - **timezone** (string): IANA timezone for schedule interpretation
   - Default: UTC
@@ -138,7 +144,8 @@ kind: CronWorkflow
 metadata:
   name: hello-world-cron
 spec:
-  schedule: "0 9 * * *"  # Daily at 9:00 AM UTC
+  schedules:
+    - "0 9 * * *"  # Daily at 9:00 AM UTC
   timezone: "America/New_York"
   workflowSpec:
     entrypoint: main
@@ -160,7 +167,8 @@ metadata:
   labels:
     app: reporting
 spec:
-  schedule: "0 0 * * *"  # Daily at midnight
+  schedules:
+    - "0 0 * * *"  # Daily at midnight
   timezone: "UTC"
   concurrencyPolicy: "Forbid"  # Don't run if previous is still running
   successfulJobsHistoryLimit: 7  # Keep 7 days of history
@@ -253,7 +261,8 @@ kind: CronWorkflow
 metadata:
   name: scheduled-backup
 spec:
-  schedule: "0 2 * * *"  # 2 AM daily
+  schedules:
+    - "0 2 * * *"  # 2 AM daily
   timezone: "UTC"
   concurrencyPolicy: "Forbid"
 
@@ -279,7 +288,8 @@ kind: CronWorkflow
 metadata:
   name: health-check
 spec:
-  schedule: "*/5 * * * *"  # Every 5 minutes
+  schedules:
+    - "*/5 * * * *"  # Every 5 minutes
   concurrencyPolicy: "Forbid"
   successfulJobsHistoryLimit: 12  # Keep 1 hour of history
   failedJobsHistoryLimit: 6
@@ -396,7 +406,8 @@ The cron controller automatically handles DST transitions:
 ```yaml
 spec:
   concurrencyPolicy: "Allow"
-  schedule: "*/1 * * * *"  # Every minute
+  schedules:
+    - "*/1 * * * *"  # Every minute
 ```
 
 Multiple workflows can run simultaneously. Use when:
@@ -409,7 +420,8 @@ Multiple workflows can run simultaneously. Use when:
 ```yaml
 spec:
   concurrencyPolicy: "Forbid"
-  schedule: "*/5 * * * *"  # Every 5 minutes
+  schedules:
+    - "*/5 * * * *"  # Every 5 minutes
 ```
 
 Skip new execution if previous is still running. Use when:
@@ -422,7 +434,8 @@ Skip new execution if previous is still running. Use when:
 ```yaml
 spec:
   concurrencyPolicy: "Replace"
-  schedule: "0 * * * *"  # Every hour
+  schedules:
+    - "0 * * * *"  # Every hour
 ```
 
 Terminate running workflow and start new one. Use when:
@@ -480,7 +493,7 @@ argo submit --from cronworkflow/my-cron
 
 **Minimum viable CronWorkflow:**
 - metadata.name
-- spec.schedule
+- spec.schedules (or spec.schedule for legacy support)
 - spec.workflowSpec.entrypoint OR spec.workflowTemplateRef.name
 - spec.workflowSpec.templates (if using workflowSpec)
 

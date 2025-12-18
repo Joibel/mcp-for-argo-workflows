@@ -63,7 +63,7 @@ func TestGetCronWorkflowOutput(t *testing.T) {
 	output := GetCronWorkflowOutput{
 		Name:                       "test-cron",
 		Namespace:                  "default",
-		Schedule:                   "0 * * * *",
+		Schedules:                  []string{"0 * * * *"},
 		Timezone:                   "UTC",
 		ConcurrencyPolicy:          "Forbid",
 		Suspended:                  false,
@@ -82,7 +82,7 @@ func TestGetCronWorkflowOutput(t *testing.T) {
 
 	assert.Equal(t, "test-cron", output.Name)
 	assert.Equal(t, "default", output.Namespace)
-	assert.Equal(t, "0 * * * *", output.Schedule)
+	assert.Equal(t, []string{"0 * * * *"}, output.Schedules)
 	assert.Equal(t, "UTC", output.Timezone)
 	assert.Equal(t, "Forbid", output.ConcurrencyPolicy)
 	assert.False(t, output.Suspended)
@@ -159,7 +159,7 @@ func TestGetCronWorkflowHandler(t *testing.T) {
 			validate: func(t *testing.T, output *GetCronWorkflowOutput, result *mcp.CallToolResult) {
 				assert.Equal(t, "test-cron", output.Name)
 				assert.Equal(t, "default", output.Namespace)
-				assert.Equal(t, "0 * * * *", output.Schedule)
+				assert.Equal(t, []string{"0 * * * *"}, output.Schedules)
 				assert.Equal(t, "UTC", output.Timezone)
 				assert.Equal(t, "Forbid", output.ConcurrencyPolicy)
 				assert.False(t, output.Suspended)
