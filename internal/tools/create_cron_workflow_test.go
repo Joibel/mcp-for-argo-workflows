@@ -462,6 +462,19 @@ spec:
 					nil,
 					status.Error(codes.AlreadyExists, "cron workflow already exists"),
 				)
+				// Get existing cron workflow to fetch resourceVersion
+				m.On("GetCronWorkflow", mock.Anything, mock.MatchedBy(func(req *cronworkflow.GetCronWorkflowRequest) bool {
+					return req.Namespace == "default" && req.Name == "hello-world-cron"
+				})).Return(
+					&wfv1.CronWorkflow{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:            "hello-world-cron",
+							Namespace:       "default",
+							ResourceVersion: "12345",
+						},
+					},
+					nil,
+				)
 				// Then update is called and succeeds
 				m.On("UpdateCronWorkflow", mock.Anything, mock.MatchedBy(func(req *cronworkflow.UpdateCronWorkflowRequest) bool {
 					return req.Namespace == "default" && req.Name == "hello-world-cron"
@@ -506,10 +519,41 @@ spec:
 					nil,
 					status.Error(codes.AlreadyExists, "cron workflow already exists"),
 				)
+				// Get existing cron workflow to fetch resourceVersion
+				m.On("GetCronWorkflow", mock.Anything, mock.Anything).Return(
+					&wfv1.CronWorkflow{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:            "hello-world-cron",
+							Namespace:       "default",
+							ResourceVersion: "12345",
+						},
+					},
+					nil,
+				)
 				// Update fails
 				m.On("UpdateCronWorkflow", mock.Anything, mock.Anything).Return(
 					nil,
 					status.Error(codes.PermissionDenied, "user does not have permission to update"),
+				)
+			},
+			wantErr: true,
+		},
+		{
+			name: "error - get fails when fetching existing cron workflow for update",
+			input: CreateCronWorkflowInput{
+				Manifest:  loadTestCronWorkflowYAML(t, "simple_cron_workflow.yaml"),
+				Namespace: "default",
+			},
+			setupMock: func(m *mocks.MockCronWorkflowServiceClient) {
+				// First call returns AlreadyExists
+				m.On("CreateCronWorkflow", mock.Anything, mock.Anything).Return(
+					nil,
+					status.Error(codes.AlreadyExists, "cron workflow already exists"),
+				)
+				// Get fails
+				m.On("GetCronWorkflow", mock.Anything, mock.Anything).Return(
+					nil,
+					status.Error(codes.NotFound, "cron workflow not found"),
 				)
 			},
 			wantErr: true,

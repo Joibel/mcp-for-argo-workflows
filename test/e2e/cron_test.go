@@ -224,6 +224,70 @@ func TestCronWorkflow_SuspendResume(t *testing.T) {
 	assert.False(t, getOutput.Suspended, "CronWorkflow should not be suspended after resume")
 }
 
+// TestCronWorkflow_Upsert tests that creating an existing cron workflow updates it.
+func TestCronWorkflow_Upsert(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping E2E test in short mode")
+	}
+
+	ctx := context.Background()
+	cluster := SetupE2ECluster(ctx, t)
+
+	// Use the client's context which contains the KubeClient
+	clientCtx := cluster.ArgoClient.Context()
+
+	// Load test cron workflow manifest
+	manifest := LoadTestDataFile(t, "cron-workflow.yaml")
+
+	// Step 1: Create cron workflow
+	t.Log("Creating cron workflow...")
+	createHandler := tools.CreateCronWorkflowHandler(cluster.ArgoClient)
+	createInput := tools.CreateCronWorkflowInput{
+		Namespace: cluster.ArgoNamespace,
+		Manifest:  manifest,
+	}
+
+	_, createOutput, err := createHandler(clientCtx, nil, createInput)
+	require.NoError(t, err, "Failed to create cron workflow")
+	require.NotNil(t, createOutput)
+	assert.True(t, createOutput.Created, "Should indicate cron workflow was created")
+
+	cronName := createOutput.Name
+	t.Logf("Created cron workflow: %s", cronName)
+
+	// Cleanup at the end
+	defer func() {
+		deleteHandler := tools.DeleteCronWorkflowHandler(cluster.ArgoClient)
+		deleteInput := tools.DeleteCronWorkflowInput{
+			Namespace: cluster.ArgoNamespace,
+			Name:      cronName,
+		}
+		_, _, _ = deleteHandler(clientCtx, nil, deleteInput)
+	}()
+
+	// Step 2: "Create" the same cron workflow again (should update)
+	t.Log("Creating same cron workflow again (should update)...")
+	_, updateOutput, err := createHandler(clientCtx, nil, createInput)
+	require.NoError(t, err, "Failed to update cron workflow")
+	require.NotNil(t, updateOutput)
+	assert.False(t, updateOutput.Created, "Should indicate cron workflow was updated, not created")
+	assert.Equal(t, cronName, updateOutput.Name)
+
+	// Step 3: Verify the cron workflow is still accessible
+	t.Log("Verifying cron workflow after upsert...")
+	getHandler := tools.GetCronWorkflowHandler(cluster.ArgoClient)
+	getInput := tools.GetCronWorkflowInput{
+		Namespace: cluster.ArgoNamespace,
+		Name:      cronName,
+	}
+
+	_, getOutput, err := getHandler(clientCtx, nil, getInput)
+	require.NoError(t, err, "Failed to get cron workflow after upsert")
+	require.NotNil(t, getOutput)
+	assert.Equal(t, cronName, getOutput.Name)
+	assert.Equal(t, []string{"0 0 * * *"}, getOutput.Schedules)
+}
+
 // TestCronWorkflow_GetConsistency tests that getting a cron workflow returns consistent data.
 func TestCronWorkflow_GetConsistency(t *testing.T) {
 	if testing.Short() {

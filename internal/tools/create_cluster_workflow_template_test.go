@@ -238,6 +238,18 @@ spec:
 					nil,
 					status.Error(codes.AlreadyExists, "cluster workflow template already exists"),
 				)
+				// Get existing template to fetch resourceVersion
+				m.On("GetClusterWorkflowTemplate", mock.Anything, mock.MatchedBy(func(req *clusterworkflowtemplate.ClusterWorkflowTemplateGetRequest) bool {
+					return req.Name == "hello-world-cluster-template"
+				})).Return(
+					&wfv1.ClusterWorkflowTemplate{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:            "hello-world-cluster-template",
+							ResourceVersion: "12345",
+						},
+					},
+					nil,
+				)
 				// Then update is called and succeeds
 				m.On("UpdateClusterWorkflowTemplate", mock.Anything, mock.MatchedBy(func(req *clusterworkflowtemplate.ClusterWorkflowTemplateUpdateRequest) bool {
 					return req.Name == "hello-world-cluster-template"
@@ -273,10 +285,39 @@ spec:
 					nil,
 					status.Error(codes.AlreadyExists, "cluster workflow template already exists"),
 				)
+				// Get existing template to fetch resourceVersion
+				m.On("GetClusterWorkflowTemplate", mock.Anything, mock.Anything).Return(
+					&wfv1.ClusterWorkflowTemplate{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:            "hello-world-cluster-template",
+							ResourceVersion: "12345",
+						},
+					},
+					nil,
+				)
 				// Update fails
 				m.On("UpdateClusterWorkflowTemplate", mock.Anything, mock.Anything).Return(
 					nil,
 					status.Error(codes.PermissionDenied, "user does not have permission to update"),
+				)
+			},
+			wantErr: true,
+		},
+		{
+			name: "error - get fails when fetching existing template for update",
+			input: CreateClusterWorkflowTemplateInput{
+				Manifest: loadTestClusterWorkflowTemplateYAML(t, "simple_cluster_workflow_template.yaml"),
+			},
+			setupMock: func(m *mocks.MockClusterWorkflowTemplateServiceClient) {
+				// First call returns AlreadyExists
+				m.On("CreateClusterWorkflowTemplate", mock.Anything, mock.Anything).Return(
+					nil,
+					status.Error(codes.AlreadyExists, "cluster workflow template already exists"),
+				)
+				// Get fails
+				m.On("GetClusterWorkflowTemplate", mock.Anything, mock.Anything).Return(
+					nil,
+					status.Error(codes.NotFound, "cluster workflow template not found"),
 				)
 			},
 			wantErr: true,

@@ -238,6 +238,69 @@ spec:
 	}
 }
 
+// TestWorkflowTemplate_Upsert tests that creating an existing template updates it.
+func TestWorkflowTemplate_Upsert(t *testing.T) {
+	if testing.Short() {
+		t.Skip("Skipping E2E test in short mode")
+	}
+
+	ctx := context.Background()
+	cluster := SetupE2ECluster(ctx, t)
+
+	// Use the client's context which contains the KubeClient
+	clientCtx := cluster.ArgoClient.Context()
+
+	// Load test workflow template
+	manifest := LoadTestDataFile(t, "workflow-template.yaml")
+
+	// Step 1: Create workflow template
+	t.Log("Creating workflow template...")
+	createHandler := tools.CreateWorkflowTemplateHandler(cluster.ArgoClient)
+	createInput := tools.CreateWorkflowTemplateInput{
+		Namespace: cluster.ArgoNamespace,
+		Manifest:  manifest,
+	}
+
+	_, createOutput, err := createHandler(clientCtx, nil, createInput)
+	require.NoError(t, err, "Failed to create workflow template")
+	require.NotNil(t, createOutput)
+	assert.True(t, createOutput.Created, "Should indicate template was created")
+
+	templateName := createOutput.Name
+	t.Logf("Created workflow template: %s", templateName)
+
+	// Cleanup at the end
+	defer func() {
+		deleteHandler := tools.DeleteWorkflowTemplateHandler(cluster.ArgoClient)
+		deleteInput := tools.DeleteWorkflowTemplateInput{
+			Namespace: cluster.ArgoNamespace,
+			Name:      templateName,
+		}
+		_, _, _ = deleteHandler(clientCtx, nil, deleteInput)
+	}()
+
+	// Step 2: "Create" the same template again (should update)
+	t.Log("Creating same workflow template again (should update)...")
+	_, updateOutput, err := createHandler(clientCtx, nil, createInput)
+	require.NoError(t, err, "Failed to update workflow template")
+	require.NotNil(t, updateOutput)
+	assert.False(t, updateOutput.Created, "Should indicate template was updated, not created")
+	assert.Equal(t, templateName, updateOutput.Name)
+
+	// Step 3: Verify the template is still accessible
+	t.Log("Verifying template after upsert...")
+	getHandler := tools.GetWorkflowTemplateHandler(cluster.ArgoClient)
+	getInput := tools.GetWorkflowTemplateInput{
+		Namespace: cluster.ArgoNamespace,
+		Name:      templateName,
+	}
+
+	_, getOutput, err := getHandler(clientCtx, nil, getInput)
+	require.NoError(t, err, "Failed to get workflow template after upsert")
+	require.NotNil(t, getOutput)
+	assert.Equal(t, templateName, getOutput.Name)
+}
+
 // TestWorkflowTemplate_GetConsistency tests that getting a template returns consistent data.
 func TestWorkflowTemplate_GetConsistency(t *testing.T) {
 	if testing.Short() {

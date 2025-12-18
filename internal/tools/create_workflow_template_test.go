@@ -277,6 +277,19 @@ spec:
 					nil,
 					status.Error(codes.AlreadyExists, "workflow template already exists"),
 				)
+				// Get existing template to fetch resourceVersion
+				m.On("GetWorkflowTemplate", mock.Anything, mock.MatchedBy(func(req *workflowtemplate.WorkflowTemplateGetRequest) bool {
+					return req.Namespace == "default" && req.Name == "hello-world-template"
+				})).Return(
+					&wfv1.WorkflowTemplate{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:            "hello-world-template",
+							Namespace:       "default",
+							ResourceVersion: "12345",
+						},
+					},
+					nil,
+				)
 				// Then update is called and succeeds
 				m.On("UpdateWorkflowTemplate", mock.Anything, mock.MatchedBy(func(req *workflowtemplate.WorkflowTemplateUpdateRequest) bool {
 					return req.Namespace == "default" && req.Name == "hello-world-template"
@@ -315,10 +328,41 @@ spec:
 					nil,
 					status.Error(codes.AlreadyExists, "workflow template already exists"),
 				)
+				// Get existing template to fetch resourceVersion
+				m.On("GetWorkflowTemplate", mock.Anything, mock.Anything).Return(
+					&wfv1.WorkflowTemplate{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:            "hello-world-template",
+							Namespace:       "default",
+							ResourceVersion: "12345",
+						},
+					},
+					nil,
+				)
 				// Update fails
 				m.On("UpdateWorkflowTemplate", mock.Anything, mock.Anything).Return(
 					nil,
 					status.Error(codes.PermissionDenied, "user does not have permission to update"),
+				)
+			},
+			wantErr: true,
+		},
+		{
+			name: "error - get fails when fetching existing template for update",
+			input: CreateWorkflowTemplateInput{
+				Manifest:  loadTestWorkflowTemplateYAML(t, "simple_workflow_template.yaml"),
+				Namespace: "default",
+			},
+			setupMock: func(m *mocks.MockWorkflowTemplateServiceClient) {
+				// First call returns AlreadyExists
+				m.On("CreateWorkflowTemplate", mock.Anything, mock.Anything).Return(
+					nil,
+					status.Error(codes.AlreadyExists, "workflow template already exists"),
+				)
+				// Get fails
+				m.On("GetWorkflowTemplate", mock.Anything, mock.Anything).Return(
+					nil,
+					status.Error(codes.NotFound, "workflow template not found"),
 				)
 			},
 			wantErr: true,
