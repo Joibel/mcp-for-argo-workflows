@@ -43,10 +43,12 @@ func TestCreateClusterWorkflowTemplateOutput(t *testing.T) {
 	output := CreateClusterWorkflowTemplateOutput{
 		Name:      "test-cluster-template",
 		CreatedAt: "2025-01-01T00:00:00Z",
+		Created:   true,
 	}
 
 	assert.Equal(t, "test-cluster-template", output.Name)
 	assert.NotEmpty(t, output.CreatedAt)
+	assert.True(t, output.Created)
 }
 
 // loadTestClusterWorkflowTemplateYAML loads the raw YAML content of a cluster workflow template fixture.
@@ -87,6 +89,7 @@ func TestCreateClusterWorkflowTemplateHandler(t *testing.T) {
 			validate: func(t *testing.T, output *CreateClusterWorkflowTemplateOutput, result *mcp.CallToolResult) {
 				assert.Equal(t, "hello-world-cluster-template", output.Name)
 				assert.Equal(t, testTime.Format(time.RFC3339), output.CreatedAt)
+				assert.True(t, output.Created)
 				require.NotNil(t, result)
 				require.Len(t, result.Content, 1)
 				text, ok := result.Content[0].(*mcp.TextContent)
@@ -225,14 +228,55 @@ spec:
 			wantErr: true,
 		},
 		{
-			name: "error - API error (already exists)",
+			name: "success - updates existing template when already exists",
 			input: CreateClusterWorkflowTemplateInput{
 				Manifest: loadTestClusterWorkflowTemplateYAML(t, "simple_cluster_workflow_template.yaml"),
 			},
 			setupMock: func(m *mocks.MockClusterWorkflowTemplateServiceClient) {
+				// First call returns AlreadyExists
 				m.On("CreateClusterWorkflowTemplate", mock.Anything, mock.Anything).Return(
 					nil,
 					status.Error(codes.AlreadyExists, "cluster workflow template already exists"),
+				)
+				// Then update is called and succeeds
+				m.On("UpdateClusterWorkflowTemplate", mock.Anything, mock.MatchedBy(func(req *clusterworkflowtemplate.ClusterWorkflowTemplateUpdateRequest) bool {
+					return req.Name == "hello-world-cluster-template"
+				})).Return(
+					&wfv1.ClusterWorkflowTemplate{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:              "hello-world-cluster-template",
+							CreationTimestamp: metav1.Time{Time: testTime},
+						},
+					},
+					nil,
+				)
+			},
+			wantErr: false,
+			validate: func(t *testing.T, output *CreateClusterWorkflowTemplateOutput, result *mcp.CallToolResult) {
+				assert.Equal(t, "hello-world-cluster-template", output.Name)
+				assert.False(t, output.Created) // Was updated, not created
+				require.NotNil(t, result)
+				require.Len(t, result.Content, 1)
+				text, ok := result.Content[0].(*mcp.TextContent)
+				require.True(t, ok)
+				assert.Contains(t, text.Text, "updated")
+			},
+		},
+		{
+			name: "error - update fails after already exists",
+			input: CreateClusterWorkflowTemplateInput{
+				Manifest: loadTestClusterWorkflowTemplateYAML(t, "simple_cluster_workflow_template.yaml"),
+			},
+			setupMock: func(m *mocks.MockClusterWorkflowTemplateServiceClient) {
+				// First call returns AlreadyExists
+				m.On("CreateClusterWorkflowTemplate", mock.Anything, mock.Anything).Return(
+					nil,
+					status.Error(codes.AlreadyExists, "cluster workflow template already exists"),
+				)
+				// Update fails
+				m.On("UpdateClusterWorkflowTemplate", mock.Anything, mock.Anything).Return(
+					nil,
+					status.Error(codes.PermissionDenied, "user does not have permission to update"),
 				)
 			},
 			wantErr: true,

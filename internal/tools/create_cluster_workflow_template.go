@@ -10,6 +10,8 @@ import (
 	"github.com/argoproj/argo-workflows/v3/pkg/apiclient/clusterworkflowtemplate"
 	wfv1 "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"sigs.k8s.io/yaml"
 
 	"github.com/Joibel/mcp-for-argo-workflows/internal/argo"
@@ -23,18 +25,16 @@ type CreateClusterWorkflowTemplateInput struct {
 
 // CreateClusterWorkflowTemplateOutput defines the output for the create_cluster_workflow_template tool.
 type CreateClusterWorkflowTemplateOutput struct {
-	// Name is the created cluster workflow template name.
-	Name string `json:"name"`
-
-	// CreatedAt is when the cluster workflow template was created.
+	Name      string `json:"name"`
 	CreatedAt string `json:"createdAt,omitempty"`
+	Created   bool   `json:"created"`
 }
 
 // CreateClusterWorkflowTemplateTool returns the MCP tool definition for create_cluster_workflow_template.
 func CreateClusterWorkflowTemplateTool() *mcp.Tool {
 	return &mcp.Tool{
 		Name:        "create_cluster_workflow_template",
-		Description: "Create a ClusterWorkflowTemplate from a YAML manifest. Run lint_workflow first to validate the manifest.",
+		Description: "Create or update a ClusterWorkflowTemplate from a YAML manifest. If the template already exists, it will be updated.",
 	}
 }
 
@@ -69,26 +69,51 @@ func CreateClusterWorkflowTemplateHandler(client argo.ClientInterface) func(cont
 			return nil, nil, fmt.Errorf("failed to get cluster workflow template service: %w", err)
 		}
 
-		// Create the cluster workflow template
-		createdCwft, err := cwftService.CreateClusterWorkflowTemplate(ctx, &clusterworkflowtemplate.ClusterWorkflowTemplateCreateRequest{
+		// Try to create the cluster workflow template first
+		var resultCwft *wfv1.ClusterWorkflowTemplate
+		var created bool
+
+		resultCwft, err = cwftService.CreateClusterWorkflowTemplate(ctx, &clusterworkflowtemplate.ClusterWorkflowTemplateCreateRequest{
 			Template: &cwft,
 		})
+
 		if err != nil {
-			return nil, nil, fmt.Errorf("failed to create cluster workflow template: %w", err)
+			// Check if error is AlreadyExists - if so, try to update instead
+			if grpcStatus, ok := status.FromError(err); ok && grpcStatus.Code() == codes.AlreadyExists {
+				// Update the existing template
+				resultCwft, err = cwftService.UpdateClusterWorkflowTemplate(ctx, &clusterworkflowtemplate.ClusterWorkflowTemplateUpdateRequest{
+					Name:     cwft.Name,
+					Template: &cwft,
+				})
+				if err != nil {
+					return nil, nil, fmt.Errorf("failed to update cluster workflow template: %w", err)
+				}
+				created = false
+			} else {
+				return nil, nil, fmt.Errorf("failed to create cluster workflow template: %w", err)
+			}
+		} else {
+			created = true
 		}
 
 		// Build the output
 		output := &CreateClusterWorkflowTemplateOutput{
-			Name: createdCwft.Name,
+			Name:    resultCwft.Name,
+			Created: created,
 		}
 
 		// Format timestamp
-		if !createdCwft.CreationTimestamp.IsZero() {
-			output.CreatedAt = createdCwft.CreationTimestamp.Format(time.RFC3339)
+		if !resultCwft.CreationTimestamp.IsZero() {
+			output.CreatedAt = resultCwft.CreationTimestamp.Format(time.RFC3339)
 		}
 
 		// Build human-readable result
-		resultText := fmt.Sprintf("ClusterWorkflowTemplate %q created", output.Name)
+		var resultText string
+		if created {
+			resultText = fmt.Sprintf("ClusterWorkflowTemplate %q created", output.Name)
+		} else {
+			resultText = fmt.Sprintf("ClusterWorkflowTemplate %q updated", output.Name)
+		}
 
 		return TextResult(resultText), output, nil
 	}

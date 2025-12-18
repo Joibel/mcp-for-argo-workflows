@@ -47,11 +47,13 @@ func TestCreateWorkflowTemplateOutput(t *testing.T) {
 		Name:      "test-template",
 		Namespace: "default",
 		CreatedAt: "2025-01-01T00:00:00Z",
+		Created:   true,
 	}
 
 	assert.Equal(t, "test-template", output.Name)
 	assert.Equal(t, "default", output.Namespace)
 	assert.NotEmpty(t, output.CreatedAt)
+	assert.True(t, output.Created)
 }
 
 // loadTestWorkflowTemplateYAML loads the raw YAML content of a workflow template fixture.
@@ -95,6 +97,7 @@ func TestCreateWorkflowTemplateHandler(t *testing.T) {
 				assert.Equal(t, "hello-world-template", output.Name)
 				assert.Equal(t, "default", output.Namespace)
 				assert.Equal(t, testTime.Format(time.RFC3339), output.CreatedAt)
+				assert.True(t, output.Created)
 				require.NotNil(t, result)
 				require.Len(t, result.Content, 1)
 				text, ok := result.Content[0].(*mcp.TextContent)
@@ -263,14 +266,59 @@ spec:
 			wantErr: true,
 		},
 		{
-			name: "error - API error (already exists)",
+			name: "success - updates existing template when already exists",
 			input: CreateWorkflowTemplateInput{
-				Manifest: loadTestWorkflowTemplateYAML(t, "simple_workflow_template.yaml"),
+				Manifest:  loadTestWorkflowTemplateYAML(t, "simple_workflow_template.yaml"),
+				Namespace: "default",
 			},
 			setupMock: func(m *mocks.MockWorkflowTemplateServiceClient) {
+				// First call returns AlreadyExists
 				m.On("CreateWorkflowTemplate", mock.Anything, mock.Anything).Return(
 					nil,
 					status.Error(codes.AlreadyExists, "workflow template already exists"),
+				)
+				// Then update is called and succeeds
+				m.On("UpdateWorkflowTemplate", mock.Anything, mock.MatchedBy(func(req *workflowtemplate.WorkflowTemplateUpdateRequest) bool {
+					return req.Namespace == "default" && req.Name == "hello-world-template"
+				})).Return(
+					&wfv1.WorkflowTemplate{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:              "hello-world-template",
+							Namespace:         "default",
+							CreationTimestamp: metav1.Time{Time: testTime},
+						},
+					},
+					nil,
+				)
+			},
+			wantErr: false,
+			validate: func(t *testing.T, output *CreateWorkflowTemplateOutput, result *mcp.CallToolResult) {
+				assert.Equal(t, "hello-world-template", output.Name)
+				assert.Equal(t, "default", output.Namespace)
+				assert.False(t, output.Created) // Was updated, not created
+				require.NotNil(t, result)
+				require.Len(t, result.Content, 1)
+				text, ok := result.Content[0].(*mcp.TextContent)
+				require.True(t, ok)
+				assert.Contains(t, text.Text, "updated")
+			},
+		},
+		{
+			name: "error - update fails after already exists",
+			input: CreateWorkflowTemplateInput{
+				Manifest:  loadTestWorkflowTemplateYAML(t, "simple_workflow_template.yaml"),
+				Namespace: "default",
+			},
+			setupMock: func(m *mocks.MockWorkflowTemplateServiceClient) {
+				// First call returns AlreadyExists
+				m.On("CreateWorkflowTemplate", mock.Anything, mock.Anything).Return(
+					nil,
+					status.Error(codes.AlreadyExists, "workflow template already exists"),
+				)
+				// Update fails
+				m.On("UpdateWorkflowTemplate", mock.Anything, mock.Anything).Return(
+					nil,
+					status.Error(codes.PermissionDenied, "user does not have permission to update"),
 				)
 			},
 			wantErr: true,
