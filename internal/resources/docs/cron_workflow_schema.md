@@ -49,14 +49,12 @@ Standard Kubernetes ObjectMeta fields:
 
 - **schedules** ([]string, recommended): List of cron schedule expressions
   - Modern format supporting multiple schedules (Argo Workflows v3.6+)
-  - Format: Standard cron format with 5 or 6 fields
+  - Format: Standard 5-field cron format (minute, hour, day, month, weekday)
   - Examples:
     - ` + "`" + `["0 9 * * *"]` + "`" + ` - Daily at 9:00 AM
     - ` + "`" + `["0 9 * * *", "0 17 * * *"]` + "`" + ` - Twice daily at 9 AM and 5 PM
     - ` + "`" + `["*/15 * * * *"]` + "`" + ` - Every 15 minutes
     - ` + "`" + `["0 0 1 * *", "0 0 15 * *"]` + "`" + ` - 1st and 15th of month at midnight
-  - With seconds (6 fields):
-    - ` + "`" + `["30 */2 * * * *"]` + "`" + ` - Every 2 hours at 30 seconds past the hour
 
 - **schedule** (string, deprecated): Single cron schedule expression
   - Legacy format, replaced by ` + "`" + `schedules` + "`" + `
@@ -349,19 +347,6 @@ spec:
 │ │ │ │ ┌───────────── day of week (0 - 6) (Sunday to Saturday)
 │ │ │ │ │
 * * * * *
-```
-
-### Extended 6-Field Format (with seconds)
-
-```
-┌───────────── second (0 - 59)
-│ ┌───────────── minute (0 - 59)
-│ │ ┌───────────── hour (0 - 23)
-│ │ │ ┌───────────── day of month (1 - 31)
-│ │ │ │ ┌───────────── month (1 - 12)
-│ │ │ │ │ ┌───────────── day of week (0 - 6)
-│ │ │ │ │ │
-* * * * * *
 ```
 
 ### Special Characters
