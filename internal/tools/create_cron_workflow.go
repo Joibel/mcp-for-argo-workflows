@@ -10,6 +10,8 @@ import (
 	"github.com/argoproj/argo-workflows/v3/pkg/apiclient/cronworkflow"
 	wfv1 "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 	"sigs.k8s.io/yaml"
 
 	"github.com/Joibel/mcp-for-argo-workflows/internal/argo"
@@ -36,13 +38,14 @@ type CreateCronWorkflowOutput struct {
 	ConcurrencyPolicy string            `json:"concurrencyPolicy,omitempty"`
 	Schedules         []string          `json:"schedules"`
 	Suspended         bool              `json:"suspended"`
+	Created           bool              `json:"created"`
 }
 
 // CreateCronWorkflowTool returns the MCP tool definition for create_cron_workflow.
 func CreateCronWorkflowTool() *mcp.Tool {
 	return &mcp.Tool{
 		Name:        "create_cron_workflow",
-		Description: "Create a new CronWorkflow from a YAML manifest",
+		Description: "Create or update a CronWorkflow from a YAML manifest. If the cron workflow already exists, it will be updated.",
 	}
 }
 
@@ -95,40 +98,66 @@ func CreateCronWorkflowHandler(client argo.ClientInterface) func(context.Context
 			return nil, nil, fmt.Errorf("failed to get cron workflow service: %w", err)
 		}
 
-		// Create the cron workflow
-		created, err := cronService.CreateCronWorkflow(ctx, &cronworkflow.CreateCronWorkflowRequest{
+		// Try to create the cron workflow first
+		var resultCronWf *wfv1.CronWorkflow
+		var wasCreated bool
+
+		resultCronWf, err = cronService.CreateCronWorkflow(ctx, &cronworkflow.CreateCronWorkflowRequest{
 			Namespace:    namespace,
 			CronWorkflow: &cronWf,
 		})
+
 		if err != nil {
-			return nil, nil, fmt.Errorf("failed to create cron workflow: %w", err)
+			// Check if error is AlreadyExists - if so, try to update instead
+			if grpcStatus, ok := status.FromError(err); ok && grpcStatus.Code() == codes.AlreadyExists {
+				// Update the existing cron workflow
+				resultCronWf, err = cronService.UpdateCronWorkflow(ctx, &cronworkflow.UpdateCronWorkflowRequest{
+					Namespace:    namespace,
+					Name:         cronWf.Name,
+					CronWorkflow: &cronWf,
+				})
+				if err != nil {
+					return nil, nil, fmt.Errorf("failed to update cron workflow: %w", err)
+				}
+				wasCreated = false
+			} else {
+				return nil, nil, fmt.Errorf("failed to create cron workflow: %w", err)
+			}
+		} else {
+			wasCreated = true
 		}
 
 		// Build output - normalize to schedules array for consistent output
-		schedules := getSchedules(&created.Spec)
+		schedules := getSchedules(&resultCronWf.Spec)
 		output := &CreateCronWorkflowOutput{
-			Name:              created.Name,
-			Namespace:         created.Namespace,
+			Name:              resultCronWf.Name,
+			Namespace:         resultCronWf.Namespace,
 			Schedules:         schedules,
-			Timezone:          created.Spec.Timezone,
-			ConcurrencyPolicy: string(created.Spec.ConcurrencyPolicy),
-			Suspended:         created.Spec.Suspend,
-			Labels:            created.Labels,
-			Annotations:       created.Annotations,
+			Timezone:          resultCronWf.Spec.Timezone,
+			ConcurrencyPolicy: string(resultCronWf.Spec.ConcurrencyPolicy),
+			Suspended:         resultCronWf.Spec.Suspend,
+			Labels:            resultCronWf.Labels,
+			Annotations:       resultCronWf.Annotations,
+			Created:           wasCreated,
 		}
 
 		// Format creation timestamp
-		if !created.CreationTimestamp.IsZero() {
-			output.CreatedAt = created.CreationTimestamp.Format(time.RFC3339)
+		if !resultCronWf.CreationTimestamp.IsZero() {
+			output.CreatedAt = resultCronWf.CreationTimestamp.Format(time.RFC3339)
 		}
 
 		// Get entrypoint if available
-		if created.Spec.WorkflowSpec.Entrypoint != "" {
-			output.Entrypoint = created.Spec.WorkflowSpec.Entrypoint
+		if resultCronWf.Spec.WorkflowSpec.Entrypoint != "" {
+			output.Entrypoint = resultCronWf.Spec.WorkflowSpec.Entrypoint
 		}
 
 		// Build human-readable result
-		resultText := fmt.Sprintf("Created CronWorkflow %q in namespace %q", output.Name, output.Namespace)
+		var resultText string
+		if wasCreated {
+			resultText = fmt.Sprintf("Created CronWorkflow %q in namespace %q", output.Name, output.Namespace)
+		} else {
+			resultText = fmt.Sprintf("Updated CronWorkflow %q in namespace %q", output.Name, output.Namespace)
+		}
 		resultText += fmt.Sprintf("\nSchedule(s): %s", strings.Join(output.Schedules, ", "))
 		if output.Timezone != "" {
 			resultText += fmt.Sprintf(" (%s)", output.Timezone)

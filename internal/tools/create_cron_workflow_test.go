@@ -52,6 +52,7 @@ func TestCreateCronWorkflowOutput(t *testing.T) {
 		Entrypoint:        "main",
 		CreatedAt:         "2025-01-01T00:00:00Z",
 		Suspended:         false,
+		Created:           true,
 	}
 
 	assert.Equal(t, "test-cron", output.Name)
@@ -62,6 +63,7 @@ func TestCreateCronWorkflowOutput(t *testing.T) {
 	assert.Equal(t, "main", output.Entrypoint)
 	assert.NotEmpty(t, output.CreatedAt)
 	assert.False(t, output.Suspended)
+	assert.True(t, output.Created)
 }
 
 // loadTestCronWorkflowYAML loads the raw YAML content of a cron workflow fixture.
@@ -116,6 +118,7 @@ func TestCreateCronWorkflowHandler(t *testing.T) {
 				assert.Equal(t, "whalesay", output.Entrypoint)
 				assert.Equal(t, testTime.Format(time.RFC3339), output.CreatedAt)
 				assert.False(t, output.Suspended)
+				assert.True(t, output.Created)
 				require.NotNil(t, result)
 				require.Len(t, result.Content, 1)
 				text, ok := result.Content[0].(*mcp.TextContent)
@@ -448,14 +451,65 @@ spec:
 			wantErr: true,
 		},
 		{
-			name: "error - API error (already exists)",
+			name: "success - updates existing cron workflow when already exists",
 			input: CreateCronWorkflowInput{
-				Manifest: loadTestCronWorkflowYAML(t, "simple_cron_workflow.yaml"),
+				Manifest:  loadTestCronWorkflowYAML(t, "simple_cron_workflow.yaml"),
+				Namespace: "default",
 			},
 			setupMock: func(m *mocks.MockCronWorkflowServiceClient) {
+				// First call returns AlreadyExists
 				m.On("CreateCronWorkflow", mock.Anything, mock.Anything).Return(
 					nil,
 					status.Error(codes.AlreadyExists, "cron workflow already exists"),
+				)
+				// Then update is called and succeeds
+				m.On("UpdateCronWorkflow", mock.Anything, mock.MatchedBy(func(req *cronworkflow.UpdateCronWorkflowRequest) bool {
+					return req.Namespace == "default" && req.Name == "hello-world-cron"
+				})).Return(
+					&wfv1.CronWorkflow{
+						ObjectMeta: metav1.ObjectMeta{
+							Name:              "hello-world-cron",
+							Namespace:         "default",
+							CreationTimestamp: metav1.Time{Time: testTime},
+						},
+						Spec: wfv1.CronWorkflowSpec{
+							Schedule: "0 * * * *",
+							WorkflowSpec: wfv1.WorkflowSpec{
+								Entrypoint: "whalesay",
+							},
+						},
+					},
+					nil,
+				)
+			},
+			wantErr: false,
+			validate: func(t *testing.T, output *CreateCronWorkflowOutput, result *mcp.CallToolResult) {
+				assert.Equal(t, "hello-world-cron", output.Name)
+				assert.Equal(t, "default", output.Namespace)
+				assert.False(t, output.Created) // Was updated, not created
+				require.NotNil(t, result)
+				require.Len(t, result.Content, 1)
+				text, ok := result.Content[0].(*mcp.TextContent)
+				require.True(t, ok)
+				assert.Contains(t, text.Text, "Updated")
+			},
+		},
+		{
+			name: "error - update fails after already exists",
+			input: CreateCronWorkflowInput{
+				Manifest:  loadTestCronWorkflowYAML(t, "simple_cron_workflow.yaml"),
+				Namespace: "default",
+			},
+			setupMock: func(m *mocks.MockCronWorkflowServiceClient) {
+				// First call returns AlreadyExists
+				m.On("CreateCronWorkflow", mock.Anything, mock.Anything).Return(
+					nil,
+					status.Error(codes.AlreadyExists, "cron workflow already exists"),
+				)
+				// Update fails
+				m.On("UpdateCronWorkflow", mock.Anything, mock.Anything).Return(
+					nil,
+					status.Error(codes.PermissionDenied, "user does not have permission to update"),
 				)
 			},
 			wantErr: true,
