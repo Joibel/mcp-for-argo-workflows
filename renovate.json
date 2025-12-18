@@ -6,88 +6,168 @@
     "helpers:pinGitHubActionDigests",
     ":semanticCommits"
   ],
-  "labels": ["dependencies"],
-  "schedule": ["before 9am every weekday"],
+  "labels": [
+    "dependencies"
+  ],
+  "schedule": [
+    "before 9am every weekday"
+  ],
   "timezone": "Europe/London",
   "prConcurrentLimit": 5,
   "prHourlyLimit": 2,
   "packageRules": [
     {
       "description": "Go modules - group minor/patch updates and automerge",
-      "matchManagers": ["gomod"],
-      "matchUpdateTypes": ["minor", "patch"],
+      "matchManagers": [
+        "gomod"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
       "groupName": "Go dependencies (minor/patch)",
       "automerge": true,
-      "labels": ["dependencies", "go"]
+      "labels": [
+        "dependencies",
+        "go"
+      ]
     },
     {
       "description": "Go modules - major updates require review",
-      "matchManagers": ["gomod"],
-      "matchUpdateTypes": ["major"],
+      "matchManagers": [
+        "gomod"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
       "groupName": "Go dependencies (major)",
       "automerge": false,
-      "labels": ["dependencies", "go"]
+      "labels": [
+        "dependencies",
+        "go"
+      ]
     },
     {
       "description": "Docker base images - digest updates automerge",
-      "matchManagers": ["dockerfile"],
-      "matchUpdateTypes": ["digest"],
+      "matchManagers": [
+        "dockerfile"
+      ],
+      "matchUpdateTypes": [
+        "digest"
+      ],
       "automerge": true,
-      "labels": ["dependencies", "docker"]
+      "labels": [
+        "dependencies",
+        "docker"
+      ]
     },
     {
       "description": "Docker base images - major/minor/patch updates require review",
-      "matchManagers": ["dockerfile"],
-      "matchUpdateTypes": ["major", "minor", "patch"],
+      "matchManagers": [
+        "dockerfile"
+      ],
+      "matchUpdateTypes": [
+        "major",
+        "minor",
+        "patch"
+      ],
       "automerge": false,
-      "labels": ["dependencies", "docker"]
+      "labels": [
+        "dependencies",
+        "docker"
+      ]
     },
     {
       "description": "GitHub Actions - automerge digest and minor updates",
-      "matchManagers": ["github-actions"],
-      "matchUpdateTypes": ["digest", "minor", "patch"],
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchUpdateTypes": [
+        "digest",
+        "minor",
+        "patch"
+      ],
       "automerge": true,
-      "labels": ["dependencies", "ci"]
+      "labels": [
+        "dependencies",
+        "ci"
+      ]
     },
     {
       "description": "GitHub Actions - major updates require review",
-      "matchManagers": ["github-actions"],
-      "matchUpdateTypes": ["major"],
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
       "automerge": false,
-      "labels": ["dependencies", "ci"]
+      "labels": [
+        "dependencies",
+        "ci"
+      ]
     },
     {
       "description": "Go version updates require review",
-      "matchPackageNames": ["golang", "go"],
-      "matchManagers": ["dockerfile", "gomod"],
+      "matchPackageNames": [
+        "golang",
+        "go"
+      ],
+      "matchManagers": [
+        "dockerfile",
+        "gomod"
+      ],
       "automerge": false,
-      "labels": ["dependencies", "go"]
+      "labels": [
+        "dependencies",
+        "go"
+      ]
     },
     {
       "description": "Argo Workflows version in E2E tests",
-      "matchDepNames": ["argoproj/argo-workflows"],
+      "matchDepNames": [
+        "argoproj/argo-workflows"
+      ],
       "automerge": false,
-      "labels": ["dependencies", "testing"]
+      "labels": [
+        "dependencies",
+        "testing"
+      ]
     },
     {
       "description": "golangci-lint updates automerge",
-      "matchPackageNames": ["golangci/golangci-lint-action"],
-      "matchDepNames": ["golangci-lint"],
+      "matchPackageNames": [
+        "golangci/golangci-lint-action"
+      ],
+      "matchDepNames": [
+        "golangci-lint"
+      ],
       "automerge": true,
-      "labels": ["dependencies", "ci"]
+      "labels": [
+        "dependencies",
+        "ci"
+      ]
     },
     {
       "description": "govulncheck updates automerge",
-      "matchDepNames": ["golang.org/x/vuln"],
+      "matchDepNames": [
+        "golang.org/x/vuln"
+      ],
       "automerge": true,
-      "labels": ["dependencies", "ci", "security"]
+      "labels": [
+        "dependencies",
+        "ci",
+        "security"
+      ]
     }
   ],
   "customManagers": [
     {
       "customType": "regex",
       "description": "Argo Workflows version in E2E test setup",
-      "fileMatch": ["^test/e2e/setup\\.go$"],
+      "managerFilePatterns": [
+        "/^test/e2e/setup\\.go$/"
+      ],
       "matchStrings": [
         "ArgoVersion\\s*=\\s*\"(?<currentValue>v[\\d.]+)\""
       ],
@@ -97,7 +177,9 @@
     {
       "customType": "regex",
       "description": "golangci-lint version in CI workflow",
-      "fileMatch": ["^\\.github/workflows/ci\\.yml$"],
+      "managerFilePatterns": [
+        "/^\\.github/workflows/ci\\.yml$/"
+      ],
       "matchStrings": [
         "version:\\s*(?<currentValue>v[\\d.]+)"
       ],
@@ -108,7 +190,9 @@
     {
       "customType": "regex",
       "description": "Go version in CI workflow",
-      "fileMatch": ["^\\.github/workflows/.*\\.yml$"],
+      "managerFilePatterns": [
+        "/^\\.github/workflows/.*\\.yml$/"
+      ],
       "matchStrings": [
         "go-version:\\s*[\"']?(?<currentValue>[\\d.]+)[\"']?"
       ],
@@ -118,7 +202,9 @@
     {
       "customType": "regex",
       "description": "govulncheck version in CI workflow",
-      "fileMatch": ["^\\.github/workflows/ci\\.yml$"],
+      "managerFilePatterns": [
+        "/^\\.github/workflows/ci\\.yml$/"
+      ],
       "matchStrings": [
         "govulncheck@(?<currentValue>v[\\d.]+)"
       ],
@@ -128,6 +214,8 @@
   ],
   "vulnerabilityAlerts": {
     "enabled": true,
-    "labels": ["security"]
+    "labels": [
+      "security"
+    ]
   }
 }
