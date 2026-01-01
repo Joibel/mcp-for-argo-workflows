@@ -335,6 +335,28 @@ spec:
 			},
 			wantErr: true,
 		},
+		{
+			name: "error - unknown field in manifest",
+			input: CreateClusterWorkflowTemplateInput{
+				Manifest: `
+apiVersion: argoproj.io/v1alpha1
+kind: ClusterWorkflowTemplate
+metadata:
+  name: test-cluster-template
+spec:
+  unknownField: invalid
+  entrypoint: main
+  templates:
+  - name: main
+    container:
+      image: alpine:latest
+`,
+			},
+			setupMock: func(_ *mocks.MockClusterWorkflowTemplateServiceClient) {
+				// No mock needed - should fail strict parsing
+			},
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {

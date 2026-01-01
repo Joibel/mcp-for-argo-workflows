@@ -56,7 +56,7 @@ func LintWorkflowHandler(client argo.ClientInterface) func(context.Context, *mcp
 
 		// Parse the YAML manifest into a Workflow object
 		var wf wfv1.Workflow
-		if err := yaml.Unmarshal([]byte(input.Manifest), &wf); err != nil {
+		if err := yaml.UnmarshalStrict([]byte(input.Manifest), &wf); err != nil {
 			return nil, nil, fmt.Errorf("failed to parse workflow manifest: %w", err)
 		}
 

@@ -384,6 +384,28 @@ spec:
 			},
 			wantErr: true,
 		},
+		{
+			name: "error - unknown field in manifest",
+			input: SubmitWorkflowInput{
+				Manifest: `
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: test-
+spec:
+  unknownField: invalid
+  entrypoint: main
+  templates:
+  - name: main
+    container:
+      image: alpine:latest
+`,
+			},
+			setupMock: func(_ *mocks.MockWorkflowServiceClient) {
+				// No mock needed - should fail strict parsing
+			},
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {
