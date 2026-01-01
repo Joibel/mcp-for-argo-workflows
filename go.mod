@@ -48,7 +48,7 @@ require (
 	github.com/ebitengine/purego v0.8.4 // indirect
 	github.com/emicklei/go-restful/v3 v3.12.2 // indirect
 	github.com/evilmonkeyinc/jsonpath v0.8.1 // indirect
-	github.com/expr-lang/expr v1.17.5 // indirect
+	github.com/expr-lang/expr v1.17.7 // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
 	github.com/flopp/go-findfont v0.1.0 // indirect
 	github.com/fogleman/gg v1.3.0 // indirect
@@ -182,7 +182,6 @@ require (
 	modernc.org/sqlite v1.37.1 // indirect
 	sigs.k8s.io/json v0.0.0-20241014173422-cfa47c3a1cc8 // indirect
 	sigs.k8s.io/randfill v1.0.0 // indirect
-	sigs.k8s.io/structured-merge-diff/v4 v4.7.0 // indirect
 	sigs.k8s.io/structured-merge-diff/v6 v6.3.0 // indirect
 	zombiezen.com/go/sqlite v1.4.2 // indirect
 )
