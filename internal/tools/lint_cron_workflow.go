@@ -55,7 +55,7 @@ func LintCronWorkflowHandler(client argo.ClientInterface) func(context.Context, 
 
 		// Parse the YAML manifest into a CronWorkflow object
 		var cw wfv1.CronWorkflow
-		if err := yaml.Unmarshal([]byte(input.Manifest), &cw); err != nil {
+		if err := yaml.UnmarshalStrict([]byte(input.Manifest), &cw); err != nil {
 			return nil, nil, fmt.Errorf("failed to parse cron workflow manifest: %w", err)
 		}
 

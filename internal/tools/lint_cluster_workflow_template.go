@@ -51,7 +51,7 @@ func LintClusterWorkflowTemplateHandler(client argo.ClientInterface) func(contex
 
 		// Parse the YAML manifest into a ClusterWorkflowTemplate object
 		var cwft wfv1.ClusterWorkflowTemplate
-		if err := yaml.Unmarshal([]byte(input.Manifest), &cwft); err != nil {
+		if err := yaml.UnmarshalStrict([]byte(input.Manifest), &cwft); err != nil {
 			return nil, nil, fmt.Errorf("failed to parse cluster workflow template manifest: %w", err)
 		}
 

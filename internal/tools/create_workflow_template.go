@@ -58,7 +58,7 @@ func CreateWorkflowTemplateHandler(client argo.ClientInterface) func(context.Con
 
 		// Parse the YAML manifest into a WorkflowTemplate object
 		var wft wfv1.WorkflowTemplate
-		if err := yaml.Unmarshal([]byte(input.Manifest), &wft); err != nil {
+		if err := yaml.UnmarshalStrict([]byte(input.Manifest), &wft); err != nil {
 			return nil, nil, fmt.Errorf("failed to parse workflow template manifest: %w", err)
 		}
 

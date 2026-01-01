@@ -206,6 +206,31 @@ spec:
 			},
 			wantErr: true,
 		},
+		{
+			name: "error - unknown field in manifest",
+			input: LintCronWorkflowInput{
+				Manifest: `
+apiVersion: argoproj.io/v1alpha1
+kind: CronWorkflow
+metadata:
+  name: test-cron
+spec:
+  unknownField: invalid
+  schedules:
+    - "0 * * * *"
+  workflowSpec:
+    entrypoint: main
+    templates:
+    - name: main
+      container:
+        image: alpine:latest
+`,
+			},
+			setupMock: func(_ *mocks.MockCronWorkflowServiceClient) {
+				// No mock needed - should fail strict parsing
+			},
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {

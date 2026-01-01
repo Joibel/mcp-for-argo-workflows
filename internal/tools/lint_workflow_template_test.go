@@ -206,6 +206,28 @@ spec:
 			},
 			wantErr: true,
 		},
+		{
+			name: "error - unknown field in manifest",
+			input: LintWorkflowTemplateInput{
+				Manifest: `
+apiVersion: argoproj.io/v1alpha1
+kind: WorkflowTemplate
+metadata:
+  name: test-template
+spec:
+  unknownField: invalid
+  entrypoint: main
+  templates:
+  - name: main
+    container:
+      image: alpine:latest
+`,
+			},
+			setupMock: func(_ *mocks.MockWorkflowTemplateServiceClient) {
+				// No mock needed - should fail strict parsing
+			},
+			wantErr: true,
+		},
 	}
 
 	for _, tt := range tests {
