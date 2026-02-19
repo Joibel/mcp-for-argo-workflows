@@ -21,7 +21,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6
         with:
-          go-version: "1.25.5"
+          go-version: "1.26.0"
           cache: true
 
       - name: Run golangci-lint
@@ -40,7 +40,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6
         with:
-          go-version: "1.25.5"
+          go-version: "1.26.0"
           cache: true
 
       - name: Run tests
@@ -71,7 +71,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6
         with:
-          go-version: "1.25.5"
+          go-version: "1.26.0"
           cache: true
 
       - name: Run E2E tests (${{ matrix.mode }} mode)
@@ -90,7 +90,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@7a3fe6cf4cb3a834922a1244abfce67bcef6a0c5 # v6
         with:
-          go-version: "1.25.5"
+          go-version: "1.26.0"
           cache: true
 
       - name: Build binary
