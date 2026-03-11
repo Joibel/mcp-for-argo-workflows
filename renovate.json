@@ -17,7 +17,7 @@
   "prHourlyLimit": 2,
   "packageRules": [
     {
-      "description": "Go modules - group minor/patch updates and automerge",
+      "description": "Go modules - minor/patch updates automerge individually",
       "matchManagers": [
         "gomod"
       ],
@@ -25,7 +25,6 @@
         "minor",
         "patch"
       ],
-      "groupName": "Go dependencies (minor/patch)",
       "automerge": true,
       "labels": [
         "dependencies",
@@ -40,7 +39,6 @@
       "matchUpdateTypes": [
         "major"
       ],
-      "groupName": "Go dependencies (major)",
       "automerge": false,
       "labels": [
         "dependencies",
