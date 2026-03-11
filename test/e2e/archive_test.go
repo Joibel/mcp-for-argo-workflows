@@ -7,7 +7,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/argoproj/argo-workflows/v3/pkg/apiclient/workflowarchive"
+	"github.com/argoproj/argo-workflows/v4/pkg/apiclient/workflowarchive"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 

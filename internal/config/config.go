@@ -108,7 +108,7 @@ func getEnvBoolIfNotSet(fs *pflag.FlagSet, flagName, envKey string, current bool
 				return b
 			}
 			slog.Warn("invalid boolean env var, using default",
-				"env", envKey, "value", v, "default", current)
+				"env", envKey, "value", strconv.Quote(v), "default", current)
 		}
 	}
 	return current
@@ -128,7 +128,7 @@ func applyEnvOverridesWithFlagSet(fs *pflag.FlagSet, cfg *Config) {
 			v = strings.ToLower(strings.TrimSpace(v))
 			if v != TransportStdio && v != TransportHTTP {
 				slog.Warn("invalid MCP_TRANSPORT value, using default",
-					"value", v, "default", cfg.Transport)
+					"value", strconv.Quote(v), "default", cfg.Transport)
 			} else {
 				cfg.Transport = v
 			}

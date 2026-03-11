@@ -4,12 +4,12 @@ package mocks
 import (
 	"context"
 
-	"github.com/argoproj/argo-workflows/v3/pkg/apiclient/clusterworkflowtemplate"
-	"github.com/argoproj/argo-workflows/v3/pkg/apiclient/cronworkflow"
-	"github.com/argoproj/argo-workflows/v3/pkg/apiclient/info"
-	"github.com/argoproj/argo-workflows/v3/pkg/apiclient/workflow"
-	"github.com/argoproj/argo-workflows/v3/pkg/apiclient/workflowarchive"
-	"github.com/argoproj/argo-workflows/v3/pkg/apiclient/workflowtemplate"
+	"github.com/argoproj/argo-workflows/v4/pkg/apiclient/clusterworkflowtemplate"
+	"github.com/argoproj/argo-workflows/v4/pkg/apiclient/cronworkflow"
+	"github.com/argoproj/argo-workflows/v4/pkg/apiclient/info"
+	"github.com/argoproj/argo-workflows/v4/pkg/apiclient/workflow"
+	"github.com/argoproj/argo-workflows/v4/pkg/apiclient/workflowarchive"
+	"github.com/argoproj/argo-workflows/v4/pkg/apiclient/workflowtemplate"
 	"github.com/stretchr/testify/mock"
 
 	"github.com/Joibel/mcp-for-argo-workflows/internal/argo"

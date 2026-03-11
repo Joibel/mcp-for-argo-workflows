@@ -7,8 +7,8 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/argoproj/argo-workflows/v3/pkg/apiclient/workflow"
-	wfv1 "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	"github.com/argoproj/argo-workflows/v4/pkg/apiclient/workflow"
+	wfv1 "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/Joibel/mcp-for-argo-workflows/internal/argo"
@@ -166,9 +166,9 @@ func renderMermaidGraph(wf *wfv1.Workflow, includeStatus bool) string {
 		// Add node definition
 		if includeStatus {
 			className := getNodeClassName(node.Phase)
-			sb.WriteString(fmt.Sprintf("    %s[%s]:::%s\n", safeID, displayName, className))
+			fmt.Fprintf(&sb, "    %s[%s]:::%s\n", safeID, displayName, className)
 		} else {
-			sb.WriteString(fmt.Sprintf("    %s[%s]\n", safeID, displayName))
+			fmt.Fprintf(&sb, "    %s[%s]\n", safeID, displayName)
 		}
 
 		// Add edges to children
@@ -178,7 +178,7 @@ func renderMermaidGraph(wf *wfv1.Workflow, includeStatus bool) string {
 				edge := fmt.Sprintf("%s -> %s", safeID, safeChildID)
 				if !edges[edge] {
 					edges[edge] = true
-					sb.WriteString(fmt.Sprintf("    %s --> %s\n", safeID, safeChildID))
+					fmt.Fprintf(&sb, "    %s --> %s\n", safeID, safeChildID)
 				}
 			}
 		}
@@ -304,10 +304,10 @@ func renderDOTGraph(wf *wfv1.Workflow, includeStatus bool) string {
 		// Add node definition with styling
 		if includeStatus {
 			color := getNodeColor(node.Phase)
-			sb.WriteString(fmt.Sprintf("    \"%s\" [label=\"%s\", fillcolor=\"%s\", style=filled];\n",
-				safeID, displayName, color))
+			fmt.Fprintf(&sb, "    \"%s\" [label=\"%s\", fillcolor=\"%s\", style=filled];\n",
+				safeID, displayName, color)
 		} else {
-			sb.WriteString(fmt.Sprintf("    \"%s\" [label=\"%s\"];\n", safeID, displayName))
+			fmt.Fprintf(&sb, "    \"%s\" [label=\"%s\"];\n", safeID, displayName)
 		}
 
 		// Add edges to children
@@ -317,7 +317,7 @@ func renderDOTGraph(wf *wfv1.Workflow, includeStatus bool) string {
 				edge := fmt.Sprintf("%s -> %s", safeID, safeChildID)
 				if !edges[edge] {
 					edges[edge] = true
-					sb.WriteString(fmt.Sprintf("    \"%s\" -> \"%s\";\n", safeID, safeChildID))
+					fmt.Fprintf(&sb, "    \"%s\" -> \"%s\";\n", safeID, safeChildID)
 				}
 			}
 		}

@@ -8,8 +8,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/argoproj/argo-workflows/v3/pkg/apiclient/workflow"
-	wfv1 "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	"github.com/argoproj/argo-workflows/v4/pkg/apiclient/workflow"
+	wfv1 "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	corev1 "k8s.io/api/core/v1"
 
@@ -588,27 +588,27 @@ func buildPromptText(d *diagnosis) string {
 	sb.WriteString("4. Recommended fixes\n\n")
 
 	// Workflow overview
-	sb.WriteString(fmt.Sprintf("## Workflow: %s\n", d.WorkflowName))
-	sb.WriteString(fmt.Sprintf("Namespace: %s\n", d.Namespace))
-	sb.WriteString(fmt.Sprintf("Status: %s\n", d.Phase))
+	fmt.Fprintf(&sb, "## Workflow: %s\n", d.WorkflowName)
+	fmt.Fprintf(&sb, "Namespace: %s\n", d.Namespace)
+	fmt.Fprintf(&sb, "Status: %s\n", d.Phase)
 	if d.Message != "" {
-		sb.WriteString(fmt.Sprintf("Message: %s\n", d.Message))
+		fmt.Fprintf(&sb, "Message: %s\n", d.Message)
 	}
 	if !d.StartedAt.IsZero() {
-		sb.WriteString(fmt.Sprintf("Started: %s\n", d.StartedAt.Format(time.RFC3339)))
+		fmt.Fprintf(&sb, "Started: %s\n", d.StartedAt.Format(time.RFC3339))
 	}
 	if !d.FinishedAt.IsZero() {
-		sb.WriteString(fmt.Sprintf("Finished: %s\n", d.FinishedAt.Format(time.RFC3339)))
+		fmt.Fprintf(&sb, "Finished: %s\n", d.FinishedAt.Format(time.RFC3339))
 	}
 	if d.Duration > 0 {
-		sb.WriteString(fmt.Sprintf("Duration: %s\n", formatDuration(d.Duration)))
+		fmt.Fprintf(&sb, "Duration: %s\n", formatDuration(d.Duration))
 	}
 
 	// Workflow parameters
 	if len(d.Parameters) > 0 {
 		sb.WriteString("\n### Workflow Parameters\n")
 		for _, p := range d.Parameters {
-			sb.WriteString(fmt.Sprintf("- %s: %s\n", p.Name, truncateString(p.Value, 200)))
+			fmt.Fprintf(&sb, "- %s: %s\n", p.Name, truncateString(p.Value, 200))
 		}
 	}
 
@@ -636,9 +636,9 @@ func buildPromptText(d *diagnosis) string {
 		sb.WriteString("\n## Detected Error Patterns\n")
 		for _, node := range d.RootCauses {
 			if node.ErrorPattern != nil {
-				sb.WriteString(fmt.Sprintf("\n### %s\n", node.DisplayName))
-				sb.WriteString(fmt.Sprintf("**Pattern**: %s\n", node.ErrorPattern.Pattern))
-				sb.WriteString(fmt.Sprintf("**Suggestion**: %s\n", node.ErrorPattern.Suggestion))
+				fmt.Fprintf(&sb, "\n### %s\n", node.DisplayName)
+				fmt.Fprintf(&sb, "**Pattern**: %s\n", node.ErrorPattern.Pattern)
+				fmt.Fprintf(&sb, "**Suggestion**: %s\n", node.ErrorPattern.Suggestion)
 			}
 		}
 	}

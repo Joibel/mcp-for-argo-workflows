@@ -20,10 +20,10 @@ func TestRenderManifestGraphTool(t *testing.T) {
 func TestRenderManifestGraphHandler(t *testing.T) {
 	//nolint:govet // fieldalignment - test struct readability over alignment
 	tests := []struct {
-		name          string
-		input         RenderManifestGraphInput
-		expectedError string
 		validate      func(t *testing.T, output *RenderManifestGraphOutput)
+		input         RenderManifestGraphInput
+		name          string
+		expectedError string
 	}{
 		{
 			name: "simple DAG workflow with mermaid format",

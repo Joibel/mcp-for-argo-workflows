@@ -46,7 +46,7 @@ func NewConfigFromEnv() *Config {
 		secure, err := strconv.ParseBool(secureStr)
 		if err != nil {
 			slog.Warn("invalid ARGO_SECURE value, using default",
-				"value", secureStr, "default", true)
+				"value", strconv.Quote(secureStr), "default", true)
 		} else {
 			config.Secure = secure
 		}
@@ -57,7 +57,7 @@ func NewConfigFromEnv() *Config {
 		skipVerify, err := strconv.ParseBool(skipVerifyStr)
 		if err != nil {
 			slog.Warn("invalid ARGO_INSECURE_SKIP_VERIFY value, using default",
-				"value", skipVerifyStr, "default", false)
+				"value", strconv.Quote(skipVerifyStr), "default", false)
 		} else {
 			config.InsecureSkipVerify = skipVerify
 		}

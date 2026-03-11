@@ -5,10 +5,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/argoproj/argo-workflows/v3/pkg/apiclient/clusterworkflowtemplate"
-	"github.com/argoproj/argo-workflows/v3/pkg/apiclient/cronworkflow"
-	"github.com/argoproj/argo-workflows/v3/pkg/apiclient/workflowtemplate"
-	wfv1 "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	"github.com/argoproj/argo-workflows/v4/pkg/apiclient/clusterworkflowtemplate"
+	"github.com/argoproj/argo-workflows/v4/pkg/apiclient/cronworkflow"
+	"github.com/argoproj/argo-workflows/v4/pkg/apiclient/workflowtemplate"
+	wfv1 "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -292,8 +292,8 @@ func TestListCronWorkflowsContent(t *testing.T) {
 									CreationTimestamp: metav1.Time{Time: time.Now().Add(-24 * time.Hour)},
 								},
 								Spec: wfv1.CronWorkflowSpec{
-									Schedule: "0 * * * *",
-									Suspend:  false,
+									Schedules: []string{"0 * * * *"},
+									Suspend:   false,
 								},
 								Status: wfv1.CronWorkflowStatus{
 									Active:    []corev1.ObjectReference{},
@@ -307,8 +307,8 @@ func TestListCronWorkflowsContent(t *testing.T) {
 									Namespace: "default",
 								},
 								Spec: wfv1.CronWorkflowSpec{
-									Schedule: "*/5 * * * *",
-									Suspend:  true,
+									Schedules: []string{"*/5 * * * *"},
+									Suspend:   true,
 								},
 							},
 						},

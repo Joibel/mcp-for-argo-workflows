@@ -9,10 +9,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/argoproj/argo-workflows/v3/pkg/apiclient/clusterworkflowtemplate"
-	"github.com/argoproj/argo-workflows/v3/pkg/apiclient/cronworkflow"
-	"github.com/argoproj/argo-workflows/v3/pkg/apiclient/workflowtemplate"
-	wfv1 "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	"github.com/argoproj/argo-workflows/v4/pkg/apiclient/clusterworkflowtemplate"
+	"github.com/argoproj/argo-workflows/v4/pkg/apiclient/cronworkflow"
+	"github.com/argoproj/argo-workflows/v4/pkg/apiclient/workflowtemplate"
+	wfv1 "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/Joibel/mcp-for-argo-workflows/internal/argo"
@@ -57,16 +57,16 @@ type ClusterWorkflowTemplateSummary struct {
 //
 //nolint:govet // Field order optimized for readability over memory alignment
 type CronWorkflowSummary struct {
-	Name         string `json:"name"`
-	Namespace    string `json:"namespace"`
-	Schedule     string `json:"schedule"`
-	Suspended    bool   `json:"suspended"`
-	LastRun      string `json:"lastRun,omitempty"`
-	NextRun      string `json:"nextRun,omitempty"`
-	CreatedAt    string `json:"createdAt,omitempty"`
-	ActiveCount  int    `json:"activeCount"`
-	SuccessCount int    `json:"successCount"`
-	FailedCount  int    `json:"failedCount"`
+	Name         string   `json:"name"`
+	Namespace    string   `json:"namespace"`
+	Schedules    []string `json:"schedules"`
+	Suspended    bool     `json:"suspended"`
+	LastRun      string   `json:"lastRun,omitempty"`
+	NextRun      string   `json:"nextRun,omitempty"`
+	CreatedAt    string   `json:"createdAt,omitempty"`
+	ActiveCount  int      `json:"activeCount"`
+	SuccessCount int      `json:"successCount"`
+	FailedCount  int      `json:"failedCount"`
 }
 
 // buildArgumentsMap extracts arguments from workflow parameters into a map for JSON serialization.
@@ -401,7 +401,7 @@ func listCronWorkflowsContent(ctx context.Context, client argo.ClientInterface, 
 		summary := CronWorkflowSummary{
 			Name:      cron.Name,
 			Namespace: cron.Namespace,
-			Schedule:  cron.Spec.Schedule,
+			Schedules: cron.Spec.GetSchedules(),
 			Suspended: cron.Spec.Suspend,
 		}
 

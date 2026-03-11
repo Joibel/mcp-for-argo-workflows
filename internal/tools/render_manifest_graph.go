@@ -7,7 +7,7 @@ import (
 	"sort"
 	"strings"
 
-	wfv1 "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	wfv1 "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"sigs.k8s.io/yaml"
 )
@@ -37,20 +37,11 @@ type RenderManifestGraphInput struct {
 //
 //nolint:govet // Field order optimized for readability over memory alignment
 type RenderManifestGraphOutput struct {
-	// Graph is the rendered workflow graph.
-	Graph string `json:"graph"`
-
-	// Format is the format used for rendering.
-	Format string `json:"format"`
-
-	// NodeCount is the number of nodes in the graph.
-	NodeCount int `json:"nodeCount"`
-
-	// Kind is the kind of manifest that was rendered.
-	Kind string `json:"kind"`
-
-	// Name is the name of the workflow/template.
-	Name string `json:"name,omitempty"`
+	Graph     string `json:"graph"`
+	Format    string `json:"format"`
+	Kind      string `json:"kind"`
+	Name      string `json:"name,omitempty"`
+	NodeCount int    `json:"nodeCount"`
 }
 
 // RenderManifestGraphTool returns the MCP tool definition for render_manifest_graph.
@@ -142,9 +133,9 @@ func RenderManifestGraphHandler() func(context.Context, *mcp.CallToolRequest, Re
 type manifestNode struct {
 	Name         string
 	TemplateName string
-	Type         string // "dag", "steps", "container", "script", etc.
-	Dependencies []string
+	Type         string
 	When         string
+	Dependencies []string
 	WithItems    bool
 	WithParam    bool
 }
@@ -366,7 +357,7 @@ func renderManifestMermaid(nodes map[string]*manifestNode) string {
 		}
 
 		// Add node definition
-		sb.WriteString(fmt.Sprintf("    %s[%s]\n", safeID, displayName))
+		fmt.Fprintf(&sb, "    %s[%s]\n", safeID, displayName)
 
 		// Add edges from dependencies
 		for _, dep := range node.Dependencies {
@@ -376,9 +367,9 @@ func renderManifestMermaid(nodes map[string]*manifestNode) string {
 				edges[edge] = true
 				if node.When != "" {
 					// Dashed line for conditional edges
-					sb.WriteString(fmt.Sprintf("    %s -.-> %s\n", safeDep, safeID))
+					fmt.Fprintf(&sb, "    %s -.-> %s\n", safeDep, safeID)
 				} else {
-					sb.WriteString(fmt.Sprintf("    %s --> %s\n", safeDep, safeID))
+					fmt.Fprintf(&sb, "    %s --> %s\n", safeDep, safeID)
 				}
 			}
 		}
@@ -502,7 +493,7 @@ func renderManifestDOT(nodes map[string]*manifestNode) string {
 		}
 
 		// Add node definition
-		sb.WriteString(fmt.Sprintf("    \"%s\" [label=\"%s\"];\n", safeID, displayName))
+		fmt.Fprintf(&sb, "    \"%s\" [label=\"%s\"];\n", safeID, displayName)
 
 		// Add edges from dependencies
 		for _, dep := range node.Dependencies {
@@ -512,9 +503,9 @@ func renderManifestDOT(nodes map[string]*manifestNode) string {
 				edges[edge] = true
 				if node.When != "" {
 					// Dashed line for conditional edges
-					sb.WriteString(fmt.Sprintf("    \"%s\" -> \"%s\" [style=dashed];\n", safeDep, safeID))
+					fmt.Fprintf(&sb, "    \"%s\" -> \"%s\" [style=dashed];\n", safeDep, safeID)
 				} else {
-					sb.WriteString(fmt.Sprintf("    \"%s\" -> \"%s\";\n", safeDep, safeID))
+					fmt.Fprintf(&sb, "    \"%s\" -> \"%s\";\n", safeDep, safeID)
 				}
 			}
 		}

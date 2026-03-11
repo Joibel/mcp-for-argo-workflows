@@ -3,7 +3,6 @@ module github.com/Joibel/mcp-for-argo-workflows
 go 1.25.5
 
 require (
-	github.com/argoproj/argo-workflows/v3 v3.7.11
 	github.com/argoproj/argo-workflows/v4 v4.0.2
 	github.com/goccy/go-graphviz v0.2.10
 	github.com/modelcontextprotocol/go-sdk v1.4.0

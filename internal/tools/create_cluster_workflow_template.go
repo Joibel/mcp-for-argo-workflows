@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/argoproj/argo-workflows/v3/pkg/apiclient/clusterworkflowtemplate"
-	wfv1 "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	"github.com/argoproj/argo-workflows/v4/pkg/apiclient/clusterworkflowtemplate"
+	wfv1 "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"

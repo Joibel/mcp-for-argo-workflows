@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/argoproj/argo-workflows/v3/pkg/apiclient/cronworkflow"
-	wfv1 "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	"github.com/argoproj/argo-workflows/v4/pkg/apiclient/cronworkflow"
+	wfv1 "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -99,7 +99,7 @@ func TestCreateCronWorkflowHandler(t *testing.T) {
 							CreationTimestamp: metav1.Time{Time: testTime},
 						},
 						Spec: wfv1.CronWorkflowSpec{
-							Schedule:          "0 * * * *",
+							Schedules:         []string{"0 * * * *"},
 							ConcurrencyPolicy: wfv1.ReplaceConcurrent,
 							WorkflowSpec: wfv1.WorkflowSpec{
 								Entrypoint: "whalesay",
@@ -144,7 +144,7 @@ func TestCreateCronWorkflowHandler(t *testing.T) {
 							CreationTimestamp: metav1.Time{Time: testTime},
 						},
 						Spec: wfv1.CronWorkflowSpec{
-							Schedule: "0 * * * *",
+							Schedules: []string{"0 * * * *"},
 							WorkflowSpec: wfv1.WorkflowSpec{
 								Entrypoint: "whalesay",
 							},
@@ -169,7 +169,8 @@ kind: CronWorkflow
 metadata:
   name: timezone-cron
 spec:
-  schedule: "0 9 * * *"
+  schedules:
+  - "0 9 * * *"
   timezone: "America/New_York"
   workflowSpec:
     entrypoint: main
@@ -189,8 +190,8 @@ spec:
 							CreationTimestamp: metav1.Time{Time: testTime},
 						},
 						Spec: wfv1.CronWorkflowSpec{
-							Schedule: "0 9 * * *",
-							Timezone: "America/New_York",
+							Schedules: []string{"0 9 * * *"},
+							Timezone:  "America/New_York",
 							WorkflowSpec: wfv1.WorkflowSpec{
 								Entrypoint: "main",
 							},
@@ -220,7 +221,8 @@ kind: CronWorkflow
 metadata:
   name: suspended-cron
 spec:
-  schedule: "0 * * * *"
+  schedules:
+  - "0 * * * *"
   suspend: true
   workflowSpec:
     entrypoint: main
@@ -240,8 +242,8 @@ spec:
 							CreationTimestamp: metav1.Time{Time: testTime},
 						},
 						Spec: wfv1.CronWorkflowSpec{
-							Schedule: "0 * * * *",
-							Suspend:  true,
+							Schedules: []string{"0 * * * *"},
+							Suspend:   true,
 							WorkflowSpec: wfv1.WorkflowSpec{
 								Entrypoint: "main",
 							},
@@ -270,7 +272,8 @@ apiVersion: argoproj.io/v1alpha1
 metadata:
   name: no-kind-cron
 spec:
-  schedule: "*/5 * * * *"
+  schedules:
+  - "*/5 * * * *"
   workflowSpec:
     entrypoint: main
     templates:
@@ -289,7 +292,7 @@ spec:
 							CreationTimestamp: metav1.Time{Time: testTime},
 						},
 						Spec: wfv1.CronWorkflowSpec{
-							Schedule: "*/5 * * * *",
+							Schedules: []string{"*/5 * * * *"},
 							WorkflowSpec: wfv1.WorkflowSpec{
 								Entrypoint: "main",
 							},
@@ -398,7 +401,8 @@ metadata:
   labels:
     app: test
 spec:
-  schedule: "0 * * * *"
+  schedules:
+  - "0 * * * *"
   workflowSpec:
     entrypoint: main
     templates:
@@ -486,7 +490,7 @@ spec:
 							CreationTimestamp: metav1.Time{Time: testTime},
 						},
 						Spec: wfv1.CronWorkflowSpec{
-							Schedule: "0 * * * *",
+							Schedules: []string{"0 * * * *"},
 							WorkflowSpec: wfv1.WorkflowSpec{
 								Entrypoint: "whalesay",
 							},

@@ -4,8 +4,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/argoproj/argo-workflows/v3/pkg/apiclient/workflow"
-	wfv1 "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	"github.com/argoproj/argo-workflows/v4/pkg/apiclient/workflow"
+	wfv1 "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -22,12 +22,12 @@ func TestRenderWorkflowGraphTool(t *testing.T) {
 }
 
 func TestRenderWorkflowGraphHandler(t *testing.T) {
-	tests := []struct { //nolint:govet // field alignment not critical for test structs
-		name          string
-		input         RenderWorkflowGraphInput
+	tests := []struct {
 		workflow      *wfv1.Workflow
-		expectedError string
 		validate      func(t *testing.T, output *RenderWorkflowGraphOutput)
+		input         RenderWorkflowGraphInput
+		name          string
+		expectedError string
 	}{
 		{
 			name: "simple DAG workflow with mermaid format",
@@ -176,11 +176,11 @@ func TestRenderWorkflowGraphHandler(t *testing.T) {
 }
 
 func TestRenderMermaidGraph(t *testing.T) {
-	tests := []struct { //nolint:govet // field alignment not critical for test structs
-		name          string
+	tests := []struct {
 		workflow      *wfv1.Workflow
-		includeStatus bool
 		validate      func(t *testing.T, graph string)
+		name          string
+		includeStatus bool
 	}{
 		{
 			name:          "DAG workflow with status",
@@ -224,11 +224,11 @@ func TestRenderMermaidGraph(t *testing.T) {
 }
 
 func TestRenderASCIIGraph(t *testing.T) {
-	tests := []struct { //nolint:govet // field alignment not critical for test structs
-		name          string
+	tests := []struct {
 		workflow      *wfv1.Workflow
-		includeStatus bool
 		validate      func(t *testing.T, graph string)
+		name          string
+		includeStatus bool
 	}{
 		{
 			name:          "DAG workflow with status",
@@ -271,11 +271,11 @@ func TestRenderASCIIGraph(t *testing.T) {
 }
 
 func TestRenderDOTGraph(t *testing.T) {
-	tests := []struct { //nolint:govet // field alignment not critical for test structs
-		name          string
+	tests := []struct {
 		workflow      *wfv1.Workflow
-		includeStatus bool
 		validate      func(t *testing.T, graph string)
+		name          string
+		includeStatus bool
 	}{
 		{
 			name:          "DAG workflow with status",
@@ -316,9 +316,9 @@ func TestRenderDOTGraph(t *testing.T) {
 }
 
 func TestIsRenderableNode(t *testing.T) {
-	tests := []struct { //nolint:govet // field alignment not critical for test structs
-		name     string
+	tests := []struct {
 		node     *wfv1.NodeStatus
+		name     string
 		expected bool
 	}{
 		{

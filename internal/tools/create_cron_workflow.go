@@ -7,8 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/argoproj/argo-workflows/v3/pkg/apiclient/cronworkflow"
-	wfv1 "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	"github.com/argoproj/argo-workflows/v4/pkg/apiclient/cronworkflow"
+	wfv1 "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -79,9 +79,9 @@ func CreateCronWorkflowHandler(client argo.ClientInterface) func(context.Context
 			return nil, nil, fmt.Errorf("cron workflow name is required in manifest")
 		}
 
-		// Validate schedule - accept either schedules (modern) or schedule (legacy)
-		if len(cronWf.Spec.Schedules) == 0 && cronWf.Spec.Schedule == "" {
-			return nil, nil, fmt.Errorf("cron workflow schedule is required in manifest (use 'schedules' array or 'schedule' string)")
+		// Validate schedule
+		if len(cronWf.Spec.Schedules) == 0 {
+			return nil, nil, fmt.Errorf("cron workflow schedule is required in manifest (use 'schedules' array)")
 		}
 
 		// Resolve namespace - prefer input namespace, then manifest namespace, then default
@@ -196,13 +196,5 @@ func getSchedules(spec *wfv1.CronWorkflowSpec) []string {
 	if spec == nil {
 		return []string{}
 	}
-	// Prefer schedules array (modern format)
-	if len(spec.Schedules) > 0 {
-		return spec.Schedules
-	}
-	// Fall back to single schedule (legacy format)
-	if spec.Schedule != "" {
-		return []string{spec.Schedule}
-	}
-	return []string{}
+	return spec.GetSchedules()
 }

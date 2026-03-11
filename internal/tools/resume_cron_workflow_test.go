@@ -4,8 +4,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/argoproj/argo-workflows/v3/pkg/apiclient/cronworkflow"
-	wfv1 "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	"github.com/argoproj/argo-workflows/v4/pkg/apiclient/cronworkflow"
+	wfv1 "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -45,14 +45,14 @@ func TestResumeCronWorkflowOutput(t *testing.T) {
 	output := ResumeCronWorkflowOutput{
 		Name:      "test-cron",
 		Namespace: "default",
-		Schedule:  "0 * * * *",
+		Schedules: []string{"0 * * * *"},
 		Suspended: false,
 		Message:   "resumed successfully",
 	}
 
 	assert.Equal(t, "test-cron", output.Name)
 	assert.Equal(t, "default", output.Namespace)
-	assert.Equal(t, "0 * * * *", output.Schedule)
+	assert.Equal(t, []string{"0 * * * *"}, output.Schedules)
 	assert.False(t, output.Suspended)
 	assert.NotEmpty(t, output.Message)
 }
@@ -81,8 +81,8 @@ func TestResumeCronWorkflowHandler(t *testing.T) {
 							Namespace: "default",
 						},
 						Spec: wfv1.CronWorkflowSpec{
-							Schedule: "0 * * * *",
-							Suspend:  false,
+							Schedules: []string{"0 * * * *"},
+							Suspend:   false,
 						},
 					},
 					nil,
@@ -92,7 +92,7 @@ func TestResumeCronWorkflowHandler(t *testing.T) {
 			validate: func(t *testing.T, output *ResumeCronWorkflowOutput, result *mcp.CallToolResult) {
 				assert.Equal(t, "my-cron", output.Name)
 				assert.Equal(t, "default", output.Namespace)
-				assert.Equal(t, "0 * * * *", output.Schedule)
+				assert.Equal(t, []string{"0 * * * *"}, output.Schedules)
 				assert.False(t, output.Suspended)
 				assert.Contains(t, output.Message, "resumed successfully")
 				require.NotNil(t, result)
@@ -120,8 +120,8 @@ func TestResumeCronWorkflowHandler(t *testing.T) {
 							Namespace: "argo",
 						},
 						Spec: wfv1.CronWorkflowSpec{
-							Schedule: "*/5 * * * *",
-							Suspend:  false,
+							Schedules: []string{"*/5 * * * *"},
+							Suspend:   false,
 						},
 					},
 					nil,
@@ -150,8 +150,8 @@ func TestResumeCronWorkflowHandler(t *testing.T) {
 							Namespace: "default",
 						},
 						Spec: wfv1.CronWorkflowSpec{
-							Schedule: "0 0 * * *",
-							Suspend:  false,
+							Schedules: []string{"0 0 * * *"},
+							Suspend:   false,
 						},
 					},
 					nil,

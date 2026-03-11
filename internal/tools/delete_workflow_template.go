@@ -5,7 +5,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/argoproj/argo-workflows/v3/pkg/apiclient/workflowtemplate"
+	"github.com/argoproj/argo-workflows/v4/pkg/apiclient/workflowtemplate"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/Joibel/mcp-for-argo-workflows/internal/argo"

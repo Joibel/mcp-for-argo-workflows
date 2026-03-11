@@ -4,8 +4,9 @@ package tools
 import (
 	"context"
 	"fmt"
+	"strings"
 
-	"github.com/argoproj/argo-workflows/v3/pkg/apiclient/cronworkflow"
+	"github.com/argoproj/argo-workflows/v4/pkg/apiclient/cronworkflow"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/Joibel/mcp-for-argo-workflows/internal/argo"
@@ -22,20 +23,11 @@ type ResumeCronWorkflowInput struct {
 
 // ResumeCronWorkflowOutput defines the output for the resume_cron_workflow tool.
 type ResumeCronWorkflowOutput struct {
-	// Name is the resumed CronWorkflow name.
-	Name string `json:"name"`
-
-	// Namespace is the namespace of the CronWorkflow.
-	Namespace string `json:"namespace"`
-
-	// Schedule is the cron schedule expression.
-	Schedule string `json:"schedule"`
-
-	// Message provides confirmation of the resumption.
-	Message string `json:"message"`
-
-	// Suspended indicates whether the CronWorkflow is still suspended.
-	Suspended bool `json:"suspended"`
+	Name      string   `json:"name"`
+	Namespace string   `json:"namespace"`
+	Message   string   `json:"message"`
+	Schedules []string `json:"schedules"`
+	Suspended bool     `json:"suspended"`
 }
 
 // ResumeCronWorkflowTool returns the MCP tool definition for resume_cron_workflow.
@@ -77,14 +69,14 @@ func ResumeCronWorkflowHandler(client argo.ClientInterface) func(context.Context
 		output := &ResumeCronWorkflowOutput{
 			Name:      resumed.Name,
 			Namespace: resumed.Namespace,
-			Schedule:  resumed.Spec.Schedule,
+			Schedules: resumed.Spec.GetSchedules(),
 			Suspended: resumed.Spec.Suspend,
 			Message:   fmt.Sprintf("CronWorkflow %q resumed successfully", name),
 		}
 
 		// Build human-readable result
 		resultText := fmt.Sprintf("CronWorkflow %q in namespace %q resumed successfully", output.Name, output.Namespace)
-		resultText += fmt.Sprintf("\nSchedule: %s (active)", output.Schedule)
+		resultText += fmt.Sprintf("\nSchedule(s): %s (active)", strings.Join(output.Schedules, ", "))
 
 		return TextResult(resultText), output, nil
 	}

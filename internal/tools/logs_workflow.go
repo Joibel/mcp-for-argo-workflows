@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/argoproj/argo-workflows/v3/pkg/apiclient/workflow"
+	"github.com/argoproj/argo-workflows/v4/pkg/apiclient/workflow"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	corev1 "k8s.io/api/core/v1"
 

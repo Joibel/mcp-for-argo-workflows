@@ -5,13 +5,13 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/argoproj/argo-workflows/v3/pkg/apiclient"
-	"github.com/argoproj/argo-workflows/v3/pkg/apiclient/clusterworkflowtemplate"
-	"github.com/argoproj/argo-workflows/v3/pkg/apiclient/cronworkflow"
-	"github.com/argoproj/argo-workflows/v3/pkg/apiclient/info"
-	"github.com/argoproj/argo-workflows/v3/pkg/apiclient/workflow"
-	"github.com/argoproj/argo-workflows/v3/pkg/apiclient/workflowarchive"
-	"github.com/argoproj/argo-workflows/v3/pkg/apiclient/workflowtemplate"
+	"github.com/argoproj/argo-workflows/v4/pkg/apiclient"
+	"github.com/argoproj/argo-workflows/v4/pkg/apiclient/clusterworkflowtemplate"
+	"github.com/argoproj/argo-workflows/v4/pkg/apiclient/cronworkflow"
+	"github.com/argoproj/argo-workflows/v4/pkg/apiclient/info"
+	"github.com/argoproj/argo-workflows/v4/pkg/apiclient/workflow"
+	"github.com/argoproj/argo-workflows/v4/pkg/apiclient/workflowarchive"
+	"github.com/argoproj/argo-workflows/v4/pkg/apiclient/workflowtemplate"
 	"k8s.io/client-go/tools/clientcmd"
 )
 
@@ -114,10 +114,7 @@ func NewClient(ctx context.Context, config *Config) (*Client, error) {
 		}
 	}
 
-	// Use the provided context as the base for API calls
-	opts.Context = ctx
-
-	clientCtx, apiClient, err := apiclient.NewClientFromOpts(opts)
+	clientCtx, apiClient, err := apiclient.NewClientFromOptsWithContext(ctx, opts)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Argo API client: %w", err)
 	}
@@ -131,7 +128,7 @@ func NewClient(ctx context.Context, config *Config) (*Client, error) {
 
 // WorkflowService returns the workflow service client.
 func (c *Client) WorkflowService() workflow.WorkflowServiceClient {
-	return c.apiClient.NewWorkflowServiceClient()
+	return c.apiClient.NewWorkflowServiceClient(c.ctx)
 }
 
 // Note: The WorkflowServiceClient is returned directly without error since

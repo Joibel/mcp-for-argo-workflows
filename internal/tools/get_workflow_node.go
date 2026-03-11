@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/argoproj/argo-workflows/v3/pkg/apiclient/workflow"
-	wfv1 "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	"github.com/argoproj/argo-workflows/v4/pkg/apiclient/workflow"
+	wfv1 "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/Joibel/mcp-for-argo-workflows/internal/argo"
@@ -29,56 +29,23 @@ type GetWorkflowNodeInput struct {
 //
 //nolint:govet // Field order optimized for readability over memory alignment
 type GetWorkflowNodeOutput struct {
-	// Inputs contains input parameters and artifacts.
-	Inputs *NodeInputsOutput `json:"inputs,omitempty"`
-
-	// Outputs contains output parameters and artifacts.
-	Outputs *NodeOutputsOutput `json:"outputs,omitempty"`
-
-	// Children is the list of child node IDs.
-	Children []string `json:"children,omitempty"`
-
-	// ID is the unique identifier of the node.
-	ID string `json:"id"`
-
-	// Name is the unique name of the node in the workflow tree.
-	Name string `json:"name"`
-
-	// DisplayName is the human-readable name of the node.
-	DisplayName string `json:"displayName,omitempty"`
-
-	// Type indicates the type of node (Pod, Steps, DAG, etc.).
-	Type string `json:"type"`
-
-	// TemplateName is the template this node corresponds to.
-	TemplateName string `json:"templateName,omitempty"`
-
-	// Phase is the current node phase.
-	Phase string `json:"phase"`
-
-	// Message provides additional status information.
-	Message string `json:"message,omitempty"`
-
-	// StartedAt is when the node started.
-	StartedAt string `json:"startedAt,omitempty"`
-
-	// FinishedAt is when the node finished.
-	FinishedAt string `json:"finishedAt,omitempty"`
-
-	// Duration is the node execution duration.
-	Duration string `json:"duration,omitempty"`
-
-	// Progress shows node progress.
-	Progress string `json:"progress,omitempty"`
-
-	// PodIP is the IP address of the pod (for pod nodes).
-	PodIP string `json:"podIp,omitempty"` //nolint:tagliatelle // Match Argo API naming
-
-	// BoundaryID is the ID of the template root node this belongs to.
-	BoundaryID string `json:"boundaryId,omitempty"` //nolint:tagliatelle // Match Argo API naming
-
-	// HostNodeName is the Kubernetes node where the pod ran.
-	HostNodeName string `json:"hostNodeName,omitempty"`
+	Inputs       *NodeInputsOutput  `json:"inputs,omitempty"`
+	Outputs      *NodeOutputsOutput `json:"outputs,omitempty"`
+	Phase        string             `json:"phase"`
+	Message      string             `json:"message,omitempty"`
+	Name         string             `json:"name"`
+	DisplayName  string             `json:"displayName,omitempty"`
+	Type         string             `json:"type"`
+	TemplateName string             `json:"templateName,omitempty"`
+	HostNodeName string             `json:"hostNodeName,omitempty"`
+	ID           string             `json:"id"`
+	StartedAt    string             `json:"startedAt,omitempty"`
+	FinishedAt   string             `json:"finishedAt,omitempty"`
+	Duration     string             `json:"duration,omitempty"`
+	Progress     string             `json:"progress,omitempty"`
+	PodIP        string             `json:"podIp,omitempty"`
+	BoundaryID   string             `json:"boundaryId,omitempty"`
+	Children     []string           `json:"children,omitempty"`
 }
 
 // NodeInputsOutput represents node inputs.
@@ -94,17 +61,10 @@ type NodeInputsOutput struct {
 //
 //nolint:govet // Field order optimized for readability over memory alignment
 type NodeOutputsOutput struct {
-	// Parameters are the output parameters.
+	ExitCode   string          `json:"exitCode,omitempty"`
+	Result     string          `json:"result,omitempty"`
 	Parameters []ParameterInfo `json:"parameters,omitempty"`
-
-	// Artifacts are the output artifacts.
-	Artifacts []ArtifactInfo `json:"artifacts,omitempty"`
-
-	// ExitCode is the container exit code.
-	ExitCode string `json:"exitCode,omitempty"`
-
-	// Result is the script/container result.
-	Result string `json:"result,omitempty"`
+	Artifacts  []ArtifactInfo  `json:"artifacts,omitempty"`
 }
 
 // ArtifactInfo represents an artifact.

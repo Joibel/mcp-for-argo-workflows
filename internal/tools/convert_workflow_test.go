@@ -23,14 +23,14 @@ func TestConvertWorkflowHandler(t *testing.T) {
 
 	//nolint:govet // Field order optimized for readability in tests
 	tests := []struct {
-		name          string
+		checkManifest func(t *testing.T, manifest string)
 		input         ConvertWorkflowInput
-		wantErr       bool
+		name          string
 		errContains   string
+		wantKind      string
 		wantChanges   []string
 		wantWarnings  []string
-		wantKind      string
-		checkManifest func(t *testing.T, manifest string)
+		wantErr       bool
 	}{
 		{
 			name: "successful workflow conversion - no changes needed",
@@ -533,9 +533,9 @@ spec:
 
 	//nolint:govet // Field order optimized for readability in tests
 	tests := []struct {
+		checkContent   func(t *testing.T, manifest string)
 		format         string
 		expectedFormat string
-		checkContent   func(t *testing.T, manifest string)
 	}{
 		{
 			format:         "",

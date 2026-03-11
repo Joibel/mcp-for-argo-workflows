@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/argoproj/argo-workflows/v3/pkg/apiclient/cronworkflow"
-	wfv1 "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	"github.com/argoproj/argo-workflows/v4/pkg/apiclient/cronworkflow"
+	wfv1 "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -109,8 +109,8 @@ func TestListCronWorkflowsHandler(t *testing.T) {
 									CreationTimestamp: metav1.Time{Time: testTime},
 								},
 								Spec: wfv1.CronWorkflowSpec{
-									Schedule: "0 * * * *",
-									Suspend:  false,
+									Schedules: []string{"0 * * * *"},
+									Suspend:   false,
 								},
 								Status: wfv1.CronWorkflowStatus{
 									LastScheduledTime: &lastScheduledTime,
@@ -123,8 +123,8 @@ func TestListCronWorkflowsHandler(t *testing.T) {
 									CreationTimestamp: metav1.Time{Time: testTime.Add(time.Hour)},
 								},
 								Spec: wfv1.CronWorkflowSpec{
-									Schedule: "*/5 * * * *",
-									Suspend:  true,
+									Schedules: []string{"*/5 * * * *"},
+									Suspend:   true,
 								},
 							},
 						},
@@ -171,8 +171,8 @@ func TestListCronWorkflowsHandler(t *testing.T) {
 									CreationTimestamp: metav1.Time{Time: testTime},
 								},
 								Spec: wfv1.CronWorkflowSpec{
-									Schedule: "0 0 * * *",
-									Suspend:  false,
+									Schedules: []string{"0 0 * * *"},
+									Suspend:   false,
 								},
 							},
 						},

@@ -4,8 +4,9 @@ package tools
 import (
 	"context"
 	"fmt"
+	"strings"
 
-	"github.com/argoproj/argo-workflows/v3/pkg/apiclient/cronworkflow"
+	"github.com/argoproj/argo-workflows/v4/pkg/apiclient/cronworkflow"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 
 	"github.com/Joibel/mcp-for-argo-workflows/internal/argo"
@@ -22,20 +23,11 @@ type SuspendCronWorkflowInput struct {
 
 // SuspendCronWorkflowOutput defines the output for the suspend_cron_workflow tool.
 type SuspendCronWorkflowOutput struct {
-	// Name is the suspended CronWorkflow name.
-	Name string `json:"name"`
-
-	// Namespace is the namespace of the CronWorkflow.
-	Namespace string `json:"namespace"`
-
-	// Schedule is the cron schedule expression.
-	Schedule string `json:"schedule"`
-
-	// Message provides confirmation of the suspension.
-	Message string `json:"message"`
-
-	// Suspended indicates whether the CronWorkflow is now suspended.
-	Suspended bool `json:"suspended"`
+	Name      string   `json:"name"`
+	Namespace string   `json:"namespace"`
+	Message   string   `json:"message"`
+	Schedules []string `json:"schedules"`
+	Suspended bool     `json:"suspended"`
 }
 
 // SuspendCronWorkflowTool returns the MCP tool definition for suspend_cron_workflow.
@@ -77,14 +69,14 @@ func SuspendCronWorkflowHandler(client argo.ClientInterface) func(context.Contex
 		output := &SuspendCronWorkflowOutput{
 			Name:      suspended.Name,
 			Namespace: suspended.Namespace,
-			Schedule:  suspended.Spec.Schedule,
+			Schedules: suspended.Spec.GetSchedules(),
 			Suspended: suspended.Spec.Suspend,
 			Message:   fmt.Sprintf("CronWorkflow %q suspended successfully", name),
 		}
 
 		// Build human-readable result
 		resultText := fmt.Sprintf("CronWorkflow %q in namespace %q suspended successfully", output.Name, output.Namespace)
-		resultText += fmt.Sprintf("\nSchedule: %s (paused)", output.Schedule)
+		resultText += fmt.Sprintf("\nSchedule(s): %s (paused)", strings.Join(output.Schedules, ", "))
 
 		return TextResult(resultText), output, nil
 	}

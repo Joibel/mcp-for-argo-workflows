@@ -5,8 +5,8 @@ import (
 	"context"
 	"io"
 
-	"github.com/argoproj/argo-workflows/v3/pkg/apiclient/workflow"
-	wfv1 "github.com/argoproj/argo-workflows/v3/pkg/apis/workflow/v1alpha1"
+	"github.com/argoproj/argo-workflows/v4/pkg/apiclient/workflow"
+	wfv1 "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"google.golang.org/grpc/metadata"
 )
 

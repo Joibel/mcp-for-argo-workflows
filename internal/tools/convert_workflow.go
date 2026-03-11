@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/argoproj/argo-workflows/v3/workflow/convert"
+	"github.com/argoproj/argo-workflows/v4/workflow/convert"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"sigs.k8s.io/yaml"
 )
@@ -223,12 +223,12 @@ func ConvertWorkflowHandler() func(context.Context, *mcp.CallToolRequest, Conver
 
 		// Build human-readable result
 		var resultText strings.Builder
-		resultText.WriteString(fmt.Sprintf("Converted %s %q to %s format\n", kind, name, outputFormat))
+		fmt.Fprintf(&resultText, "Converted %s %q to %s format\n", kind, name, outputFormat)
 
 		if len(changes) > 0 {
 			resultText.WriteString("\nChanges made:\n")
 			for _, change := range changes {
-				resultText.WriteString(fmt.Sprintf("  - %s\n", change))
+				fmt.Fprintf(&resultText, "  - %s\n", change)
 			}
 		} else {
 			resultText.WriteString("\nNo changes needed - manifest is already up to date.\n")
@@ -237,7 +237,7 @@ func ConvertWorkflowHandler() func(context.Context, *mcp.CallToolRequest, Conver
 		if len(warnings) > 0 {
 			resultText.WriteString("\nWarnings (manual review recommended):\n")
 			for _, warning := range warnings {
-				resultText.WriteString(fmt.Sprintf("  - %s\n", warning))
+				fmt.Fprintf(&resultText, "  - %s\n", warning)
 			}
 		}
 

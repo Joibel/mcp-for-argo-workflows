@@ -4,7 +4,7 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/argoproj/argo-workflows/v3/pkg/apiclient/workflowtemplate"
+	"github.com/argoproj/argo-workflows/v4/pkg/apiclient/workflowtemplate"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
