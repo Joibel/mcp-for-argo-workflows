@@ -13,7 +13,7 @@
     "before 9am every weekday"
   ],
   "timezone": "Europe/London",
-  "prConcurrentLimit": 5,
+  "prConcurrentLimit": 20,
   "prHourlyLimit": 2,
   "packageRules": [
     {
