@@ -2,6 +2,9 @@
 
 MCP (Model Context Protocol) server for [Argo Workflows](https://argoproj.github.io/argo-workflows/), enabling AI assistants like Claude to interact with Argo Workflows via standardized tools.
 
+This server is based on Argo v4, and will want your semaphores, mutexes and schedules to be pluralised lists.
+Using it with v3.5 or earlier may mean you need to argue with it about this.
+
 ## What is MCP?
 
 The [Model Context Protocol](https://modelcontextprotocol.io/) is an open standard that allows AI assistants to securely interact with external tools and data sources. This server exposes Argo Workflows operations as MCP tools, enabling AI assistants to:
