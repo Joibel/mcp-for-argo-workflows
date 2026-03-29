@@ -1,9 +1,9 @@
 module github.com/Joibel/mcp-for-argo-workflows
 
-go 1.25.5
+go 1.25.7
 
 require (
-	github.com/argoproj/argo-workflows/v4 v4.0.2
+	github.com/argoproj/argo-workflows/v4 v4.0.3
 	github.com/goccy/go-graphviz v0.2.10
 	github.com/modelcontextprotocol/go-sdk v1.4.1
 	github.com/spf13/pflag v1.0.10
@@ -177,7 +177,7 @@ require (
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 	k8s.io/klog/v2 v2.130.1 // indirect
 	k8s.io/kube-openapi v0.0.0-20250710124328-f3f2b991d03b // indirect
-	k8s.io/utils v0.0.0-20260108192941-914a6e750570 // indirect
+	k8s.io/utils v0.0.0-20260210185600-b8788abfbbc2 // indirect
 	modernc.org/libc v1.65.8 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect
