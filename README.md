@@ -162,6 +162,7 @@ Add to Cursor settings:
 | | `--context` | | Kubernetes context to use (CLI only) |
 | `ARGO_SECURE` | `--argo-secure` | `true` | Use TLS when connecting to Argo Server |
 | `ARGO_INSECURE_SKIP_VERIFY` | `--argo-insecure-skip-verify` | `false` | Skip TLS certificate verification |
+| `ARGO_HTTP1` | `--argo-http1` | `false` | Use HTTP/1.1 (REST) instead of gRPC for Argo Server. Required when the server is behind a reverse proxy (e.g. nginx ingress) that does not support gRPC |
 
 **Precedence:** CLI flags > Environment variables > Default values
 
@@ -202,6 +203,16 @@ kubectl port-forward svc/argo-server -n argo 2746:2746
 mcp-for-argo-workflows \
   --argo-server localhost:2746 \
   --argo-insecure-skip-verify \
+  --namespace argo
+```
+
+#### Argo Server behind Reverse Proxy (e.g. nginx ingress)
+
+```bash
+mcp-for-argo-workflows \
+  --argo-server argo-workflows.example.com:443 \
+  --argo-http1 \
+  --argo-token "Bearer dummy" \
   --namespace argo
 ```
 
@@ -379,6 +390,16 @@ mcp-for-argo-workflows --argo-insecure-skip-verify
 ```
 
 > **Warning:** Don't use `--argo-insecure-skip-verify` in production.
+
+### Reverse Proxy / gRPC Issues
+
+**"unexpected content-type text/html" or gRPC errors behind nginx ingress**
+
+When your Argo Server is behind a reverse proxy that does not support gRPC (e.g. nginx ingress without gRPC backend-protocol), use HTTP/1.1 mode:
+
+```bash
+mcp-for-argo-workflows --argo-http1 --argo-server argo.example.com:443
+```
 
 ### Debug Logging
 
