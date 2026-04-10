@@ -68,6 +68,17 @@ func NewConfigFromEnv() *Config {
 		}
 	}
 
+	// Parse ARGO_HTTP1 if set
+	if http1Str := os.Getenv("ARGO_HTTP1"); http1Str != "" {
+		http1, err := strconv.ParseBool(http1Str)
+		if err != nil {
+			slog.Warn("invalid ARGO_HTTP1 value, using default",
+				"value", strconv.Quote(http1Str), "default", false)
+		} else {
+			config.HTTP1 = http1
+		}
+	}
+
 	// Default namespace if not set
 	if config.Namespace == "" {
 		config.Namespace = "default"
