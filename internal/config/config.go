@@ -37,6 +37,9 @@ type Config struct {
 	// TLS settings (grouped together for alignment)
 	Secure             bool // Use TLS when connecting to Argo Server
 	InsecureSkipVerify bool // Skip TLS certificate verification
+
+	// HTTP1 forces HTTP/1.1 (REST) instead of gRPC for Argo Server
+	HTTP1 bool
 }
 
 // DefaultConfig returns a Config with default values.
@@ -76,6 +79,7 @@ func NewFromFlags() (*Config, error) {
 	pflag.StringVar(&cfg.Namespace, "namespace", cfg.Namespace, "Default namespace for operations")
 	pflag.BoolVar(&cfg.Secure, "argo-secure", cfg.Secure, "Use TLS when connecting to Argo Server")
 	pflag.BoolVar(&cfg.InsecureSkipVerify, "argo-insecure-skip-verify", cfg.InsecureSkipVerify, "Skip TLS certificate verification")
+	pflag.BoolVar(&cfg.HTTP1, "argo-http1", cfg.HTTP1, "Use HTTP/1.1 (REST) instead of gRPC for Argo Server")
 	pflag.StringVar(&cfg.Kubeconfig, "kubeconfig", cfg.Kubeconfig, "Path to kubeconfig file")
 	pflag.StringVar(&cfg.Context, "context", cfg.Context, "Kubernetes context to use")
 
@@ -143,6 +147,7 @@ func applyEnvOverridesWithFlagSet(fs *pflag.FlagSet, cfg *Config) {
 
 	cfg.Secure = getEnvBoolIfNotSet(fs, "argo-secure", "ARGO_SECURE", cfg.Secure)
 	cfg.InsecureSkipVerify = getEnvBoolIfNotSet(fs, "argo-insecure-skip-verify", "ARGO_INSECURE_SKIP_VERIFY", cfg.InsecureSkipVerify)
+	cfg.HTTP1 = getEnvBoolIfNotSet(fs, "argo-http1", "ARGO_HTTP1", cfg.HTTP1)
 
 	// Note: There's no standard env var for Kubernetes context,
 	// so --context is CLI-only
@@ -157,6 +162,7 @@ func (c *Config) ToArgoConfig() *argo.Config {
 		Kubeconfig:         c.Kubeconfig,
 		Secure:             c.Secure,
 		InsecureSkipVerify: c.InsecureSkipVerify,
+		HTTP1:              c.HTTP1,
 	}
 }
 

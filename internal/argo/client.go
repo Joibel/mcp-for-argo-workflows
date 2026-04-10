@@ -85,6 +85,7 @@ func NewClient(ctx context.Context, config *Config) (*Client, error) {
 				URL:                config.ArgoServer,
 				Secure:             config.Secure,
 				InsecureSkipVerify: config.InsecureSkipVerify,
+				HTTP1:              config.HTTP1,
 			},
 		}
 

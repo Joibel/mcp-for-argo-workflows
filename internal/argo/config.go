@@ -29,6 +29,11 @@ type Config struct {
 	// InsecureSkipVerify skips TLS certificate verification.
 	// Only applies when ArgoServer is set and Secure is true.
 	InsecureSkipVerify bool
+
+	// HTTP1 forces the use of HTTP/1.1 (REST API) instead of gRPC when
+	// connecting to Argo Server. This is required when the Argo Server is
+	// behind a reverse proxy (e.g., nginx ingress) that does not support gRPC.
+	HTTP1 bool
 }
 
 // NewConfigFromEnv creates a Config from environment variables.
