@@ -29,6 +29,11 @@ type Config struct {
 	// InsecureSkipVerify skips TLS certificate verification.
 	// Only applies when ArgoServer is set and Secure is true.
 	InsecureSkipVerify bool
+
+	// HTTP1 forces the use of HTTP/1.1 (REST API) instead of gRPC when
+	// connecting to Argo Server. This is required when the Argo Server is
+	// behind a reverse proxy (e.g., nginx ingress) that does not support gRPC.
+	HTTP1 bool
 }
 
 // NewConfigFromEnv creates a Config from environment variables.
@@ -60,6 +65,17 @@ func NewConfigFromEnv() *Config {
 				"value", strconv.Quote(skipVerifyStr), "default", false)
 		} else {
 			config.InsecureSkipVerify = skipVerify
+		}
+	}
+
+	// Parse ARGO_HTTP1 if set
+	if http1Str := os.Getenv("ARGO_HTTP1"); http1Str != "" {
+		http1, err := strconv.ParseBool(http1Str)
+		if err != nil {
+			slog.Warn("invalid ARGO_HTTP1 value, using default",
+				"value", strconv.Quote(http1Str), "default", false)
+		} else {
+			config.HTTP1 = http1
 		}
 	}
 
