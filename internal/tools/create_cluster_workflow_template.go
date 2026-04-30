@@ -12,6 +12,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/yaml"
 
 	"github.com/Joibel/mcp-for-argo-workflows/internal/argo"
@@ -35,6 +36,9 @@ func CreateClusterWorkflowTemplateTool() *mcp.Tool {
 	return &mcp.Tool{
 		Name:        "create_cluster_workflow_template",
 		Description: "Create or update a ClusterWorkflowTemplate from a YAML manifest. If the template already exists, it will be updated.",
+		Annotations: &mcp.ToolAnnotations{
+			DestructiveHint: ptr.To(true),
+		},
 	}
 }
 

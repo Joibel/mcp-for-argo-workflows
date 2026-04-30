@@ -8,6 +8,7 @@ import (
 
 	"github.com/argoproj/argo-workflows/v4/pkg/apiclient/workflow"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"k8s.io/utils/ptr"
 
 	"github.com/Joibel/mcp-for-argo-workflows/internal/argo"
 )
@@ -53,6 +54,9 @@ func ResubmitWorkflowTool() *mcp.Tool {
 	return &mcp.Tool{
 		Name:        "resubmit_workflow",
 		Description: "Resubmit a completed Argo Workflow, creating a new workflow execution",
+		Annotations: &mcp.ToolAnnotations{
+			DestructiveHint: ptr.To(false),
+		},
 	}
 }
 

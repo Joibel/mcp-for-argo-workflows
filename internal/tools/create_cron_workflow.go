@@ -12,6 +12,7 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/yaml"
 
 	"github.com/Joibel/mcp-for-argo-workflows/internal/argo"
@@ -46,6 +47,9 @@ func CreateCronWorkflowTool() *mcp.Tool {
 	return &mcp.Tool{
 		Name:        "create_cron_workflow",
 		Description: "Create or update a CronWorkflow from a YAML manifest. If the cron workflow already exists, it will be updated.",
+		Annotations: &mcp.ToolAnnotations{
+			DestructiveHint: ptr.To(true),
+		},
 	}
 }
 

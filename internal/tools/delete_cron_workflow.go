@@ -7,6 +7,7 @@ import (
 
 	"github.com/argoproj/argo-workflows/v4/pkg/apiclient/cronworkflow"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"k8s.io/utils/ptr"
 
 	"github.com/Joibel/mcp-for-argo-workflows/internal/argo"
 )
@@ -37,6 +38,9 @@ func DeleteCronWorkflowTool() *mcp.Tool {
 	return &mcp.Tool{
 		Name:        "delete_cron_workflow",
 		Description: "Delete a CronWorkflow",
+		Annotations: &mcp.ToolAnnotations{
+			DestructiveHint: ptr.To(true),
+		},
 	}
 }
 

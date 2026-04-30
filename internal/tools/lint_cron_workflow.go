@@ -36,6 +36,9 @@ func LintCronWorkflowTool() *mcp.Tool {
 	return &mcp.Tool{
 		Name:        "lint_cron_workflow",
 		Description: "Validate a CronWorkflow YAML manifest before creation. Always run this before create_cron_workflow.",
+		Annotations: &mcp.ToolAnnotations{
+			ReadOnlyHint: true,
+		},
 	}
 }
 

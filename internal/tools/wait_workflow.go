@@ -65,6 +65,9 @@ func WaitWorkflowTool() *mcp.Tool {
 	return &mcp.Tool{
 		Name:        "wait_workflow",
 		Description: "Wait for an Argo Workflow to complete and return its final status",
+		Annotations: &mcp.ToolAnnotations{
+			ReadOnlyHint: true,
+		},
 	}
 }
 

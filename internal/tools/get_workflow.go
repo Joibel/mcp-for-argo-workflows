@@ -90,6 +90,9 @@ func GetWorkflowTool() *mcp.Tool {
 	return &mcp.Tool{
 		Name:        "get_workflow",
 		Description: "Get detailed information about an Argo Workflow. When connected via Argo Server, this can also retrieve archived workflows.",
+		Annotations: &mcp.ToolAnnotations{
+			ReadOnlyHint: true,
+		},
 	}
 }
 

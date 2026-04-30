@@ -7,6 +7,7 @@ import (
 
 	"github.com/argoproj/argo-workflows/v4/pkg/apiclient/workflow"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"k8s.io/utils/ptr"
 
 	"github.com/Joibel/mcp-for-argo-workflows/internal/argo"
 )
@@ -40,6 +41,9 @@ func TerminateWorkflowTool() *mcp.Tool {
 	return &mcp.Tool{
 		Name:        "terminate_workflow",
 		Description: "Immediately terminate an Argo Workflow, skipping exit handlers. Use stop_workflow for graceful termination that runs exit handlers.",
+		Annotations: &mcp.ToolAnnotations{
+			DestructiveHint: ptr.To(true),
+		},
 	}
 }
 

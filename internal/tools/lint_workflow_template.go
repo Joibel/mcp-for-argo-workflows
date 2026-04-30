@@ -36,6 +36,9 @@ func LintWorkflowTemplateTool() *mcp.Tool {
 	return &mcp.Tool{
 		Name:        "lint_workflow_template",
 		Description: "Validate a WorkflowTemplate YAML manifest before creation. Always run this before create_workflow_template.",
+		Annotations: &mcp.ToolAnnotations{
+			ReadOnlyHint: true,
+		},
 	}
 }
 

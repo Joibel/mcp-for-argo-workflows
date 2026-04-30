@@ -35,6 +35,9 @@ func GetClusterWorkflowTemplateTool() *mcp.Tool {
 	return &mcp.Tool{
 		Name:        "get_cluster_workflow_template",
 		Description: "Get details of a specific ClusterWorkflowTemplate",
+		Annotations: &mcp.ToolAnnotations{
+			ReadOnlyHint: true,
+		},
 	}
 }
 

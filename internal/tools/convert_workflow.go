@@ -55,6 +55,9 @@ func ConvertWorkflowTool() *mcp.Tool {
 	return &mcp.Tool{
 		Name:        "convert_workflow",
 		Description: "Convert an Argo Workflow manifest to a newer format, migrating deprecated fields. Supports Workflow, WorkflowTemplate, ClusterWorkflowTemplate, and CronWorkflow manifests.",
+		Annotations: &mcp.ToolAnnotations{
+			ReadOnlyHint: true,
+		},
 	}
 }
 
