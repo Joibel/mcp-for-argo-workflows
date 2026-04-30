@@ -49,6 +49,9 @@ func RenderManifestGraphTool() *mcp.Tool {
 	return &mcp.Tool{
 		Name:        "render_manifest_graph",
 		Description: "Render an Argo Workflow manifest (YAML) as a graph showing the DAG structure and dependencies, without submitting it. Supports Workflow, WorkflowTemplate, ClusterWorkflowTemplate, and CronWorkflow manifests. Supports Mermaid, ASCII, DOT, and SVG formats.",
+		Annotations: &mcp.ToolAnnotations{
+			ReadOnlyHint: true,
+		},
 	}
 }
 

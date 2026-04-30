@@ -7,6 +7,7 @@ import (
 
 	"github.com/argoproj/argo-workflows/v4/pkg/apiclient/workflow"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"k8s.io/utils/ptr"
 
 	"github.com/Joibel/mcp-for-argo-workflows/internal/argo"
 )
@@ -40,6 +41,9 @@ func SuspendWorkflowTool() *mcp.Tool {
 	return &mcp.Tool{
 		Name:        "suspend_workflow",
 		Description: "Suspend a running Argo Workflow, pausing its execution",
+		Annotations: &mcp.ToolAnnotations{
+			DestructiveHint: ptr.To(false),
+		},
 	}
 }
 

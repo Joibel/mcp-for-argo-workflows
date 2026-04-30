@@ -81,6 +81,9 @@ func GetWorkflowNodeTool() *mcp.Tool {
 	return &mcp.Tool{
 		Name:        "get_workflow_node",
 		Description: "Get details of a specific node within an Argo Workflow",
+		Annotations: &mcp.ToolAnnotations{
+			ReadOnlyHint: true,
+		},
 	}
 }
 

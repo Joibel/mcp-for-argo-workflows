@@ -83,6 +83,9 @@ func WatchWorkflowTool() *mcp.Tool {
 	return &mcp.Tool{
 		Name:        "watch_workflow",
 		Description: "Watch an Argo Workflow and stream status updates until completion",
+		Annotations: &mcp.ToolAnnotations{
+			ReadOnlyHint: true,
+		},
 	}
 }
 

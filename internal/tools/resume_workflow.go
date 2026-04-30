@@ -7,6 +7,7 @@ import (
 
 	"github.com/argoproj/argo-workflows/v4/pkg/apiclient/workflow"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"k8s.io/utils/ptr"
 
 	"github.com/Joibel/mcp-for-argo-workflows/internal/argo"
 )
@@ -43,6 +44,9 @@ func ResumeWorkflowTool() *mcp.Tool {
 	return &mcp.Tool{
 		Name:        "resume_workflow",
 		Description: "Resume a suspended Argo Workflow",
+		Annotations: &mcp.ToolAnnotations{
+			DestructiveHint: ptr.To(false),
+		},
 	}
 }
 

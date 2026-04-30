@@ -57,6 +57,9 @@ func RenderWorkflowGraphTool() *mcp.Tool {
 	return &mcp.Tool{
 		Name:        "render_workflow_graph",
 		Description: "Render an Argo Workflow as a graph showing the DAG structure, step dependencies, and node statuses. Supports Mermaid, ASCII, DOT, and SVG formats.",
+		Annotations: &mcp.ToolAnnotations{
+			ReadOnlyHint: true,
+		},
 	}
 }
 

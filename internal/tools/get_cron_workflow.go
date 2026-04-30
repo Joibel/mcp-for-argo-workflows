@@ -60,6 +60,9 @@ func GetCronWorkflowTool() *mcp.Tool {
 	return &mcp.Tool{
 		Name:        "get_cron_workflow",
 		Description: "Get details of a CronWorkflow",
+		Annotations: &mcp.ToolAnnotations{
+			ReadOnlyHint: true,
+		},
 	}
 }
 

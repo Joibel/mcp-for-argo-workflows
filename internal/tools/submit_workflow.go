@@ -9,6 +9,7 @@ import (
 	"github.com/argoproj/argo-workflows/v4/pkg/apiclient/workflow"
 	wfv1 "github.com/argoproj/argo-workflows/v4/pkg/apis/workflow/v1alpha1"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"k8s.io/utils/ptr"
 	"sigs.k8s.io/yaml"
 
 	"github.com/Joibel/mcp-for-argo-workflows/internal/argo"
@@ -58,6 +59,9 @@ func SubmitWorkflowTool() *mcp.Tool {
 	return &mcp.Tool{
 		Name:        "submit_workflow",
 		Description: "Submit an Argo Workflow from a YAML manifest. Run lint_workflow first to validate the manifest.",
+		Annotations: &mcp.ToolAnnotations{
+			DestructiveHint: ptr.To(false),
+		},
 	}
 }
 

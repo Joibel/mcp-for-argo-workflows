@@ -42,6 +42,9 @@ func ListClusterWorkflowTemplatesTool() *mcp.Tool {
 	return &mcp.Tool{
 		Name:        "list_cluster_workflow_templates",
 		Description: "List ClusterWorkflowTemplates (cluster-scoped templates available to all namespaces)",
+		Annotations: &mcp.ToolAnnotations{
+			ReadOnlyHint: true,
+		},
 	}
 }
 

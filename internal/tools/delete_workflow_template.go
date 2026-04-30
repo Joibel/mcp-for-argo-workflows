@@ -7,6 +7,7 @@ import (
 
 	"github.com/argoproj/argo-workflows/v4/pkg/apiclient/workflowtemplate"
 	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"k8s.io/utils/ptr"
 
 	"github.com/Joibel/mcp-for-argo-workflows/internal/argo"
 )
@@ -37,6 +38,9 @@ func DeleteWorkflowTemplateTool() *mcp.Tool {
 	return &mcp.Tool{
 		Name:        "delete_workflow_template",
 		Description: "Delete a WorkflowTemplate",
+		Annotations: &mcp.ToolAnnotations{
+			DestructiveHint: ptr.To(true),
+		},
 	}
 }
 

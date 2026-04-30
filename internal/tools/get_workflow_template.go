@@ -73,6 +73,9 @@ func GetWorkflowTemplateTool() *mcp.Tool {
 	return &mcp.Tool{
 		Name:        "get_workflow_template",
 		Description: "Get details of a specific WorkflowTemplate",
+		Annotations: &mcp.ToolAnnotations{
+			ReadOnlyHint: true,
+		},
 	}
 }
 

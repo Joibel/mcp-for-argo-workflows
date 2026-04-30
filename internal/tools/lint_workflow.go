@@ -37,6 +37,9 @@ func LintWorkflowTool() *mcp.Tool {
 	return &mcp.Tool{
 		Name:        "lint_workflow",
 		Description: "Validate an Argo Workflow YAML manifest before submission. Always run this before submit_workflow.",
+		Annotations: &mcp.ToolAnnotations{
+			ReadOnlyHint: true,
+		},
 	}
 }
 

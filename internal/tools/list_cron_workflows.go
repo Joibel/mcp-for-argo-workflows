@@ -46,6 +46,9 @@ func ListCronWorkflowsTool() *mcp.Tool {
 	return &mcp.Tool{
 		Name:        "list_cron_workflows",
 		Description: "List CronWorkflows (scheduled workflows) in a namespace",
+		Annotations: &mcp.ToolAnnotations{
+			ReadOnlyHint: true,
+		},
 	}
 }
 

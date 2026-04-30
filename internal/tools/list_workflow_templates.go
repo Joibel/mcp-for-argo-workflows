@@ -48,6 +48,9 @@ func ListWorkflowTemplatesTool() *mcp.Tool {
 	return &mcp.Tool{
 		Name:        "list_workflow_templates",
 		Description: "List WorkflowTemplates in a namespace",
+		Annotations: &mcp.ToolAnnotations{
+			ReadOnlyHint: true,
+		},
 	}
 }
 

@@ -66,6 +66,9 @@ func LogsWorkflowTool() *mcp.Tool {
 	return &mcp.Tool{
 		Name:        "logs_workflow",
 		Description: "Retrieve logs from an Argo Workflow's pods",
+		Annotations: &mcp.ToolAnnotations{
+			ReadOnlyHint: true,
+		},
 	}
 }
 
