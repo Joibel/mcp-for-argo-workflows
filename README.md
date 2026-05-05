@@ -158,8 +158,8 @@ Add to Cursor settings:
 | `ARGO_SERVER` | `--argo-server` | | Argo Server host:port (omit for direct K8s API) |
 | `ARGO_TOKEN` | `--argo-token` | | Bearer token for Argo Server authentication |
 | `ARGO_NAMESPACE` | `--namespace` | `default` | Default namespace for operations |
-| `KUBECONFIG` | `--kubeconfig` | | Path to kubeconfig file |
-| | `--context` | | Kubernetes context to use (CLI only) |
+| `KUBECONFIG` | `--kubeconfig` | | Path to kubeconfig file. Multiple files may be joined with the OS path-list separator (`:` on Unix, `;` on Windows), matching the kubectl convention |
+| | `--context` | | Kubeconfig context to use. Defaults to the kubeconfig's `current-context` (CLI only) |
 | `ARGO_SECURE` | `--argo-secure` | `true` | Use TLS when connecting to Argo Server |
 | `ARGO_INSECURE_SKIP_VERIFY` | `--argo-insecure-skip-verify` | `false` | Skip TLS certificate verification |
 | `ARGO_HTTP1` | `--argo-http1` | `false` | Use HTTP/1.1 (REST) instead of gRPC for Argo Server. Required when the server is behind a reverse proxy (e.g. nginx ingress) that does not support gRPC |
@@ -173,7 +173,17 @@ Add to Cursor settings:
 ```bash
 # Uses your current kubeconfig context
 mcp-for-argo-workflows --namespace argo
+
+# Pin to a specific context (e.g. when KUBECONFIG merges several clusters)
+mcp-for-argo-workflows --context eks-internal --namespace argo
+
+# Multiple kubeconfig files, kubectl-style (':' on Unix)
+KUBECONFIG=~/.kube/configs/eks.yaml:~/.kube/configs/k3d.yaml \
+  mcp-for-argo-workflows --context k3d-pipeline-mono --namespace argo
 ```
+
+The active context and cluster are logged at startup so you can confirm which
+cluster the server is bound to before running any tools.
 
 #### Argo Server with Token Auth
 

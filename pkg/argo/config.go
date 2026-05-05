@@ -18,9 +18,16 @@ type Config struct {
 	// Namespace is the default namespace for operations.
 	Namespace string
 
-	// Kubeconfig is the path to the kubeconfig file.
+	// Kubeconfig is the path to the kubeconfig file, or a list of paths
+	// joined by os.PathListSeparator (':' on Unix, ';' on Windows), matching
+	// the kubectl convention for the KUBECONFIG environment variable.
 	// Used for direct Kubernetes API access when ArgoServer is empty.
 	Kubeconfig string
+
+	// Context is the name of the kubeconfig context to use. When empty,
+	// the kubeconfig's current-context is used. Only applies in direct
+	// Kubernetes API mode.
+	Context string
 
 	// Secure indicates whether to use TLS when connecting to Argo Server.
 	// Only applies when ArgoServer is set.

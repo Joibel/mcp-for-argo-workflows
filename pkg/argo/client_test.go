@@ -2,6 +2,7 @@ package argo
 
 import (
 	"context"
+	"path/filepath"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -123,4 +124,49 @@ func TestClient_ArchivedWorkflowService_NotArgoServerMode(t *testing.T) {
 func TestErrArchivedWorkflowsNotSupported(t *testing.T) {
 	// Test that the error message is as expected
 	assert.Contains(t, ErrArchivedWorkflowsNotSupported.Error(), "archived workflows are only supported")
+}
+
+func TestBuildLoadingRules(t *testing.T) {
+	sep := string(filepath.ListSeparator)
+
+	tests := []struct {
+		name           string
+		kubeconfig     string
+		wantPrecedence []string
+		wantDefault    bool // true = expect default discovery rules (Precedence may be populated by clientcmd)
+	}{
+		{
+			name:        "empty falls back to default discovery",
+			kubeconfig:  "",
+			wantDefault: true,
+		},
+		{
+			name:           "single path",
+			kubeconfig:     "/home/user/.kube/config",
+			wantPrecedence: []string{"/home/user/.kube/config"},
+		},
+		{
+			name:           "multiple paths joined by OS list separator",
+			kubeconfig:     "/a/eks.yaml" + sep + "/b/k3d.yaml" + sep + "/c/home.yaml",
+			wantPrecedence: []string{"/a/eks.yaml", "/b/k3d.yaml", "/c/home.yaml"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			rules := buildLoadingRules(tt.kubeconfig)
+			require.NotNil(t, rules)
+
+			if tt.wantDefault {
+				// Default rules expose ExplicitPath="" and a non-empty Precedence
+				// populated by clientcmd from $HOME/.kube/config and $KUBECONFIG.
+				// We don't assert specific paths since they depend on the test env.
+				assert.Empty(t, rules.ExplicitPath, "default rules should not set ExplicitPath")
+				return
+			}
+
+			assert.Empty(t, rules.ExplicitPath, "should use Precedence, not ExplicitPath")
+			assert.Equal(t, tt.wantPrecedence, rules.Precedence)
+		})
+	}
 }
