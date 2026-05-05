@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log/slog"
+	"path/filepath"
 
 	"github.com/argoproj/argo-workflows/v4/pkg/apiclient"
 	"github.com/argoproj/argo-workflows/v4/pkg/apiclient/clusterworkflowtemplate"
@@ -99,19 +101,13 @@ func NewClient(ctx context.Context, config *Config) (*Client, error) {
 		// Direct Kubernetes API mode
 		opts = apiclient.Opts{}
 
-		// Always provide a ClientConfigSupplier for direct K8s mode.
-		// Use explicit path if provided, otherwise use default kubeconfig discovery.
+		loadingRules := buildLoadingRules(config.Kubeconfig)
+		overrides := &clientcmd.ConfigOverrides{CurrentContext: config.Context}
+
+		logResolvedContext(loadingRules, overrides)
+
 		opts.ClientConfigSupplier = func() clientcmd.ClientConfig {
-			var loadingRules *clientcmd.ClientConfigLoadingRules
-			if config.Kubeconfig != "" {
-				loadingRules = &clientcmd.ClientConfigLoadingRules{ExplicitPath: config.Kubeconfig}
-			} else {
-				loadingRules = clientcmd.NewDefaultClientConfigLoadingRules()
-			}
-			return clientcmd.NewNonInteractiveDeferredLoadingClientConfig(
-				loadingRules,
-				&clientcmd.ConfigOverrides{},
-			)
+			return clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, overrides)
 		}
 	}
 
@@ -200,4 +196,40 @@ func (c *Client) DefaultNamespace() string {
 // Context returns the context associated with this client.
 func (c *Client) Context() context.Context {
 	return c.ctx
+}
+
+// buildLoadingRules constructs kubeconfig loading rules from a path string.
+// The path may contain multiple files joined by os.PathListSeparator (matching
+// the kubectl KUBECONFIG convention). When empty, default discovery is used.
+func buildLoadingRules(kubeconfig string) *clientcmd.ClientConfigLoadingRules {
+	if kubeconfig == "" {
+		return clientcmd.NewDefaultClientConfigLoadingRules()
+	}
+	return &clientcmd.ClientConfigLoadingRules{Precedence: filepath.SplitList(kubeconfig)}
+}
+
+// logResolvedContext resolves and logs the kubeconfig context the client will
+// use, so operators can confirm which cluster the server is bound to.
+func logResolvedContext(loadingRules *clientcmd.ClientConfigLoadingRules, overrides *clientcmd.ConfigOverrides) {
+	rawConfig, err := clientcmd.NewNonInteractiveDeferredLoadingClientConfig(loadingRules, overrides).RawConfig()
+	if err != nil {
+		slog.Warn("could not resolve kubeconfig context for logging", "error", err)
+		return
+	}
+
+	contextName := overrides.CurrentContext
+	if contextName == "" {
+		contextName = rawConfig.CurrentContext
+	}
+
+	cluster := ""
+	if kctx, ok := rawConfig.Contexts[contextName]; ok {
+		cluster = kctx.Cluster
+	}
+
+	slog.Info("using kubeconfig context",
+		"context", contextName,
+		"cluster", cluster,
+		"sources", loadingRules.Precedence,
+	)
 }

@@ -160,6 +160,7 @@ func (c *Config) ToArgoConfig() *argo.Config {
 		ArgoToken:          c.ArgoToken,
 		Namespace:          c.Namespace,
 		Kubeconfig:         c.Kubeconfig,
+		Context:            c.Context,
 		Secure:             c.Secure,
 		InsecureSkipVerify: c.InsecureSkipVerify,
 		HTTP1:              c.HTTP1,
