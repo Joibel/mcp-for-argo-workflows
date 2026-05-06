@@ -190,26 +190,26 @@ func GetWorkflowTemplateHandler(client argo.ClientInterface) func(context.Contex
 func determineTemplateType(tmpl *wfv1.Template) string {
 	switch {
 	case tmpl.Container != nil:
-		return "container"
+		return templateTypeContainer
 	case tmpl.Script != nil:
-		return "script"
+		return templateTypeScript
 	case tmpl.DAG != nil:
-		return "dag"
+		return templateTypeDAG
 	case tmpl.Steps != nil:
-		return "steps"
+		return templateTypeSteps
 	case tmpl.Resource != nil:
-		return "resource"
+		return templateTypeResource
 	case tmpl.Suspend != nil:
-		return "suspend"
+		return templateTypeSuspend
 	case tmpl.HTTP != nil:
-		return "http"
+		return templateTypeHTTP
 	case tmpl.Plugin != nil:
-		return "plugin"
+		return templateTypePlugin
 	case tmpl.ContainerSet != nil:
 		return "containerSet"
 	case tmpl.Data != nil:
 		return "data"
 	default:
-		return "unknown"
+		return templateTypeUnknown
 	}
 }

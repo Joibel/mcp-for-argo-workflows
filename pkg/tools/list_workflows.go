@@ -17,11 +17,11 @@ import (
 //
 //nolint:gochecknoglobals // Constant lookup map for valid workflow phases
 var ValidWorkflowPhases = map[string]bool{
-	"Pending":   true,
-	"Running":   true,
-	"Succeeded": true,
-	"Failed":    true,
-	"Error":     true,
+	PhasePending:   true,
+	PhaseRunning:   true,
+	PhaseSucceeded: true,
+	PhaseFailed:    true,
+	"Error":        true,
 }
 
 // ListWorkflowsInput defines the input parameters for the list_workflows tool.

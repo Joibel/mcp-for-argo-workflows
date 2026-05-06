@@ -125,6 +125,14 @@ type failedNodeInfo struct {
 	ErrorPattern *errorPattern
 }
 
+const (
+	// ioTypeParameter identifies a parameter input or output.
+	ioTypeParameter = "parameter"
+
+	// errorPatternImagePullBackOff is the kubelet error indicating an image pull failure.
+	errorPatternImagePullBackOff = "ImagePullBackOff"
+)
+
 // inputInfo represents a node input.
 type inputInfo struct {
 	Name   string
@@ -260,7 +268,7 @@ func findFailedNodes(wf *wfv1.Workflow) []failedNodeInfo {
 			for _, p := range node.Inputs.Parameters {
 				input := inputInfo{
 					Name: p.Name,
-					Type: "parameter",
+					Type: ioTypeParameter,
 				}
 				if p.Value != nil {
 					input.Value = string(*p.Value)
@@ -286,7 +294,7 @@ func findFailedNodes(wf *wfv1.Workflow) []failedNodeInfo {
 			for _, p := range node.Outputs.Parameters {
 				output := outputInfo{
 					Name: p.Name,
-					Type: "parameter",
+					Type: ioTypeParameter,
 				}
 				if p.Value != nil {
 					output.Value = string(*p.Value)
@@ -531,7 +539,7 @@ func detectErrorPattern(node *failedNodeInfo) *errorPattern {
 
 	if strings.Contains(message, "imagepullbackoff") || strings.Contains(message, "errimagepull") {
 		return &errorPattern{
-			Pattern:    "ImagePullBackOff",
+			Pattern:    errorPatternImagePullBackOff,
 			Suggestion: "Failed to pull container image. Check: 1) Image name and tag are correct, 2) Image exists in the registry, 3) imagePullSecrets are configured if using private registry.",
 		}
 	}
@@ -683,7 +691,7 @@ func writeNodeInfo(sb *strings.Builder, node *failedNodeInfo, includeFullDetails
 	if len(node.Inputs) > 0 {
 		sb.WriteString("\nInputs:\n")
 		for _, input := range node.Inputs {
-			if input.Type == "parameter" {
+			if input.Type == ioTypeParameter {
 				value := truncateString(input.Value, 100)
 				if input.Source != "" {
 					fmt.Fprintf(sb, "  - %s [param]: %s (source: %s)\n", input.Name, value, input.Source)
@@ -704,7 +712,7 @@ func writeNodeInfo(sb *strings.Builder, node *failedNodeInfo, includeFullDetails
 	if len(node.Outputs) > 0 && !includeFullDetails {
 		sb.WriteString("\nOutputs:\n")
 		for _, output := range node.Outputs {
-			if output.Type == "parameter" {
+			if output.Type == ioTypeParameter {
 				fmt.Fprintf(sb, "  - %s [param]: %s\n", output.Name, truncateString(output.Value, 100))
 			} else {
 				fmt.Fprintf(sb, "  - %s [artifact]\n", output.Name)

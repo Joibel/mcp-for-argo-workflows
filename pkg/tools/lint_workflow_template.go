@@ -63,7 +63,7 @@ func LintWorkflowTemplateHandler(client argo.ClientInterface) func(context.Conte
 		}
 
 		// Validate that the manifest is a WorkflowTemplate
-		if wft.Kind != "" && wft.Kind != "WorkflowTemplate" {
+		if wft.Kind != "" && wft.Kind != KindWorkflowTemplate {
 			return nil, nil, fmt.Errorf("manifest must be a WorkflowTemplate, got %q", wft.Kind)
 		}
 

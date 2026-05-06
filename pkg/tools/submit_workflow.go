@@ -15,8 +15,19 @@ import (
 	"github.com/pipekit/mcp-for-argo-workflows/pkg/argo"
 )
 
-// PhasePending is the default phase for newly created workflows.
-const PhasePending = "Pending"
+// Workflow phase constants matching wfv1.WorkflowPhase string values.
+const (
+	// PhasePending is the default phase for newly created workflows.
+	PhasePending = "Pending"
+	// PhaseRunning indicates a workflow that is currently executing.
+	PhaseRunning = "Running"
+	// PhaseSucceeded indicates a workflow that completed successfully.
+	PhaseSucceeded = "Succeeded"
+	// PhaseFailed indicates a workflow that completed with failure.
+	PhaseFailed = "Failed"
+	// PhaseUnknown indicates a workflow whose phase could not be determined.
+	PhaseUnknown = "Unknown"
+)
 
 // SubmitWorkflowInput defines the input parameters for the submit_workflow tool.
 type SubmitWorkflowInput struct {
@@ -86,7 +97,7 @@ func SubmitWorkflowHandler(client argo.ClientInterface) func(context.Context, *m
 		}
 
 		// Validate that the manifest is a Workflow
-		if wf.Kind != "" && wf.Kind != "Workflow" {
+		if wf.Kind != "" && wf.Kind != KindWorkflow {
 			return nil, nil, fmt.Errorf("manifest must be a Workflow, got %q", wf.Kind)
 		}
 

@@ -322,13 +322,13 @@ func detectCronWorkflowSpecChanges(spec *convert.LegacyCronWorkflowSpec) ([]stri
 // serializeManifest serializes the manifest to the specified format.
 func serializeManifest(obj interface{}, format string) (string, error) {
 	switch format {
-	case "json":
+	case OutputFormatJSON:
 		data, err := json.MarshalIndent(obj, "", "  ")
 		if err != nil {
 			return "", fmt.Errorf("failed to serialize manifest to JSON: %w", err)
 		}
 		return string(data), nil
-	case "yaml":
+	case OutputFormatYAML:
 		data, err := yaml.Marshal(obj)
 		if err != nil {
 			return "", fmt.Errorf("failed to serialize manifest to YAML: %w", err)

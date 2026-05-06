@@ -18,6 +18,14 @@ import (
 	"github.com/pipekit/mcp-for-argo-workflows/pkg/argo"
 )
 
+const (
+	mimeTypeJSON = "application/json"
+
+	jsonKeyName      = "name"
+	jsonKeyNamespace = "namespace"
+	jsonKeyCount     = "count"
+)
+
 // ClusterResourceDefinition defines a dynamic MCP resource that queries the cluster.
 type ClusterResourceDefinition struct {
 	URI         string
@@ -78,7 +86,7 @@ func buildArgumentsMap(params []wfv1.Parameter) map[string]interface{} {
 	paramsList := make([]map[string]interface{}, 0, len(params))
 	for _, p := range params {
 		param := map[string]interface{}{
-			"name": p.Name,
+			jsonKeyName: p.Name,
 		}
 		if p.Value != nil {
 			param["default"] = string(*p.Value)
@@ -103,21 +111,21 @@ func AllClusterResources() []ClusterResourceDefinition {
 			Name:        "cluster-workflow-templates-list",
 			Title:       "Workflow Templates List",
 			Description: "List all WorkflowTemplates available in the cluster",
-			MIMEType:    "application/json",
+			MIMEType:    mimeTypeJSON,
 		},
 		{
 			URI:         "argo://cluster/cluster-workflow-templates",
 			Name:        "cluster-cluster-workflow-templates-list",
 			Title:       "Cluster Workflow Templates List",
 			Description: "List all ClusterWorkflowTemplates available in the cluster",
-			MIMEType:    "application/json",
+			MIMEType:    mimeTypeJSON,
 		},
 		{
 			URI:         "argo://cluster/cron-workflows",
 			Name:        "cluster-cron-workflows-list",
 			Title:       "Cron Workflows List",
 			Description: "List all CronWorkflows in the cluster with schedule and status",
-			MIMEType:    "application/json",
+			MIMEType:    mimeTypeJSON,
 		},
 	}
 }
@@ -130,14 +138,14 @@ func AllClusterResourceTemplates() []ClusterResourceTemplateDefinition {
 			Name:        "cluster-workflow-template-detail",
 			Title:       "Workflow Template Details",
 			Description: "Get full details of a specific WorkflowTemplate",
-			MIMEType:    "application/json",
+			MIMEType:    mimeTypeJSON,
 		},
 		{
 			URITemplate: "argo://cluster/cluster-workflow-templates/{name}",
 			Name:        "cluster-cluster-workflow-template-detail",
 			Title:       "Cluster Workflow Template Details",
 			Description: "Get full details of a specific ClusterWorkflowTemplate",
-			MIMEType:    "application/json",
+			MIMEType:    mimeTypeJSON,
 		},
 	}
 }
@@ -206,7 +214,7 @@ func clusterResourceHandler(_ string, client argo.ClientInterface) mcp.ResourceH
 			Contents: []*mcp.ResourceContents{
 				{
 					URI:      requestURI,
-					MIMEType: "application/json",
+					MIMEType: mimeTypeJSON,
 					Text:     content,
 				},
 			},
@@ -254,7 +262,7 @@ func clusterResourceTemplateHandler(uriTemplate string, client argo.ClientInterf
 			Contents: []*mcp.ResourceContents{
 				{
 					URI:      requestURI,
-					MIMEType: "application/json",
+					MIMEType: mimeTypeJSON,
 					Text:     content,
 				},
 			},
@@ -311,9 +319,9 @@ func listWorkflowTemplatesContent(ctx context.Context, client argo.ClientInterfa
 	}
 
 	result := map[string]interface{}{
-		"namespace": namespace,
-		"count":     len(summaries),
-		"templates": summaries,
+		jsonKeyNamespace: namespace,
+		jsonKeyCount:     len(summaries),
+		"templates":      summaries,
 	}
 
 	data, err := json.MarshalIndent(result, "", "  ")
@@ -365,8 +373,8 @@ func listClusterWorkflowTemplatesContent(ctx context.Context, client argo.Client
 	}
 
 	result := map[string]interface{}{
-		"count":     len(summaries),
-		"templates": summaries,
+		jsonKeyCount: len(summaries),
+		"templates":  summaries,
 	}
 
 	data, err := json.MarshalIndent(result, "", "  ")
@@ -424,9 +432,9 @@ func listCronWorkflowsContent(ctx context.Context, client argo.ClientInterface, 
 	}
 
 	result := map[string]interface{}{
-		"namespace":     namespace,
-		"count":         len(summaries),
-		"cronWorkflows": summaries,
+		jsonKeyNamespace: namespace,
+		jsonKeyCount:     len(summaries),
+		"cronWorkflows":  summaries,
 	}
 
 	data, err := json.MarshalIndent(result, "", "  ")
@@ -454,8 +462,8 @@ func getWorkflowTemplateContent(ctx context.Context, client argo.ClientInterface
 
 	// Build a structured response with key information
 	result := map[string]interface{}{
-		"name":      wft.Name,
-		"namespace": wft.Namespace,
+		jsonKeyName:      wft.Name,
+		jsonKeyNamespace: wft.Namespace,
 	}
 
 	// Add metadata
@@ -514,7 +522,7 @@ func getClusterWorkflowTemplateContent(ctx context.Context, client argo.ClientIn
 
 	// Build a structured response with key information
 	result := map[string]interface{}{
-		"name": cwft.Name,
+		jsonKeyName: cwft.Name,
 	}
 
 	// Add metadata

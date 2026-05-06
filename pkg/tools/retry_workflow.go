@@ -95,7 +95,7 @@ func RetryWorkflowHandler(client argo.ClientInterface) func(context.Context, *mc
 
 		// Set a default phase if empty
 		if output.Phase == "" {
-			output.Phase = "Running"
+			output.Phase = PhaseRunning
 		}
 
 		// Build human-readable result

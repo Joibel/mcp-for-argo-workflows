@@ -59,7 +59,7 @@ func LintClusterWorkflowTemplateHandler(client argo.ClientInterface) func(contex
 		}
 
 		// Validate that the manifest is a ClusterWorkflowTemplate
-		if cwft.Kind != "" && cwft.Kind != "ClusterWorkflowTemplate" {
+		if cwft.Kind != "" && cwft.Kind != KindClusterWorkflowTemplate {
 			return nil, nil, fmt.Errorf("manifest must be a ClusterWorkflowTemplate, got %q", cwft.Kind)
 		}
 
