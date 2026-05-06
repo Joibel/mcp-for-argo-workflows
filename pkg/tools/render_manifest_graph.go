@@ -24,6 +24,25 @@ const (
 	KindCronWorkflow = "CronWorkflow"
 )
 
+// Template type constants for the kind of work a wfv1.Template performs.
+const (
+	templateTypeContainer = "container"
+	templateTypeScript    = "script"
+	templateTypeResource  = "resource"
+	templateTypeSuspend   = "suspend"
+	templateTypeHTTP      = "http"
+	templateTypePlugin    = "plugin"
+	templateTypeDAG       = "dag"
+	templateTypeSteps     = "steps"
+	templateTypeUnknown   = "unknown"
+)
+
+// Manifest graph node-type constants.
+const (
+	nodeTypeDAGTask = "dag-task"
+	nodeTypeStep    = "step"
+)
+
 // RenderManifestGraphInput defines the input parameters for the render_manifest_graph tool.
 type RenderManifestGraphInput struct {
 	// Manifest is the workflow YAML manifest to render.
@@ -250,7 +269,7 @@ func buildGraphFromSpec(spec *wfv1.WorkflowSpec) (map[string]*manifestNode, erro
 			node := &manifestNode{
 				Name:         task.Name,
 				TemplateName: task.Template,
-				Type:         "dag-task",
+				Type:         nodeTypeDAGTask,
 				Dependencies: task.Dependencies,
 				When:         task.When,
 				WithItems:    len(task.WithItems) > 0,
@@ -268,7 +287,7 @@ func buildGraphFromSpec(spec *wfv1.WorkflowSpec) (map[string]*manifestNode, erro
 				node := &manifestNode{
 					Name:         step.Name,
 					TemplateName: step.Template,
-					Type:         "step",
+					Type:         nodeTypeStep,
 					Dependencies: prevGroupNodes, // Each step depends on all steps in previous group
 					When:         step.When,
 					WithItems:    len(step.WithItems) > 0,
@@ -296,23 +315,23 @@ func buildGraphFromSpec(spec *wfv1.WorkflowSpec) (map[string]*manifestNode, erro
 func getTemplateType(tmpl *wfv1.Template) string {
 	switch {
 	case tmpl.Container != nil:
-		return "container"
+		return templateTypeContainer
 	case tmpl.Script != nil:
-		return "script"
+		return templateTypeScript
 	case tmpl.Resource != nil:
-		return "resource"
+		return templateTypeResource
 	case tmpl.Suspend != nil:
-		return "suspend"
+		return templateTypeSuspend
 	case tmpl.HTTP != nil:
-		return "http"
+		return templateTypeHTTP
 	case tmpl.Plugin != nil:
-		return "plugin"
+		return templateTypePlugin
 	case tmpl.DAG != nil:
-		return "dag"
+		return templateTypeDAG
 	case len(tmpl.Steps) > 0:
-		return "steps"
+		return templateTypeSteps
 	default:
-		return "unknown"
+		return templateTypeUnknown
 	}
 }
 

@@ -183,7 +183,7 @@ func WaitWorkflowHandler(client argo.ClientInterface) func(context.Context, *mcp
 				output.Duration = formatDuration(duration)
 			}
 		} else {
-			output.Phase = "Unknown"
+			output.Phase = PhaseUnknown
 			output.Message = "No workflow events received"
 		}
 

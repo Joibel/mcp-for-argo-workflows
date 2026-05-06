@@ -64,7 +64,7 @@ func LintWorkflowHandler(client argo.ClientInterface) func(context.Context, *mcp
 		}
 
 		// Validate that the manifest is a Workflow
-		if wf.Kind != "" && wf.Kind != "Workflow" {
+		if wf.Kind != "" && wf.Kind != KindWorkflow {
 			return nil, nil, fmt.Errorf("manifest must be a Workflow, got %q", wf.Kind)
 		}
 

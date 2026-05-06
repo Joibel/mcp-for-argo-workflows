@@ -6,6 +6,9 @@ import (
 	"strconv"
 )
 
+// defaultNamespace is the namespace assumed when none is configured.
+const defaultNamespace = "default"
+
 // Config holds the configuration for connecting to Argo Workflows.
 type Config struct {
 	// ArgoServer is the Argo Server host:port (e.g., "localhost:2746").
@@ -58,7 +61,7 @@ func NewConfigFromEnv() *Config {
 		secure, err := strconv.ParseBool(secureStr)
 		if err != nil {
 			slog.Warn("invalid ARGO_SECURE value, using default",
-				"value", strconv.Quote(secureStr), "default", true)
+				"value", strconv.Quote(secureStr), "fallback", true)
 		} else {
 			config.Secure = secure
 		}
@@ -69,7 +72,7 @@ func NewConfigFromEnv() *Config {
 		skipVerify, err := strconv.ParseBool(skipVerifyStr)
 		if err != nil {
 			slog.Warn("invalid ARGO_INSECURE_SKIP_VERIFY value, using default",
-				"value", strconv.Quote(skipVerifyStr), "default", false)
+				"value", strconv.Quote(skipVerifyStr), "fallback", false)
 		} else {
 			config.InsecureSkipVerify = skipVerify
 		}
@@ -80,7 +83,7 @@ func NewConfigFromEnv() *Config {
 		http1, err := strconv.ParseBool(http1Str)
 		if err != nil {
 			slog.Warn("invalid ARGO_HTTP1 value, using default",
-				"value", strconv.Quote(http1Str), "default", false)
+				"value", strconv.Quote(http1Str), "fallback", false)
 		} else {
 			config.HTTP1 = http1
 		}
@@ -88,7 +91,7 @@ func NewConfigFromEnv() *Config {
 
 	// Default namespace if not set
 	if config.Namespace == "" {
-		config.Namespace = "default"
+		config.Namespace = defaultNamespace
 	}
 
 	return config

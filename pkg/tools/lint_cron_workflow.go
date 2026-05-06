@@ -63,7 +63,7 @@ func LintCronWorkflowHandler(client argo.ClientInterface) func(context.Context, 
 		}
 
 		// Validate that the manifest is a CronWorkflow
-		if cw.Kind != "" && cw.Kind != "CronWorkflow" {
+		if cw.Kind != "" && cw.Kind != KindCronWorkflow {
 			return nil, nil, fmt.Errorf("manifest must be a CronWorkflow, got %q", cw.Kind)
 		}
 

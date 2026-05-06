@@ -25,6 +25,20 @@ const (
 	FormatSVG = "svg"
 )
 
+// CSS class names that mirror wfv1 node phases for graph styling.
+const (
+	nodeStatusSucceeded = "succeeded"
+	nodeStatusFailed    = "failed"
+	nodeStatusRunning   = "running"
+	nodeStatusPending   = "pending"
+	nodeStatusError     = "error"
+	nodeStatusSkipped   = "skipped"
+	nodeStatusOmitted   = "omitted"
+)
+
+// nodeColorDefault is the fallback DOT colour for unrecognised or pending phases.
+const nodeColorDefault = "#9ca3af"
+
 // RenderWorkflowGraphInput defines the input parameters for the render_workflow_graph tool.
 type RenderWorkflowGraphInput struct {
 	// IncludeStatus indicates whether to include node execution status with colors.
@@ -417,21 +431,21 @@ func makeSafeID(id string) string {
 func getNodeClassName(phase wfv1.NodePhase) string {
 	switch phase {
 	case wfv1.NodeSucceeded:
-		return "succeeded"
+		return nodeStatusSucceeded
 	case wfv1.NodeFailed:
-		return "failed"
+		return nodeStatusFailed
 	case wfv1.NodeRunning:
-		return "running"
+		return nodeStatusRunning
 	case wfv1.NodePending:
-		return "pending"
+		return nodeStatusPending
 	case wfv1.NodeError:
-		return "error"
+		return nodeStatusError
 	case wfv1.NodeSkipped:
-		return "skipped"
+		return nodeStatusSkipped
 	case wfv1.NodeOmitted:
-		return "omitted"
+		return nodeStatusOmitted
 	default:
-		return "pending"
+		return nodeStatusPending
 	}
 }
 
@@ -467,7 +481,7 @@ func getNodeColor(phase wfv1.NodePhase) string {
 	case wfv1.NodeRunning:
 		return "#3b82f6"
 	case wfv1.NodePending:
-		return "#9ca3af"
+		return nodeColorDefault
 	case wfv1.NodeError:
 		return "#dc2626"
 	case wfv1.NodeSkipped:
@@ -475,6 +489,6 @@ func getNodeColor(phase wfv1.NodePhase) string {
 	case wfv1.NodeOmitted:
 		return "#e5e7eb"
 	default:
-		return "#9ca3af"
+		return nodeColorDefault
 	}
 }

@@ -74,7 +74,7 @@ func CreateCronWorkflowHandler(client argo.ClientInterface) func(context.Context
 		}
 
 		// Validate that the manifest is a CronWorkflow
-		if cronWf.Kind != "" && cronWf.Kind != "CronWorkflow" {
+		if cronWf.Kind != "" && cronWf.Kind != KindCronWorkflow {
 			return nil, nil, fmt.Errorf("manifest kind must be CronWorkflow, got %q", cronWf.Kind)
 		}
 

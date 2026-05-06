@@ -214,7 +214,7 @@ func WatchWorkflowHandler(client argo.ClientInterface) func(context.Context, *mc
 				output.Duration = formatDuration(duration)
 			}
 		} else {
-			output.Phase = "Unknown"
+			output.Phase = PhaseUnknown
 			output.Message = "No workflow events received"
 		}
 

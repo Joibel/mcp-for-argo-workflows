@@ -20,6 +20,9 @@ const (
 
 	// maxLogBytes is the maximum size of logs to return (1 MiB).
 	maxLogBytes = 1 << 20
+
+	// containerMain is the conventional Argo step container name.
+	containerMain = "main"
 )
 
 // LogsWorkflowInput defines the input parameters for the logs_workflow tool.
@@ -99,7 +102,7 @@ func LogsWorkflowHandler(client argo.ClientInterface) func(context.Context, *mcp
 		// init (setup), wait (wait for completion), main (actual workload)
 		container := input.Container
 		if container == "" {
-			container = "main"
+			container = containerMain
 		}
 		logOptions := &corev1.PodLogOptions{
 			TailLines: &tailLines,
